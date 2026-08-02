@@ -1,0 +1,34 @@
+.env
+.env.*
+.env.example
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Claude Code / agent tooling
+.claude/
+.claude.json
+.superpowers/
+CLAUDE.md
+CLAUDE.local.md
+
+# Graphify knowledge graph output
+graphify-out/
+graph-out/
+
+# Report outputs (tex build artifacts, docx, txt reports)
+*.aux
+*.log
+*.toc
+report*.docx
+report*.txt
+report_*.docx
+report_*.txt
+
+# Project docs (specs/plans) - kept local, not pushed
+docs/
+
+# Tests - kept local, not pushed
+tests/
