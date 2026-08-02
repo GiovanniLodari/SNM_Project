@@ -5,3 +5,7 @@ infomap
 python-igraph
 leidenalg
 matplotlib
+ddgs
+fastapi
+uvicorn[standard]
+jinja2
