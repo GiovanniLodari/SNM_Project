@@ -327,3 +327,71 @@ def record_collection_run(
         (run_id,) = cur.fetchone()
     conn.commit()
     return run_id
+
+
+def get_or_create_instance_id(conn: psycopg2.extensions.connection, domain: str) -> int:
+    """Id dell'istanza per domain, creandola con active_users NULL se non
+    esiste già (istanza scoperta da una relazione follow, non da topic
+    discovery: non sovrascrive active_users di un'istanza già nota)."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO instances (domain) VALUES (%s)
+            ON CONFLICT (domain) DO UPDATE SET domain = EXCLUDED.domain
+            RETURNING id
+            """,
+            (domain,),
+        )
+        (instance_id,) = cur.fetchone()
+    conn.commit()
+    return instance_id
+
+
+def insert_follow(
+    conn: psycopg2.extensions.connection, follower_account_id: int, followed_account_id: int
+) -> None:
+    """Registra l'arco 'follower segue followed' (idempotente)."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO follows (follower_account_id, followed_account_id) VALUES (%s, %s)
+            ON CONFLICT (follower_account_id, followed_account_id) DO NOTHING
+            """,
+            (follower_account_id, followed_account_id),
+        )
+    conn.commit()
+
+
+def list_accounts_for_follow_crawl(conn: psycopg2.extensions.connection) -> list[tuple]:
+    """Account con followers e/o following non ancora scaricati, con l'istanza
+    di provenienza e quali direzioni mancano. Righe: (account_id, mastodon_id,
+    domain, need_followers, need_following)."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT a.id, a.mastodon_id, i.domain,
+                   a.followers_crawled_at IS NULL, a.following_crawled_at IS NULL
+            FROM accounts a JOIN instances i ON i.id = a.instance_id
+            WHERE a.followers_crawled_at IS NULL OR a.following_crawled_at IS NULL
+            ORDER BY i.domain, a.id
+            """
+        )
+        return cur.fetchall()
+
+
+def mark_followers_crawled(conn: psycopg2.extensions.connection, account_id: int) -> None:
+    """Marca l'account come processato per la direzione followers."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE accounts SET followers_crawled_at = now() WHERE id = %s", (account_id,)
+        )
+    conn.commit()
+
+
+def mark_following_crawled(conn: psycopg2.extensions.connection, account_id: int) -> None:
+    """Marca l'account come processato per la direzione following."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE accounts SET following_crawled_at = now() WHERE id = %s", (account_id,)
+        )
+    conn.commit()

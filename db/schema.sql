@@ -103,3 +103,18 @@ CREATE TABLE IF NOT EXISTS collection_runs (
     started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     finished_at TIMESTAMPTZ
 );
+
+-- Marcatori crawl relazioni follow (fase densificazione grafo): NULL = non
+-- ancora scaricato. Colonne separate perché followers e following sono due
+-- chiamate API indipendenti, resumabili singolarmente.
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS followers_crawled_at TIMESTAMPTZ;
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS following_crawled_at TIMESTAMPTZ;
+
+-- Arco 'follower segue followed', scoperto dal crawler di relazioni follow.
+-- Rete sociale statica, distinta dagli archi di diffusione (reblogs/statuses).
+CREATE TABLE IF NOT EXISTS follows (
+    follower_account_id INTEGER NOT NULL REFERENCES accounts(id),
+    followed_account_id INTEGER NOT NULL REFERENCES accounts(id),
+    fetched_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (follower_account_id, followed_account_id)
+);
