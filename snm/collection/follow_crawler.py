@@ -92,3 +92,79 @@ def crawl_account_relations(
         saved += _crawl_direction(conn, domain, token, account_id, mastodon_id, "following")
         mark_following_crawled(conn, account_id)
     return saved
+
+
+def _process_domain(
+    database_url: str, domain: str, rows: list[tuple], tracker: ProgressTracker | None = None,
+) -> None:
+    """Worker per istanza: connessione propria, circuit breaker, errori non
+    bloccanti. rows: (account_id, mastodon_id, domain, need_followers, need_following)."""
+    conn = get_connection(database_url)
+    token = get_optional_token(domain)
+
+    done = saved = consecutive_errors = 0
+    try:
+        for account_id, mastodon_id, _, need_followers, need_following in rows:
+            try:
+                saved += crawl_account_relations(
+                    conn, domain, token, account_id, mastodon_id, need_followers, need_following,
+                )
+                done += 1
+                consecutive_errors = 0
+            except requests.exceptions.RequestException as exc:
+                consecutive_errors += 1
+                logger.warning("Account %s su %s: errore, salto: %s", mastodon_id, domain, exc)
+                if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
+                    logger.warning(
+                        "Istanza %s: %d errori consecutivi, abbandono per questo run",
+                        domain, consecutive_errors,
+                    )
+                    break
+            finally:
+                if tracker:
+                    tracker.advance(domain)
+        if tracker:
+            remaining = len(rows) - done - consecutive_errors
+            if remaining > 0:
+                tracker.advance(domain, remaining)
+        logger.info("Istanza %s: %d/%d account, %d relazioni salvate", domain, done, len(rows), saved)
+    finally:
+        conn.close()
+
+
+def run_follow_crawl(database_url: str, max_workers: int = 24) -> None:
+    """Raggruppa i target per istanza e li lavora in parallelo (rate limit
+    Mastodon è per server: istanze diverse non si pestano)."""
+    conn = get_connection(database_url)
+    init_schema(conn)
+    rows = list_accounts_for_follow_crawl(conn)
+    conn.close()
+
+    by_domain: dict[str, list[tuple]] = defaultdict(list)
+    for row in rows:
+        by_domain[row[2]].append(row)
+
+    logger.info("Da scaricare: %d account su %d istanze", len(rows), len(by_domain))
+
+    tracker = ProgressTracker()
+    for domain, domain_rows in by_domain.items():
+        tracker.register(domain, len(domain_rows))
+    tracker.start()
+
+    try:
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            futures = [
+                pool.submit(_process_domain, database_url, domain, domain_rows, tracker)
+                for domain, domain_rows in by_domain.items()
+            ]
+            for future in futures:
+                future.result()
+    finally:
+        tracker.stop()
+
+
+if __name__ == "__main__":
+    import os
+
+    logging.basicConfig(level=logging.INFO)
+    run_follow_crawl(os.environ["DATABASE_URL"])
