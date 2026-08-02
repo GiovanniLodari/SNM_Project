@@ -17,9 +17,9 @@ from pathlib import Path
 import networkx as nx
 from dotenv import load_dotenv
 
-from cd_report_figures import run_leiden
-from graph_builder import OUT_DIR, _diffusion_view, build_user_graph, export_gexf
-from storage import get_connection
+from snm.graph.cd_report_figures import run_leiden
+from snm.graph.builder import OUT_DIR, _diffusion_view, build_user_graph, export_gexf
+from snm.storage.db import get_connection
 
 load_dotenv()
 logger = logging.getLogger(__name__)

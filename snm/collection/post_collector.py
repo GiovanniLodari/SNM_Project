@@ -1,6 +1,6 @@
 from urllib.parse import quote
 
-from http_client import rate_limited_get
+from snm.collection.http_client import rate_limited_get
 
 ALLOWED_LANGUAGES = {"en", "it", "es", "ro"}
 

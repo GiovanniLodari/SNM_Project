@@ -4,14 +4,14 @@ from concurrent.futures import ThreadPoolExecutor
 
 import requests
 
-from credentials import check_tokens, get_optional_token
-from hashtag_discovery import discover_hashtags
-from instance_blacklist import load_blacklist
-from instance_discovery import find_popular_instances
-from instance_registration import register_on_instance
-from post_collector import collect_posts
-from progress import ProgressTracker
-from storage import (
+from snm.config import check_tokens, get_optional_token
+from snm.collection.hashtag_discovery import discover_hashtags
+from snm.collection.instance_blacklist import load_blacklist
+from snm.collection.instance_discovery import find_popular_instances
+from snm.collection.instance_registration import register_on_instance
+from snm.collection.post_collector import collect_posts
+from snm.collection.progress import ProgressTracker
+from snm.storage.db import (
     get_connection,
     get_since_cursor,
     init_schema,
@@ -21,7 +21,7 @@ from storage import (
     upsert_status,
     upsert_topic,
 )
-from topics import load_topics
+from snm.collection.topics import load_topics
 
 logger = logging.getLogger(__name__)
 

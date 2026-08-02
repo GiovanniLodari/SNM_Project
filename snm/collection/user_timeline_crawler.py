@@ -19,11 +19,11 @@ from concurrent.futures import ThreadPoolExecutor
 
 import requests
 
-from credentials import get_optional_token
-from http_client import rate_limited_get
-from post_collector import ALLOWED_LANGUAGES
-from progress import ProgressTracker
-from storage import (
+from snm.config import get_optional_token
+from snm.collection.http_client import rate_limited_get
+from snm.collection.post_collector import ALLOWED_LANGUAGES
+from snm.collection.progress import ProgressTracker
+from snm.storage.db import (
     get_connection,
     init_schema,
     known_hashtags,

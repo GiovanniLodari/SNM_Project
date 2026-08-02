@@ -23,20 +23,20 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from dotenv import load_dotenv
 
-from compare_communities import (
+from snm.graph.compare_communities import (
     codelength_of,
     flow_containment,
     modularity_of,
     normalized_mutual_info,
     run_louvain,
 )
-from graph_builder import _diffusion_view, build_user_graph, detect_communities_infomap
-from storage import get_connection
+from snm.graph.builder import _diffusion_view, build_user_graph, detect_communities_infomap
+from snm.storage.db import get_connection
 
 load_dotenv()
 logger = logging.getLogger(__name__)
 
-FIG_DIR = Path(__file__).parent / "docs" / "figures"
+FIG_DIR = Path(__file__).parent.parent.parent / "docs" / "figures"
 COLORS = {"Louvain": "#4363d8", "Leiden": "#f58231", "Infomap": "#3cb44b"}
 
 

@@ -18,7 +18,7 @@ from pathlib import Path
 import networkx as nx
 from pyvis.network import Network
 
-OUT_DIR = Path(__file__).parent / "graph-out"
+OUT_DIR = Path(__file__).parent.parent.parent / "graph-out"
 
 PALETTE = [
     "#e6194b", "#3cb44b", "#ffe119", "#4363d8", "#f58231", "#911eb4",

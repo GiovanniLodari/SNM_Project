@@ -1,21 +1,24 @@
-# export_leiden_html.py
-"""Visualizzazione HTML (WebGL, Cosmograph) dei due grafi con community Leiden
-prodotti da export_leiden_graph.py. A differenza di visualize_full.py, la
-simulazione force-directed si ferma da sola dopo pochi secondi (graph.pause())
-invece di girare all'infinito: il layout si assesta e resta leggero per la GPU,
-niente animazione continua in background.
+# visualize_full.py
+"""Visualizzazione HTML del grafo COMPLETO su GPU (WebGL, libreria Cosmograph).
 
-Legge graph-out/user_graph_leiden_{full,filtered}.gexf, scrive
-graph-out/leiden_{full,filtered}.html.
+A differenza di visualize.py (pyvis, CPU, max ~1k nodi), qui il layout
+force-directed gira sulla GPU del browser: 60k nodi e centinaia di migliaia di
+archi sono gestibili. Richiede connessione internet all'apertura (libreria da CDN).
 
-Uso: python export_leiden_html.py
+Uso:
+    python visualize_full.py                 # grafo completo
+    python visualize_full.py --no-mention    # solo boost+reply (piu' leggibile:
+                                             # le mention sono l'87% degli archi)
+
+Legge graph-out/user_graph.gexf, scrive graph-out/full_graph.html.
 """
+import argparse
 import json
 from pathlib import Path
 
 import networkx as nx
 
-from graph_builder import OUT_DIR
+OUT_DIR = Path(__file__).parent.parent.parent / "graph-out"
 
 PALETTE = [
     "#e6194b", "#3cb44b", "#ffe119", "#4363d8", "#f58231", "#911eb4",
@@ -23,15 +26,11 @@ PALETTE = [
     "#9a6324", "#fffac8", "#800000", "#aaffc3", "#808000", "#ffd8b1",
 ]
 
-# la simulazione si ferma da sola dopo questo tempo (ms): layout leggero per
-# la GPU dopo l'assestamento iniziale, niente animazione perenne.
-SIM_STOP_MS = 6000
-
 TEMPLATE = """<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
-<title>SNM - {title}</title>
+<title>SNM - grafo diffusione</title>
 <style>
   html, body {{ margin: 0; height: 100%; background: #111; overflow: hidden; }}
   canvas {{ width: 100vw; height: 100vh; display: block; }}
@@ -61,28 +60,32 @@ const graph = new Graph(document.getElementById("graph"), {{
     onClick: n => {{
       info.textContent = n
         ? `${{n.acct}} — community ${{n.community}}, follower ${{n.followers}}`
-        : "{n_nodes} nodi, {n_links} archi — layout fermo";
+        : "{n_nodes} nodi, {n_links} archi";
     }},
   }},
 }});
 graph.setData(nodes, links);
 info.textContent = "{n_nodes} nodi, {n_links} archi — rotella: zoom, trascina: pan, click su nodo: dettagli";
-
-// ferma la simulazione dopo l'assestamento: niente animazione GPU continua
-setTimeout(() => {{
-  graph.pause();
-  info.textContent += " (layout fermo)";
-}}, {sim_stop_ms});
 </script>
 </body>
 </html>
 """
 
 
-def render(gexf_path: Path, out_path: Path, title: str) -> None:
-    g = nx.read_gexf(gexf_path)
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--no-mention", action="store_true",
+                        help="escludi archi solo-mention (tiene boost+reply)")
+    args = parser.parse_args()
 
-    links = [{"source": u, "target": v} for u, v in g.edges()]
+    g = nx.read_gexf(OUT_DIR / "user_graph.gexf")
+
+    links = []
+    for u, v, d in g.edges(data=True):
+        if args.no_mention and d.get("w_boost", 0) == 0 and d.get("w_reply", 0) == 0:
+            continue
+        links.append({"source": u, "target": v})
+
     used = {l["source"] for l in links} | {l["target"] for l in links}
     nodes = []
     for n, d in g.nodes(data=True):
@@ -95,24 +98,17 @@ def render(gexf_path: Path, out_path: Path, title: str) -> None:
             "acct": d.get("acct", str(n)),
             "community": comm,
             "followers": d.get("followers", 0),
-            "color": PALETTE[comm % len(PALETTE)] if isinstance(comm, int) and comm >= 0 else "#888888",
+            "color": PALETTE[comm % len(PALETTE)] if isinstance(comm, int) else "#888888",
             "size": 2 + degree ** 0.5,
         })
 
     html = TEMPLATE.format(
-        title=title, n_nodes=len(nodes), n_links=len(links),
+        n_nodes=len(nodes), n_links=len(links),
         nodes_json=json.dumps(nodes), links_json=json.dumps(links),
-        sim_stop_ms=SIM_STOP_MS,
     )
-    out_path.write_text(html, encoding="utf-8")
-    print(f"{len(nodes)} nodi, {len(links)} archi -> {out_path}")
-
-
-def main() -> None:
-    render(OUT_DIR / "user_graph_leiden_full.gexf", OUT_DIR / "leiden_full.html",
-           "grafo diffusione (Leiden, tutti i nodi)")
-    render(OUT_DIR / "user_graph_leiden_filtered.gexf", OUT_DIR / "leiden_filtered.html",
-           "grafo diffusione (Leiden, escluse catene <=2)")
+    out = OUT_DIR / ("diffusion_graph.html" if args.no_mention else "full_graph.html")
+    out.write_text(html, encoding="utf-8")
+    print(f"{len(nodes)} nodi, {len(links)} archi -> {out}")
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-from storage import get_connection
+from snm.storage.db import get_connection
 
 CHAIN_QUERY = """
     WITH RECURSIVE chain AS (

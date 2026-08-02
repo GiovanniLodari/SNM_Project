@@ -3,7 +3,7 @@
 chiuse/solo invito. Un dominio per riga, commento '#' con il motivo."""
 from pathlib import Path
 
-BLACKLIST_PATH = Path(__file__).parent / "instance_blacklist.txt"
+BLACKLIST_PATH = Path(__file__).parent.parent.parent / "instance_blacklist.txt"
 
 
 def load_blacklist(path: Path = BLACKLIST_PATH) -> set[str]:

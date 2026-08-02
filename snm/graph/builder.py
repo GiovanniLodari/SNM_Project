@@ -20,13 +20,13 @@ import networkx as nx
 from dotenv import load_dotenv
 from infomap import Infomap
 
-from storage import get_connection
+from snm.storage.db import get_connection
 
 logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-OUT_DIR = Path(__file__).parent / "graph-out"
+OUT_DIR = Path(__file__).parent.parent.parent / "graph-out"
 # Soglia sul RAPPORTO tra flow-containment osservato e atteso per puro caso
 # (stessa logica del termine nullo della modularita' — Sigma (dimensione
 # community / N)^2 — generalizzata a una partizione che non ottimizza la

@@ -19,7 +19,7 @@ import os
 import re
 from pathlib import Path
 
-from storage import get_connection
+from snm.storage.db import get_connection
 
 TAG_RE = re.compile(r"<[^>]+>")
 

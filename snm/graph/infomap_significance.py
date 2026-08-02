@@ -27,8 +27,8 @@ import networkx as nx
 from dotenv import load_dotenv
 from infomap import Infomap
 
-from graph_builder import build_user_graph
-from storage import get_connection
+from snm.graph.builder import build_user_graph
+from snm.storage.db import get_connection
 
 load_dotenv()
 logger = logging.getLogger(__name__)

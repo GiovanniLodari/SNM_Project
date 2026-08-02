@@ -4,7 +4,7 @@ import psycopg2
 import psycopg2.extensions
 import psycopg2.extras
 
-SCHEMA_PATH = Path(__file__).parent / "db" / "schema.sql"
+SCHEMA_PATH = Path(__file__).parent.parent.parent / "db" / "schema.sql"
 
 
 def get_connection(database_url: str) -> psycopg2.extensions.connection:

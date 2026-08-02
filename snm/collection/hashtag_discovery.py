@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 
-from http_client import rate_limited_get
+from snm.collection.http_client import rate_limited_get
 
 logger = logging.getLogger(__name__)
 

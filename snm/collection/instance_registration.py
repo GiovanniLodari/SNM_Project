@@ -16,13 +16,13 @@ from pathlib import Path
 
 import requests
 
-from credentials import normalize_domain
-from instance_blacklist import add_to_blacklist, load_blacklist
+from snm.config import normalize_domain
+from snm.collection.instance_blacklist import add_to_blacklist, load_blacklist
 
 EMAIL = "giovanni.lodari@gmail.com"
 USERNAME = "snm_project"
 REASON = "Progetto SNM"
-ENV_PATH = Path(__file__).parent / ".env"
+ENV_PATH = Path(__file__).parent.parent.parent / ".env"
 TIMEOUT = 30
 
 

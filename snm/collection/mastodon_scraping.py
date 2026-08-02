@@ -1,4 +1,4 @@
-from instance_discovery import find_popular_instances
+from snm.collection.instance_discovery import find_popular_instances
 
 
 def print_popular_instances(topic: str, limit: int = 20) -> None:

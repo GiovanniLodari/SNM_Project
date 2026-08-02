@@ -14,12 +14,12 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from dotenv import load_dotenv
 
-from post_collector import ALLOWED_LANGUAGES
-from storage import get_connection
+from snm.collection.post_collector import ALLOWED_LANGUAGES
+from snm.storage.db import get_connection
 
 load_dotenv()
 
-FIG_DIR = Path(__file__).parent / "docs" / "figures"
+FIG_DIR = Path(__file__).parent.parent.parent / "docs" / "figures"
 
 
 def plot_top_languages(conn, out_path: Path, top_n: int = 15) -> None:
