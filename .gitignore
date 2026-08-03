@@ -18,7 +18,15 @@ CLAUDE.local.md
 graphify-out/
 graph-out/
 
-# Fast-DetectGPT (external tool, fase 1 AI detection) - non tracciato
+# Vecchia cartella fase_1_beta (analisi preliminare di un collega) - non
+# esiste piu' sul disco, tolta dal tracking (era rimasta solo nell'indice git)
+fase_1_beta/
+
+# Fast-DetectGPT (external tool, fase 1 AI detection) - non tracciato.
+# E' un repo git annidato (ha il proprio .git) - un file al suo interno non
+# si puo' "detracciare" dal repo esterno senza diventare un embedded
+# repo/submodule. Il risultato finale (ai_scores.jsonl) va quindi copiato
+# in data/ (fuori da questo repo annidato) per essere tracciato normalmente.
 fast-detect-gpt/
 
 # Copia di lavoro dei codici del "fisso" (secondo PC, esegue l'AI detection
@@ -61,6 +69,6 @@ fact_check_report*.csv
 # ai_scores.jsonl, es. per passare al fisso i post ancora da processare)
 post_texts_remaining.jsonl
 
-# Input locale per le pipeline IA/fact-check (prodotto da export_texts.py) -
-# non serve condividerlo con i colleghi, quello passa dall'export/import DB
-/post_texts.jsonl
+# post_texts.jsonl (id, lang, text, created_at) e' tracciato: senza,
+# ai_scores.jsonl sarebbe solo id->probabilita' senza testo, illeggibile
+# per i colleghi senza un DB importato e collegato
