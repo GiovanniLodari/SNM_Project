@@ -118,3 +118,32 @@ CREATE TABLE IF NOT EXISTS follows (
     fetched_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (follower_account_id, followed_account_id)
 );
+
+-- Indice per query 'chi segue X' (letture dal graph builder, fase diffusione).
+CREATE INDEX IF NOT EXISTS idx_follows_followed ON follows(followed_account_id);
+
+-- Fase 1: probabilita' di generazione IA per post (Fast-DetectGPT). Un run
+-- successivo con lo stesso status sovrascrive (ON CONFLICT), non accumula:
+-- vale l'ultima esecuzione, il modello usato resta tracciato per confronto.
+CREATE TABLE IF NOT EXISTS ai_labels (
+    status_id INTEGER PRIMARY KEY REFERENCES statuses(id),
+    ai_probability REAL NOT NULL,
+    criterion REAL,
+    model TEXT NOT NULL,
+    detected_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Fase 2: dettaglio fact-checking (LLM via Ollama Cloud + ricerca web
+-- gratuita: ddgs, Wikipedia, opzionale Google Fact Check Tools). Scala di
+-- statuses.veracity: 0=vero, 1=perlopiu' vero, 2=misto/incerto,
+-- 3=perlopiu' falso, 4=falso, 5=non verificabile (evidenza insufficiente,
+-- distinto da NULL = non ancora processato). Un run successivo sullo stesso
+-- status sovrascrive (ON CONFLICT), non accumula.
+CREATE TABLE IF NOT EXISTS fact_checks (
+    status_id INTEGER PRIMARY KEY REFERENCES statuses(id),
+    verdict TEXT NOT NULL,
+    reasoning TEXT,
+    evidence JSONB,
+    model TEXT NOT NULL,
+    checked_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

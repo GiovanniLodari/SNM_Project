@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Fact-Check - SNM Project{% endblock %}
+{% block content %}
+<h1>Risultati Fact-Check</h1>
+{% if eligible > 0 %}
+<p>{{ done }} / {{ eligible }} post processati ({{ (100 * done / eligible) | round(1) }}%)</p>
+{% endif %}
+{% if done > 0 %}
+<h2>Verdetti</h2>
+<table>
+  <tbody>
+    {% for verdict, count in verdicts.items() %}
+    <tr><td>{{ verdict }}</td><td>{{ count }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>Post analizzati</h2>
+<form method="get" class="filters">
+  <label>Lingua
+    <span style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+      {% for l in available_langs %}
+      <label style="display: inline-flex; align-items: center; gap: 0.25rem; font-weight: normal;">
+        <input type="checkbox" name="lang" value="{{ l }}" {% if l in selected_langs %}checked{% endif %}>
+        {{ l }}
+      </label>
+      {% endfor %}
+    </span>
+  </label>
+  <label>Verdetto
+    <span style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+      {% for v in verdict_options %}
+      <label style="display: inline-flex; align-items: center; gap: 0.25rem; font-weight: normal;">
+        <input type="checkbox" name="verdict" value="{{ v }}" {% if v in selected_verdicts %}checked{% endif %}>
+        {{ v }}
+      </label>
+      {% endfor %}
+    </span>
+  </label>
+  <button type="submit">Filtra</button>
+</form>
+{% if page_rows %}
+<table>
+  <thead><tr><th>id</th><th>verdetto</th><th>confidenza</th><th>motivazione</th></tr></thead>
+  <tbody>
+    {% for entry in page_rows %}
+    <tr>
+      <td><a href="/posts/{{ entry.post.id }}">{{ entry.post.id }}</a></td>
+      <td>{{ entry.row.verdict }}</td>
+      <td>{{ entry.row.confidence }}</td>
+      <td>{{ entry.row.reasoning }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<div class="pagination">
+{% macro filter_qs() %}{% for l in selected_langs %}lang={{ l | urlencode }}&{% endfor %}{% for v in selected_verdicts %}verdict={{ v | urlencode }}&{% endfor %}{% endmacro %}
+{% if page > 1 %}<a href="?{{ filter_qs() }}page={{ page - 1 }}">&laquo; precedente</a>{% endif %}
+<a href="?{{ filter_qs() }}page={{ page + 1 }}">successivo &raquo;</a>
+</div>
+{% else %}
+<p class="empty-state">Nessun post in questa pagina.</p>
+{% endif %}
+{% else %}
+<p class="empty-state">Nessun dato ancora disponibile.</p>
+{% endif %}
+{% endblock %}

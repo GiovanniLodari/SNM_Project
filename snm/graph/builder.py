@@ -12,6 +12,7 @@ epidemici mean-field.
 Uso: python graph_builder.py  (legge DATABASE_URL; scrive graph-out/)
 """
 import logging
+import math
 import os
 from collections import defaultdict
 from pathlib import Path
@@ -106,7 +107,7 @@ EDGE_QUERIES = {
 
 NODE_QUERY = """
     SELECT a.id, a.acct, a.bot,
-           COALESCE((a.raw->>'followers_count')::int, 0) AS followers,
+           COALESCE((a.raw->>'followers_count')::bigint, 0) AS followers,
            ai.domain
     FROM accounts a
     JOIN instances ai ON ai.id = a.instance_id
@@ -289,6 +290,79 @@ def compute_report(g: nx.DiGraph) -> dict:
     return report
 
 
+FOLLOW_QUERY = "SELECT follower_account_id, followed_account_id FROM follows"
+
+
+def build_combined_graph(conn) -> nx.DiGraph:
+    """Grafo utente->utente con follow aggiunto agli archi di interazione
+    (boost/reply/mention di build_user_graph). Il follow e' binario (+1 di
+    peso, la tabella follows non ha un conteggio) mentre le interazioni sono
+    conteggi che possono crescere molto: un arco toccato da entrambi i tipi
+    fonde i pesi in un unico arco (mai archi paralleli), con ogni componente
+    tracciata separatamente (w_boost/w_reply/w_mention/w_follow) oltre al
+    totale in weight. Va tenuto separato da build_user_graph perche' la
+    community detection/gate metodologico esistenti (compute_report,
+    z=109 calibrato in infomap_significance.py) sono validati sulla sola
+    vista di diffusione - aggiungere follow qui cambierebbe quei numeri
+    senza una nuova calibrazione."""
+    g = build_user_graph(conn)
+
+    with conn.cursor() as cur:
+        cur.execute(NODE_QUERY)
+        rows = cur.fetchall()
+    groups: dict[str, list[int]] = defaultdict(list)
+    for account_id, acct, _, _, domain in rows:
+        groups[_canon_acct(acct, domain)].append(account_id)
+    canon_id_of: dict[int, int] = {}
+    for members in groups.values():
+        rep = min(members)
+        for account_id in members:
+            canon_id_of[account_id] = rep
+
+    with conn.cursor() as cur:
+        cur.execute(FOLLOW_QUERY)
+        follow_edges = cur.fetchall()
+
+    for src, dst in follow_edges:
+        src = canon_id_of.get(src, src)
+        dst = canon_id_of.get(dst, dst)
+        if src == dst or not g.has_node(src) or not g.has_node(dst):
+            continue
+        if not g.has_edge(src, dst):
+            g.add_edge(src, dst, weight=0, w_boost=0, w_reply=0, w_mention=0, w_follow=0)
+        data = g[src][dst]
+        data.setdefault("w_follow", 0)
+        data["w_follow"] += 1
+        data["weight"] += 1
+
+    return g
+
+
+def normalize_log_weights(g: nx.DiGraph) -> None:
+    """Aggiunge 'weight_norm' (scala logaritmica, log1p(w)/log1p(max)) su
+    ogni arco. Scelta su tre alternative testate empiricamente
+    (2026-08-03): normalizzare per il massimo assoluto schiaccia il 99.9%
+    degli archi vicino a zero (un solo outlier domina, entropia 0.005 bit
+    su 10 bucket); clip a p99 perde l'ordinamento tra gli archi sopra la
+    soglia (entropia 0.428 bit); log-scale mantiene l'ordinamento completo
+    senza farsi dominare dall'outlier (entropia 0.760 bit) - il migliore
+    tra le normalizzazioni a scala globale confrontabile arco-per-arco.
+    (La normalizzazione per nodo, quota della forza uscente del sorgente,
+    ha entropia piu' alta - 1.494 bit - ma misura una cosa diversa: quota
+    di attenzione di un nodo, non forza assoluta del legame; utile in
+    futuro per modelli di diffusione/random-walk, non qui.)"""
+    weights = [d["weight"] for _, _, d in g.edges(data=True)]
+    if not weights:
+        return
+    log_max = math.log1p(max(weights))
+    if log_max == 0:
+        for _, _, d in g.edges(data=True):
+            d["weight_norm"] = 0.0
+        return
+    for _, _, d in g.edges(data=True):
+        d["weight_norm"] = math.log1p(d["weight"]) / log_max
+
+
 def export_gexf(g: nx.DiGraph, path: Path) -> None:
     """Export per Gephi. I timestamp diventano stringhe (gexf non li supporta)."""
     h = g.copy()
@@ -326,6 +400,26 @@ def main() -> None:
     out = OUT_DIR / "user_graph.gexf"
     export_gexf(g, out)
     logger.info("esportato %s", out)
+
+    logger.info("costruzione grafo combinato (+ follow)...")
+    conn = get_connection(os.environ["DATABASE_URL"])
+    combined = build_combined_graph(conn)
+    conn.close()
+    normalize_log_weights(combined)
+
+    n_follow = sum(1 for _, _, d in combined.edges(data=True) if d.get("w_follow", 0) > 0)
+    n_mixed = sum(
+        1 for _, _, d in combined.edges(data=True)
+        if sum(1 for t in ("w_boost", "w_reply", "w_mention", "w_follow") if d.get(t, 0) > 0) > 1
+    )
+    print("\n=== GRAFO COMBINATO (interazioni + follow) ===")
+    print(f"nodi:                 {combined.number_of_nodes()}")
+    print(f"archi:                {combined.number_of_edges()} (di cui follow: {n_follow})")
+    print(f"archi con piu' tipi fusi in un unico peso: {n_mixed}")
+
+    out_combined = OUT_DIR / "combined_graph.gexf"
+    export_gexf(combined, out_combined)
+    logger.info("esportato %s", out_combined)
 
 
 if __name__ == "__main__":

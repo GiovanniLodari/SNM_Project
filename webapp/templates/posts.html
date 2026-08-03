@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Post - SNM Project{% endblock %}
+{% block content %}
+<h1>Post</h1>
+<form method="get" class="filters">
+  <label>Lingua
+    <span style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+      {% for l in available_langs %}
+      <label style="display: inline-flex; align-items: center; gap: 0.25rem; font-weight: normal;">
+        <input type="checkbox" name="lang" value="{{ l }}" {% if l in selected_langs %}checked{% endif %}>
+        {{ l }}
+      </label>
+      {% endfor %}
+    </span>
+  </label>
+  <button type="submit">Filtra</button>
+</form>
+{% if posts %}
+<table>
+  <thead>
+    <tr><th>id</th><th>lingua</th><th>testo</th><th>account</th></tr>
+  </thead>
+  <tbody>
+    {% for post in posts %}
+    <tr>
+      <td><a href="/posts/{{ post.id }}">{{ post.id }}</a></td>
+      <td>{{ post.language }}</td>
+      <td>{{ post.content[:80] }}</td>
+      <td>{{ post.acct }}@{{ post.domain }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<div class="pagination">
+{% macro lang_qs() %}{% for l in selected_langs %}lang={{ l | urlencode }}&{% endfor %}{% endmacro %}
+{% if page > 1 %}<a href="?{{ lang_qs() }}page={{ page - 1 }}">&laquo; precedente</a>{% endif %}
+<a href="?{{ lang_qs() }}page={{ page + 1 }}">successivo &raquo;</a>
+</div>
+{% else %}
+<p class="empty-state">Nessun post ancora disponibile per questo filtro.</p>
+{% endif %}
+{% endblock %}

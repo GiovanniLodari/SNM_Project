@@ -18,6 +18,16 @@ CLAUDE.local.md
 graphify-out/
 graph-out/
 
+# Fast-DetectGPT (external tool, fase 1 AI detection) - non tracciato
+fast-detect-gpt/
+
+# Copia di lavoro dei codici del "fisso" (secondo PC, esegue l'AI detection
+# su GPU) - non tracciato, stesso motivo di fast-detect-gpt/
+fisso/
+
+# Modelli HuggingFace scaricati per checkworthiness (fase 2 fact-check) - non tracciato
+cache/
+
 # Report outputs (tex build artifacts, docx, txt reports)
 *.aux
 *.log
@@ -32,3 +42,25 @@ docs/
 
 # Tests - kept local, not pushed
 tests/
+
+# File PID e log del supervisore pipeline (webapp/jobs.py) - stato locale
+.pids/
+.logs/
+
+# Export/import DB per condivisione dati con colleghi - stato locale
+exports/
+imports/
+
+# Risultati AI detection / fact-check / checkworthiness - locali finche' non
+# validati (gate: si aggiungono al DB solo dopo revisione utente+colleghi)
+/ai_scores.jsonl
+checkworthy_scores.jsonl
+fact_check_report*.csv
+
+# File di consegna temporanei (rigenerati al bisogno da post_texts.jsonl +
+# ai_scores.jsonl, es. per passare al fisso i post ancora da processare)
+post_texts_remaining.jsonl
+
+# Input locale per le pipeline IA/fact-check (prodotto da export_texts.py) -
+# non serve condividerlo con i colleghi, quello passa dall'export/import DB
+/post_texts.jsonl

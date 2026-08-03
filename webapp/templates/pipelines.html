@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Pipeline - SNM Project{% endblock %}
+{% block content %}
+{% if jobs | selectattr('running') | list %}<meta http-equiv="refresh" content="5">{% endif %}
+<h1>Pipeline</h1>
+{% if msg %}<p class="empty-state">{{ msg }}</p>{% endif %}
+{% for job in jobs %}
+<div class="stat-tile" style="margin-bottom: 1rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <strong>{{ job.label }}</strong>
+    <span>
+      {% if job.running %}
+        <span style="color: #0ca30c;">&#9679;</span> in esecuzione
+      {% else %}
+        <span style="color: var(--text-muted);">&#9679;</span> fermo
+      {% endif %}
+    </span>
+  </div>
+  {% if job.description %}
+    <p class="sub" style="margin-top: 0.35rem;">{{ job.description }}</p>
+  {% endif %}
+
+  {% if job.running %}
+  <div class="meter-track">
+    {% if job.progress_pct is not none %}
+      <div class="meter-fill" style="width: {{ job.progress_pct }}%;"></div>
+    {% else %}
+      <div class="meter-fill indeterminate"></div>
+    {% endif %}
+  </div>
+  <div class="sub" style="margin-top: 0.3rem;">
+    {% if job.progress_pct is not none %}
+      {{ job.progress_done }} di {{ job.progress_total }} completato ({{ job.progress_pct }}%)
+    {% else %}
+      in corso...
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div style="margin-top: 0.75rem;">
+    {% if job.running %}
+      <form method="post" action="/pipelines/{{ job.name }}/stop" style="display: inline;">
+        <button type="submit">Ferma</button>
+      </form>
+    {% else %}
+      <form method="post" action="/pipelines/{{ job.name }}/start" style="display: inline;">
+        {% if job.takes_param %}
+          <input type="{{ job.param_type }}" name="param" placeholder="{{ job.takes_param }} (opzionale)">
+        {% endif %}
+        <button type="submit">Avvia</button>
+      </form>
+    {% endif %}
+  </div>
+
+  {% if job.log_lines %}
+  <details style="margin-top: 0.75rem;">
+    <summary style="cursor: pointer; color: var(--text-muted); font-size: 0.85rem;">Dettagli tecnici</summary>
+    <pre style="margin-top: 0.5rem; max-height: 12rem; overflow-y: auto; background: var(--plane); padding: 0.5rem; border-radius: 6px; font-size: 0.8rem;">{% for line in job.log_lines %}{{ line }}
+{% endfor %}</pre>
+  </details>
+  {% endif %}
+</div>
+{% endfor %}
+{% endblock %}

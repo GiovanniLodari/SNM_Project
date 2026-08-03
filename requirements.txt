@@ -7,5 +7,11 @@ leidenalg
 matplotlib
 ddgs
 fastapi
+starlette
+python-multipart
 uvicorn[standard]
 jinja2
+torch
+transformers
+networkx
+pyvis

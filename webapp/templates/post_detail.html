@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Post #{{ post.id if post else '?' }} - SNM Project{% endblock %}
+{% block content %}
+{% if post %}
+<h1>Post #{{ post.id }}</h1>
+<p><strong>Account:</strong> {{ post.acct }}@{{ post.domain }} {% if post.bot %}(bot dichiarato){% endif %}</p>
+<p><strong>Lingua:</strong> {{ post.language }}</p>
+<blockquote>{{ post.content }}</blockquote>
+
+<h2>AI detection</h2>
+{% if ai_score %}
+<p>Probabilita' IA: {{ ai_score.probability }} (modello {{ ai_score.model }})</p>
+{% else %}
+<p class="empty-state">Nessun dato ancora disponibile.</p>
+{% endif %}
+
+<h2>Fact-check</h2>
+{% if fact_check %}
+<p><strong>Verdetto:</strong> {{ fact_check.verdict }}</p>
+<p>{{ fact_check.reasoning }}</p>
+{% else %}
+<p class="empty-state">Nessun dato ancora disponibile.</p>
+{% endif %}
+{% else %}
+<p>Post non trovato.</p>
+{% endif %}
+{% endblock %}

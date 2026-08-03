@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - SNM Project{% endblock %}
+{% block content %}
+<h1>Stato pipeline</h1>
+<div class="stat-grid">
+  <div class="stat-tile">
+    <div class="label">Post raccolti</div>
+    <div class="value">{{ "{:,}".format(posts_total).replace(",", ".") }}</div>
+  </div>
+
+  <div class="stat-tile">
+    <div class="label">Etichettati IA (processati)</div>
+    {% if ai_eligible > 0 %}
+      {% set ai_pct = (100 * ai_done / ai_eligible) %}
+      <div class="value">{{ ai_pct | round(1) }}%</div>
+      <div class="sub">{{ "{:,}".format(ai_done).replace(",", ".") }} / {{ "{:,}".format(ai_eligible).replace(",", ".") }}</div>
+      <div class="meter-track"><div class="meter-fill" style="width: {{ ai_pct }}%"></div></div>
+    {% else %}
+      <div class="sub">nessun dato ancora disponibile</div>
+    {% endif %}
+  </div>
+
+  <div class="stat-tile">
+    <div class="label">Classificati come IA (soglia {{ ai_threshold }})</div>
+    {% if ai_done > 0 %}
+      {% set ai_class_pct = (100 * ai_classified / ai_done) %}
+      <div class="value">{{ "{:,}".format(ai_classified).replace(",", ".") }}</div>
+      <div class="sub">{{ ai_class_pct | round(1) }}% dei processati</div>
+    {% else %}
+      <div class="sub">nessun dato ancora disponibile</div>
+    {% endif %}
+  </div>
+
+  <div class="stat-tile">
+    <div class="label">Fact-checkati</div>
+    {% if fact_check_eligible > 0 %}
+      {% set fc_pct = (100 * fact_check_done / fact_check_eligible) %}
+      <div class="value">{{ fc_pct | round(1) }}%</div>
+      <div class="sub">{{ "{:,}".format(fact_check_done).replace(",", ".") }} / {{ "{:,}".format(fact_check_eligible).replace(",", ".") }}</div>
+      <div class="meter-track"><div class="meter-fill" style="width: {{ fc_pct }}%"></div></div>
+    {% else %}
+      <div class="sub">nessun dato ancora disponibile</div>
+    {% endif %}
+  </div>
+
+  <div class="stat-tile">
+    <div class="label">Relazioni follow</div>
+    <div class="value">{{ "{:,}".format(follows_total).replace(",", ".") }}</div>
+  </div>
+</div>
+{% endblock %}

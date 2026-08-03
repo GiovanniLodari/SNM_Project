@@ -1,6 +1,6 @@
 # export_texts.py
 """Esporta i testi dei post in JSONL per la AI detection (una riga = un post:
-{"id": ..., "lang": ..., "text": ...}). L'id è quello del DB: serve per
+{"id": ..., "lang": ..., "text": ..., "created_at": ...}). L'id è quello del DB: serve per
 riportare le etichette dentro (tabella ai_labels, fase 1).
 
 Il content Mastodon è HTML: viene ripulito a testo piano. Esclusi: post
@@ -19,7 +19,11 @@ import os
 import re
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from snm.storage.db import get_connection
+
+load_dotenv()
 
 TAG_RE = re.compile(r"<[^>]+>")
 
@@ -39,19 +43,21 @@ def export(database_url: str, out_path: Path, include_timeline: bool) -> int:
         cur.itersize = 5000
         cur.execute(
             f"""
-            SELECT id, language, content FROM statuses
+            SELECT id, language, content, created_at FROM statuses
             WHERE deleted_at IS NULL
               AND reblog_of_id IS NULL
               AND content IS NOT NULL AND content <> ''
               {source_filter}
             """
         )
-        for status_id, lang, content in cur:
+        for status_id, lang, content, created_at in cur:
             text = clean_html(content)
             if not text:
                 continue
-            f.write(json.dumps({"id": status_id, "lang": lang, "text": text},
-                               ensure_ascii=False) + "\n")
+            f.write(json.dumps({
+                "id": status_id, "lang": lang, "text": text,
+                "created_at": created_at.isoformat() if created_at else None,
+            }, ensure_ascii=False) + "\n")
             written += 1
     conn.close()
     return written

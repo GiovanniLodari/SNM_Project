@@ -159,17 +159,22 @@ def upsert_status(
 
 def insert_reblog(
     conn: psycopg2.extensions.connection, status_id: int, booster_account_id: int
-) -> None:
-    """Registra l'arco 'booster ha boostato status' (idempotente)."""
+) -> bool:
+    """Registra l'arco 'booster ha boostato status' (idempotente). Ritorna
+    True se la riga era nuova, False se gia' presente (usato dall'import
+    per il riepilogo)."""
     with conn.cursor() as cur:
         cur.execute(
             """
             INSERT INTO reblogs (status_id, booster_account_id) VALUES (%s, %s)
             ON CONFLICT (status_id, booster_account_id) DO NOTHING
+            RETURNING status_id
             """,
             (status_id, booster_account_id),
         )
+        inserted = cur.fetchone() is not None
     conn.commit()
+    return inserted
 
 
 def mark_enriched(conn: psycopg2.extensions.connection, status_id: int) -> None:
@@ -216,6 +221,79 @@ def list_statuses_to_enrich(
             params,
         )
         return cur.fetchall()
+
+
+def upsert_ai_label(
+    conn: psycopg2.extensions.connection, status_id: int, probability: float,
+    criterion: float | None, model: str,
+) -> None:
+    """Registra/aggiorna la probabilita' di generazione IA per un post
+    (idempotente: un nuovo run sullo stesso post sovrascrive)."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO ai_labels (status_id, ai_probability, criterion, model)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (status_id) DO UPDATE SET
+                ai_probability = EXCLUDED.ai_probability,
+                criterion = EXCLUDED.criterion,
+                model = EXCLUDED.model,
+                detected_at = now()
+            """,
+            (status_id, probability, criterion, model),
+        )
+    conn.commit()
+
+
+def list_statuses_to_fact_check(
+    conn: psycopg2.extensions.connection, limit: int | None = None
+) -> list[tuple]:
+    """Post non ancora fact-checkati (veracity NULL), esclusi cancellati e
+    reblog puri (testo vuoto, il contenuto sta nell'originale). Righe:
+    (status_id, content, language)."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, content, language FROM statuses
+            WHERE veracity IS NULL
+              AND deleted_at IS NULL
+              AND reblog_of_id IS NULL
+              AND content IS NOT NULL AND content <> ''
+            ORDER BY id
+            LIMIT %s
+            """,
+            (limit,),
+        )
+        return cur.fetchall()
+
+
+def upsert_fact_check(
+    conn: psycopg2.extensions.connection,
+    status_id: int,
+    veracity: int,
+    verdict: str,
+    reasoning: str | None,
+    evidence: list[dict],
+    model: str,
+) -> None:
+    """Registra l'esito del fact-checking: aggiorna statuses.veracity e
+    il dettaglio in fact_checks (idempotente, un rerun sovrascrive)."""
+    with conn.cursor() as cur:
+        cur.execute("UPDATE statuses SET veracity = %s WHERE id = %s", (veracity, status_id))
+        cur.execute(
+            """
+            INSERT INTO fact_checks (status_id, verdict, reasoning, evidence, model)
+            VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT (status_id) DO UPDATE SET
+                verdict = EXCLUDED.verdict,
+                reasoning = EXCLUDED.reasoning,
+                evidence = EXCLUDED.evidence,
+                model = EXCLUDED.model,
+                checked_at = now()
+            """,
+            (status_id, verdict, reasoning, psycopg2.extras.Json(evidence), model),
+        )
+    conn.commit()
 
 
 def record_topic_hashtags(
@@ -349,32 +427,47 @@ def get_or_create_instance_id(conn: psycopg2.extensions.connection, domain: str)
 
 def insert_follow(
     conn: psycopg2.extensions.connection, follower_account_id: int, followed_account_id: int
-) -> None:
-    """Registra l'arco 'follower segue followed' (idempotente)."""
+) -> bool:
+    """Registra l'arco 'follower segue followed' (idempotente). Ritorna
+    True se la riga era nuova, False se gia' presente."""
     with conn.cursor() as cur:
         cur.execute(
             """
             INSERT INTO follows (follower_account_id, followed_account_id) VALUES (%s, %s)
             ON CONFLICT (follower_account_id, followed_account_id) DO NOTHING
+            RETURNING follower_account_id
             """,
             (follower_account_id, followed_account_id),
         )
+        inserted = cur.fetchone() is not None
     conn.commit()
+    return inserted
 
 
-def list_accounts_for_follow_crawl(conn: psycopg2.extensions.connection) -> list[tuple]:
+def list_accounts_for_follow_crawl(
+    conn: psycopg2.extensions.connection, limit: int | None = None, before=None
+) -> list[tuple]:
     """Account con followers e/o following non ancora scaricati, con l'istanza
     di provenienza e quali direzioni mancano. Righe: (account_id, mastodon_id,
-    domain, need_followers, need_following)."""
+    domain, need_followers, need_following). Con limit=None, LIMIT NULL in
+    PostgreSQL equivale a nessun limite. Con before=<datetime>, esclude gli
+    account scoperti da questo stesso crawler dopo quella data (i follower/
+    following via via scoperti non allargano lo scope di un resume mirato al
+    set di partenza)."""
+    before_clause = "AND a.fetched_at < %s" if before is not None else ""
+    params: tuple = (before, limit) if before is not None else (limit,)
     with conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
             SELECT a.id, a.mastodon_id, i.domain,
                    a.followers_crawled_at IS NULL, a.following_crawled_at IS NULL
             FROM accounts a JOIN instances i ON i.id = a.instance_id
-            WHERE a.followers_crawled_at IS NULL OR a.following_crawled_at IS NULL
+            WHERE (a.followers_crawled_at IS NULL OR a.following_crawled_at IS NULL)
+            {before_clause}
             ORDER BY i.domain, a.id
-            """
+            LIMIT %s
+            """,
+            params,
         )
         return cur.fetchall()
 
