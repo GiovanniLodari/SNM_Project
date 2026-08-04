@@ -2,9 +2,6 @@ import { useEffect, useState } from "react";
 import {
   Typography,
   Box,
-  Checkbox,
-  FormControlLabel,
-  FormGroup,
   Button,
   CircularProgress,
   List,
@@ -14,6 +11,8 @@ import {
   Paper,
   Chip,
   Grid,
+  Autocomplete,
+  TextField,
 } from "@mui/material";
 import { Link } from "react-router-dom";
 import { api, PostsResponse } from "../api/client.ts";
@@ -43,15 +42,6 @@ export default function Posts() {
   useEffect(() => {
     fetchPosts(selectedLangs, page);
   }, [page]);
-
-  const handleLangChange = (lang: string) => {
-    const nextLangs = selectedLangs.includes(lang)
-      ? selectedLangs.filter((l) => l !== lang)
-      : [...selectedLangs, lang];
-    setSelectedLangs(nextLangs);
-    setPage(1);
-    fetchPosts(nextLangs, 1);
-  };
 
   const formatTime = (timeStr: string | null) => {
     if (!timeStr) return "";
@@ -110,30 +100,65 @@ export default function Posts() {
               LANGUAGE TAXONOMY
             </Typography>
             {data && data.available_langs.length > 0 ? (
-              <FormGroup>
-                {data.available_langs.map((lang) => (
-                  <FormControlLabel
-                    key={lang}
-                    control={
-                      <Checkbox
-                        checked={selectedLangs.includes(lang)}
-                        onChange={() => handleLangChange(lang)}
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                <Autocomplete
+                  multiple
+                  size="small"
+                  options={data.available_langs}
+                  value={selectedLangs}
+                  onChange={(_, newValue) => {
+                    setSelectedLangs(newValue);
+                    setPage(1);
+                    fetchPosts(newValue, 1);
+                  }}
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
+                      <Chip
+                        {...getTagProps({ index })}
+                        key={option}
+                        label={option.toUpperCase()}
+                        size="small"
                         sx={{
-                          color: "#93939f",
-                          "&.Mui-checked": {
-                            color: "#ff7759", // Coral Checkbox
-                          },
+                          fontFamily: "ui-monospace, monospace",
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          backgroundColor: "#ff7759",
+                          color: "#ffffff",
+                          "& .MuiChip-deleteIcon": { color: "#ffffff" },
                         }}
                       />
-                    }
-                    label={
-                      <Typography sx={{ textTransform: "uppercase", fontFamily: "ui-monospace, monospace", fontSize: "12px", color: "#212121" }}>
-                        {lang}
-                      </Typography>
-                    }
-                  />
-                ))}
-              </FormGroup>
+                    ))
+                  }
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      placeholder={selectedLangs.length === 0 ? "Seleziona lingue..." : ""}
+                      variant="outlined"
+                    />
+                  )}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "12px",
+                      fontSize: "13px",
+                      fontFamily: "ui-monospace, monospace",
+                    },
+                  }}
+                />
+                {selectedLangs.length > 0 && (
+                  <Button
+                    size="small"
+                    variant="text"
+                    onClick={() => {
+                      setSelectedLangs([]);
+                      setPage(1);
+                      fetchPosts([], 1);
+                    }}
+                    sx={{ color: "#75758a", textTransform: "none", fontSize: "12px", alignSelf: "flex-start" }}
+                  >
+                    Reset filtri ({selectedLangs.length})
+                  </Button>
+                )}
+              </Box>
             ) : (
               <Typography variant="body2" sx={{ color: "#75758a" }}>
                 No languages available.
