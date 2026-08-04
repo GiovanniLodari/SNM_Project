@@ -25,6 +25,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 AI_SCORES_PATH = PROJECT_ROOT / "data" / "ai_scores.jsonl"
 FACT_CHECK_PATH = PROJECT_ROOT / "fact_check_report.csv"
 POST_TEXTS_PATH = PROJECT_ROOT / "post_texts.jsonl"
+CHECKWORTHY_PATH = PROJECT_ROOT / "checkworthy_scores.jsonl"
 EXPORTS_DIR = PROJECT_ROOT / "exports"
 IMPORTS_DIR = PROJECT_ROOT / "imports"
 
@@ -52,7 +53,8 @@ AI_CLASSIFICATION_THRESHOLD = 0.5
 def dashboard(request: Request, conn=Depends(get_db)):
     ai_scores = results.load_ai_scores(AI_SCORES_PATH)
     fact_checks = results.load_fact_checks(FACT_CHECK_PATH)
-    eligible = results.count_eligible_posts(POST_TEXTS_PATH)
+    ai_eligible = results.count_eligible_posts(POST_TEXTS_PATH)
+    fact_check_eligible = results.count_checkworthy_eligible_posts(POST_TEXTS_PATH, CHECKWORTHY_PATH)
     ai_classified = len(results.status_ids_above_probability(ai_scores, AI_CLASSIFICATION_THRESHOLD))
 
     return templates.TemplateResponse(request, "dashboard.html", {
@@ -60,11 +62,11 @@ def dashboard(request: Request, conn=Depends(get_db)):
         "posts_total": queries.count_posts(conn),
         "follows_total": queries.count_follows(conn),
         "ai_done": len(ai_scores),
-        "ai_eligible": eligible,
+        "ai_eligible": ai_eligible,
         "ai_classified": ai_classified,
         "ai_threshold": AI_CLASSIFICATION_THRESHOLD,
         "fact_check_done": len(fact_checks),
-        "fact_check_eligible": eligible,
+        "fact_check_eligible": fact_check_eligible,
     })
 
 
@@ -182,20 +184,18 @@ FACT_CHECK_VERDICT_OPTIONS = ["vero", "perlopiù vero", "misto", "perlopiù fals
 def fact_check_results(
     request: Request,
     page: int = 1,
-    lang: list[str] = Query(default=[]),
     verdict: list[str] = Query(default=[]),
     conn=Depends(get_db),
 ):
+    # niente filtro lingua qui: fact_check.py valuta solo inglese
+    # (--lang en di default), un filtro sarebbe sempre a un solo valore
     fact_checks = results.load_fact_checks(FACT_CHECK_PATH)
-    eligible = results.count_eligible_posts(POST_TEXTS_PATH)
+    eligible = results.count_checkworthy_eligible_posts(POST_TEXTS_PATH, CHECKWORTHY_PATH)
     verdicts = results.verdict_counts(fact_checks)
 
     all_checked = results.all_fact_checked_ids(fact_checks)
     if verdict:
         all_checked = [(status_id, row) for status_id, row in all_checked if row["verdict"] in verdict]
-    if lang:
-        langs_by_id = queries.get_languages_for_ids(conn, [status_id for status_id, _ in all_checked])
-        all_checked = [(status_id, row) for status_id, row in all_checked if langs_by_id.get(status_id) in lang]
 
     page = max(page, 1)
     offset = (page - 1) * PAGE_SIZE
@@ -213,8 +213,6 @@ def fact_check_results(
         "verdicts": verdicts,
         "page_rows": page_rows,
         "page": page,
-        "available_langs": queries.distinct_languages(conn),
-        "selected_langs": lang,
         "verdict_options": FACT_CHECK_VERDICT_OPTIONS,
         "selected_verdicts": verdict,
     })

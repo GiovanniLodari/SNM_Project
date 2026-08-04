@@ -20,8 +20,9 @@
 
 <h2>Post analizzati</h2>
 <form method="get" class="filters">
-  <label>Probabilita'
-    <span style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+  <details {% if selected_buckets %}open{% endif %}>
+    <summary>Probabilita'{% if selected_buckets %} ({{ selected_buckets | length }}){% endif %}</summary>
+    <span style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.4rem;">
       {% for b in prob_buckets %}
       <label style="display: inline-flex; align-items: center; gap: 0.25rem; font-weight: normal;">
         <input type="checkbox" name="prob_bucket" value="{{ b }}" {% if b in selected_buckets %}checked{% endif %}>
@@ -29,7 +30,7 @@
       </label>
       {% endfor %}
     </span>
-  </label>
+  </details>
   <button type="submit">Filtra</button>
 </form>
 {% if page_rows %}

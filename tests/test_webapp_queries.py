@@ -127,7 +127,7 @@ def test_list_posts_respects_offset_and_limit(conn):
     assert len(page) == 2
 
 
-from webapp.queries import distinct_languages, get_languages_for_ids  # noqa: E402
+from webapp.queries import distinct_languages  # noqa: E402
 
 
 def test_distinct_languages_returns_sorted_unique_non_null(conn):
@@ -152,21 +152,6 @@ def test_distinct_languages_excludes_deleted_posts(conn):
     mark_deleted(conn, status_id)
 
     assert "fr" not in distinct_languages(conn)
-
-
-def test_get_languages_for_ids_maps_id_to_language(conn):
-    topic_id = upsert_topic(conn, "ai")
-    instance_id = upsert_instance(conn, "mastodon.social", 100, topic_id)
-    id_en = _make_status(conn, instance_id, "s1", "<p>hello</p>", lang="en")
-    id_it = _make_status(conn, instance_id, "s2", "<p>ciao</p>", lang="it")
-
-    result = get_languages_for_ids(conn, [id_en, id_it])
-
-    assert result == {id_en: "en", id_it: "it"}
-
-
-def test_get_languages_for_ids_empty_input_returns_empty_dict(conn):
-    assert get_languages_for_ids(conn, []) == {}
 
 
 def test_get_post_returns_single_post_with_account_info(conn):

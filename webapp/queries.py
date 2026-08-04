@@ -65,15 +65,6 @@ def distinct_languages(conn: psycopg2.extensions.connection) -> list[str]:
         return [row[0] for row in cur.fetchall()]
 
 
-def get_languages_for_ids(conn: psycopg2.extensions.connection, ids: list[int]) -> dict[int, str]:
-    """Lingua per un elenco di id status - per filtrare per lingua le liste
-    derivate da ai_scores.jsonl/fact_check_report.csv, che non portano la
-    lingua (vive solo nel DB)."""
-    if not ids:
-        return {}
-    with conn.cursor() as cur:
-        cur.execute("SELECT id, language FROM statuses WHERE id = ANY(%s)", (ids,))
-        return dict(cur.fetchall())
 
 
 def get_post(conn: psycopg2.extensions.connection, post_id: int) -> dict | None:

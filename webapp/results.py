@@ -93,6 +93,50 @@ def count_eligible_posts(post_texts_path: Path, lang: str = "en") -> int:
     return _cached_load(post_texts_path, lang, _load) if post_texts_path.exists() else 0
 
 
+def count_checkworthy_eligible_posts(
+    post_texts_path: Path, checkworthy_path: Path, lang: str = "en",
+) -> int:
+    """Denominatore corretto per la % di completamento del fact-check: post
+    idonei (lingua + testo non vuoto) CHE SONO ANCHE checkworthy=true nella
+    cache di run_checkworthiness.py. count_eligible_posts da sola sottostima
+    grossolanamente la % completata, perche' il checkworthiness scarta circa
+    l'80% dei post idonei come non verificabili (opinioni) - fact_check.py
+    non li processa mai, quindi non vanno nel denominatore. File cache
+    assente = 0 (checkworthiness non ancora eseguito)."""
+    if not checkworthy_path.exists():
+        return 0
+
+    def _load():
+        eligible_ids: set[int] = set()
+        with post_texts_path.open("r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                    if row.get("lang") == lang and row.get("text", "").strip():
+                        eligible_ids.add(row["id"])
+                except (json.JSONDecodeError, KeyError):
+                    continue
+
+        n = 0
+        with checkworthy_path.open("r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                    if row.get("checkworthy") and row["id"] in eligible_ids:
+                        n += 1
+                except (json.JSONDecodeError, KeyError):
+                    continue
+        return n
+
+    return _cached_load(checkworthy_path, ("checkworthy_eligible", lang), _load)
+
+
 def ai_score_for(ai_scores: dict[int, dict], post_id: int) -> dict | None:
     entry = ai_scores.get(post_id)
     if entry is not None and entry["probability"] != entry["probability"]:  # NaN != NaN check
