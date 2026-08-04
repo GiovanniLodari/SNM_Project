@@ -1,45 +1,54 @@
-"""Funzioni di import per il merge di dati tra DB Postgres diversi (colleghi).
+"""Funzioni di import per il merge di dati tra DB Postgres/SQLite diversi (colleghi).
 
 A differenza delle upsert_* di db.py (che sovrascrivono raw ad ogni ri-fetch,
 pensate per il crawler live), queste NON toccano mai una riga gia' esistente:
 in caso di conflitto sulla chiave naturale ritornano l'id esistente senza
 modificare alcuna colonna di contenuto ne' i marcatori di progresso locali
 (followers_crawled_at, ecc.). Il bool ritornato indica se la riga e' stata
-inserita ora (True) o esisteva gia' (False), usato per il riepilogo import."""
+inserita ora (True) o esisteva gia' (False), usato per il riepilogo import.
+"""
 import psycopg2.extras
 
 
 def import_get_or_create_topic(conn, name: str) -> tuple[int, bool]:
     with conn.cursor() as cur:
+        cur.execute("SELECT id FROM topics WHERE name = %s", (name,))
+        row = cur.fetchone()
+        if row:
+            return row[0], False
+
         cur.execute(
             """
             INSERT INTO topics (name) VALUES (%s)
-            ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
-            RETURNING id, (xmax = 0) AS inserted
+            RETURNING id
             """,
             (name,),
         )
-        topic_id, inserted = cur.fetchone()
+        topic_id = cur.fetchone()[0]
     conn.commit()
-    return topic_id, inserted
+    return topic_id, True
 
 
 def import_get_or_create_instance(
     conn, domain: str, active_users: int | None, discovered_via_topic_id: int | None
 ) -> tuple[int, bool]:
     with conn.cursor() as cur:
+        cur.execute("SELECT id FROM instances WHERE domain = %s", (domain,))
+        row = cur.fetchone()
+        if row:
+            return row[0], False
+
         cur.execute(
             """
             INSERT INTO instances (domain, active_users, discovered_via_topic_id)
             VALUES (%s, %s, %s)
-            ON CONFLICT (domain) DO UPDATE SET domain = EXCLUDED.domain
-            RETURNING id, (xmax = 0) AS inserted
+            RETURNING id
             """,
             (domain, active_users, discovered_via_topic_id),
         )
-        instance_id, inserted = cur.fetchone()
+        instance_id = cur.fetchone()[0]
     conn.commit()
-    return instance_id, inserted
+    return instance_id, True
 
 
 def import_get_or_create_account(
@@ -48,14 +57,21 @@ def import_get_or_create_account(
 ) -> tuple[int, bool]:
     with conn.cursor() as cur:
         cur.execute(
+            "SELECT id FROM accounts WHERE instance_id = %s AND mastodon_id = %s",
+            (instance_id, mastodon_id),
+        )
+        row = cur.fetchone()
+        if row:
+            return row[0], False
+
+        cur.execute(
             """
             INSERT INTO accounts (
                 instance_id, mastodon_id, acct, username, bot, raw, fetched_at,
                 followers_crawled_at, following_crawled_at, timeline_crawled_at
             )
             VALUES (%s, %s, %s, %s, %s, %s, COALESCE(%s, now()), %s, %s, %s)
-            ON CONFLICT (instance_id, mastodon_id) DO UPDATE SET mastodon_id = EXCLUDED.mastodon_id
-            RETURNING id, (xmax = 0) AS inserted
+            RETURNING id
             """,
             (
                 instance_id, mastodon_id, acct, username, bot,
@@ -63,9 +79,9 @@ def import_get_or_create_account(
                 followers_crawled_at, following_crawled_at, timeline_crawled_at,
             ),
         )
-        account_id, inserted = cur.fetchone()
+        account_id = cur.fetchone()[0]
     conn.commit()
-    return account_id, inserted
+    return account_id, True
 
 
 def import_get_or_create_status(
@@ -76,6 +92,14 @@ def import_get_or_create_status(
 ) -> tuple[int, bool]:
     with conn.cursor() as cur:
         cur.execute(
+            "SELECT id FROM statuses WHERE instance_id = %s AND mastodon_id = %s",
+            (instance_id, mastodon_id),
+        )
+        row = cur.fetchone()
+        if row:
+            return row[0], False
+
+        cur.execute(
             """
             INSERT INTO statuses (
                 instance_id, mastodon_id, account_id, content, language, created_at,
@@ -83,8 +107,7 @@ def import_get_or_create_status(
                 enriched_at, source, deleted_at
             )
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, COALESCE(%s, now()), %s, %s, %s)
-            ON CONFLICT (instance_id, mastodon_id) DO UPDATE SET mastodon_id = EXCLUDED.mastodon_id
-            RETURNING id, (xmax = 0) AS inserted
+            RETURNING id
             """,
             (
                 instance_id, mastodon_id, account_id, content, language, created_at,
@@ -92,39 +115,41 @@ def import_get_or_create_status(
                 psycopg2.extras.Json(raw), fetched_at, enriched_at, source, deleted_at,
             ),
         )
-        status_id, inserted = cur.fetchone()
+        status_id = cur.fetchone()[0]
     conn.commit()
-    return status_id, inserted
+    return status_id, True
 
 
 def import_status_hashtag(conn, status_id: int, hashtag: str) -> bool:
     with conn.cursor() as cur:
         cur.execute(
-            """
-            INSERT INTO status_hashtags (status_id, hashtag) VALUES (%s, %s)
-            ON CONFLICT (status_id, hashtag) DO NOTHING
-            RETURNING status_id
-            """,
+            "SELECT 1 FROM status_hashtags WHERE status_id = %s AND hashtag = %s",
             (status_id, hashtag),
         )
-        inserted = cur.fetchone() is not None
+        if cur.fetchone():
+            return False
+        cur.execute(
+            "INSERT INTO status_hashtags (status_id, hashtag) VALUES (%s, %s)",
+            (status_id, hashtag),
+        )
     conn.commit()
-    return inserted
+    return True
 
 
 def import_mention(conn, status_id: int, mentioned_acct: str) -> bool:
     with conn.cursor() as cur:
         cur.execute(
-            """
-            INSERT INTO mentions (status_id, mentioned_acct) VALUES (%s, %s)
-            ON CONFLICT (status_id, mentioned_acct) DO NOTHING
-            RETURNING status_id
-            """,
+            "SELECT 1 FROM mentions WHERE status_id = %s AND mentioned_acct = %s",
             (status_id, mentioned_acct),
         )
-        inserted = cur.fetchone() is not None
+        if cur.fetchone():
+            return False
+        cur.execute(
+            "INSERT INTO mentions (status_id, mentioned_acct) VALUES (%s, %s)",
+            (status_id, mentioned_acct),
+        )
     conn.commit()
-    return inserted
+    return True
 
 
 def import_topic_hashtag(
@@ -132,14 +157,17 @@ def import_topic_hashtag(
 ) -> bool:
     with conn.cursor() as cur:
         cur.execute(
+            "SELECT 1 FROM topic_hashtags WHERE topic_id = %s AND instance_id = %s AND hashtag = %s",
+            (topic_id, instance_id, hashtag),
+        )
+        if cur.fetchone():
+            return False
+        cur.execute(
             """
             INSERT INTO topic_hashtags (topic_id, instance_id, hashtag, usage_count, discovered_at)
             VALUES (%s, %s, %s, %s, COALESCE(%s, now()))
-            ON CONFLICT (topic_id, instance_id, hashtag) DO NOTHING
-            RETURNING topic_id
             """,
             (topic_id, instance_id, hashtag, usage_count, discovered_at),
         )
-        inserted = cur.fetchone() is not None
     conn.commit()
-    return inserted
+    return True

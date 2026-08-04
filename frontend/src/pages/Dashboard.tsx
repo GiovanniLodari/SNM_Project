@@ -1,0 +1,306 @@
+import { useEffect, useState } from "react";
+import { Grid, Typography, Box, CircularProgress, LinearProgress, Button, Chip } from "@mui/material";
+import { Link } from "react-router-dom";
+import { api, DashboardStats } from "../api/client.ts";
+import {
+  Article as PostsIcon,
+  SyncAlt as FollowsIcon,
+  Psychology as AiIcon,
+  FactCheck as FactIcon,
+  ArrowForward as ArrowIcon,
+} from "@mui/icons-material";
+
+export default function Dashboard() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.dashboard()
+      .then((data) => {
+        setStats(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError("Impossibile caricare le statistiche del server.");
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh" }}>
+        <CircularProgress color="primary" />
+      </Box>
+    );
+  }
+
+  if (error || !stats) {
+    return (
+      <Box sx={{ mt: 4, textAlign: "center" }}>
+        <Typography color="error" variant="h6">{error || "Dati non disponibili."}</Typography>
+      </Box>
+    );
+  }
+
+  const aiPercent = stats.ai_eligible > 0 ? (stats.ai_done / stats.ai_eligible) * 100 : 0;
+  const factPercent = stats.fact_check_eligible > 0 ? (stats.fact_check_done / stats.fact_check_eligible) * 100 : 0;
+
+  return (
+    <Box>
+      {/* Hero Section */}
+      <Box sx={{ mb: 8 }}>
+        <Chip
+          label="OVERVIEW & PLATFORM METRICS"
+          sx={{
+            fontFamily: "ui-monospace, monospace",
+            fontSize: "11px",
+            color: "#75758a",
+            backgroundColor: "#eeece7",
+            mb: 2,
+            px: 1,
+          }}
+        />
+        <Typography
+          variant="h2"
+          sx={{
+            fontFamily: "Space Grotesk, Inter, sans-serif",
+            fontWeight: 400,
+            fontSize: { xs: "36px", md: "56px" },
+            lineHeight: 1.05,
+            letterSpacing: "-1.2px",
+            color: "#17171c",
+            mb: 2,
+          }}
+        >
+          Fediverse Intelligence Command Center.
+        </Typography>
+        <Typography variant="body1" sx={{ color: "#75758a", fontSize: "18px", maxWidth: 640 }}>
+          Real-time tracking of AI generated content, disinformation propagation, and follow network metrics across decentralized Mastodon nodes.
+        </Typography>
+      </Box>
+
+      {/* Main Grid Metrics */}
+      <Grid container spacing={4} sx={{ mb: 6 }}>
+        {/* Post Totali */}
+        <Grid item xs={12} md={6}>
+          <Box
+            sx={{
+              p: 4,
+              borderRadius: "22px",
+              backgroundColor: "#eeece7", // Soft Stone Surface
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              justify: "space-between",
+            }}
+          >
+            <Box sx={{ mb: 4 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                <Typography variant="caption" sx={{ color: "#75758a", textTransform: "uppercase" }}>
+                  INDEXED STATUSES
+                </Typography>
+                <PostsIcon sx={{ color: "#17171c" }} />
+              </Box>
+              <Typography
+                variant="h1"
+                sx={{
+                  fontFamily: "Space Grotesk, Inter, sans-serif",
+                  fontWeight: 400,
+                  fontSize: "64px",
+                  color: "#17171c",
+                  lineHeight: 1.0,
+                  mb: 1,
+                }}
+              >
+                {stats.posts_total.toLocaleString()}
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#75758a" }}>
+                Total post records collected from monitored instance nodes.
+              </Typography>
+            </Box>
+
+            <Button
+              component={Link}
+              to="/posts"
+              variant="contained"
+              endIcon={<ArrowIcon />}
+              sx={{ alignSelf: "flex-start", borderRadius: "32px", px: 3 }}
+            >
+              Explore Corpus
+            </Button>
+          </Box>
+        </Grid>
+
+        {/* Follow Network */}
+        <Grid item xs={12} md={6}>
+          <Box
+            sx={{
+              p: 4,
+              borderRadius: "22px",
+              backgroundColor: "#eeece7", // Soft Stone Surface
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              justify: "space-between",
+            }}
+          >
+            <Box sx={{ mb: 4 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                <Typography variant="caption" sx={{ color: "#75758a", textTransform: "uppercase" }}>
+                  GRAPH EDGES
+                </Typography>
+                <FollowsIcon sx={{ color: "#17171c" }} />
+              </Box>
+              <Typography
+                variant="h1"
+                sx={{
+                  fontFamily: "Space Grotesk, Inter, sans-serif",
+                  fontWeight: 400,
+                  fontSize: "64px",
+                  color: "#17171c",
+                  lineHeight: 1.0,
+                  mb: 1,
+                }}
+              >
+                {stats.follows_total.toLocaleString()}
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#75758a" }}>
+                Static social follow edges discovered via relationship crawler.
+              </Typography>
+            </Box>
+
+            <Button
+              component={Link}
+              to="/accounts"
+              variant="contained"
+              endIcon={<ArrowIcon />}
+              sx={{ alignSelf: "flex-start", borderRadius: "32px", px: 3 }}
+            >
+              Account Metrics
+            </Button>
+          </Box>
+        </Grid>
+      </Grid>
+
+      {/* Cohere Deep Green Section for AI & Fact Check Pipelines */}
+      <Box
+        sx={{
+          p: { xs: 4, md: 6 },
+          borderRadius: "22px",
+          backgroundColor: "#003c33", // Deep Enterprise Green Band
+          color: "#ffffff",
+          mb: 6,
+        }}
+      >
+        <Typography
+          variant="caption"
+          sx={{ color: "#ffad9b", fontFamily: "ui-monospace, monospace", fontSize: "11px", display: "block", mb: 2 }}
+        >
+          AI SYNTHETIC & TRUTH ANALYSIS PIPELINES
+        </Typography>
+
+        <Grid container spacing={4}>
+          {/* AI Detection Card */}
+          <Grid item xs={12} md={6}>
+            <Box sx={{ borderTop: "1px solid rgba(255, 255, 255, 0.15)", pt: 3 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                <AiIcon sx={{ color: "#ff7759" }} />
+                <Typography variant="h5" sx={{ color: "#ffffff", fontWeight: 500 }}>
+                  Fast-DetectGPT Classifier
+                </Typography>
+              </Box>
+              <Typography variant="body2" sx={{ color: "#93939f", mb: 3 }}>
+                Analyzed <strong>{stats.ai_done.toLocaleString()}</strong> of <strong>{stats.ai_eligible.toLocaleString()}</strong> eligible English language statuses.
+              </Typography>
+
+              <Box sx={{ mb: 3 }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
+                  <Typography variant="caption" sx={{ color: "#ffffff" }}>
+                    Completion Rate
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: "#ff7759", fontWeight: 600 }}>
+                    {aiPercent.toFixed(1)}%
+                  </Typography>
+                </Box>
+                <LinearProgress
+                  variant="determinate"
+                  value={aiPercent}
+                  sx={{
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: "rgba(255, 255, 255, 0.1)",
+                    "& .MuiLinearProgress-bar": { backgroundColor: "#ff7759" },
+                  }}
+                />
+              </Box>
+
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Typography variant="caption" sx={{ color: "#93939f" }}>
+                  Flagged AI (&ge; {stats.ai_threshold}): <strong style={{ color: "#ffffff" }}>{stats.ai_classified.toLocaleString()}</strong>
+                </Typography>
+                <Box
+                  component={Link}
+                  to="/ai-detection"
+                  sx={{ color: "#1863dc", textDecoration: "underline", fontSize: "14px", fontWeight: 500 }}
+                >
+                  View Details &rarr;
+                </Box>
+              </Box>
+            </Box>
+          </Grid>
+
+          {/* Fact Checking Card */}
+          <Grid item xs={12} md={6}>
+            <Box sx={{ borderTop: "1px solid rgba(255, 255, 255, 0.15)", pt: 3 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                <FactIcon sx={{ color: "#1863dc" }} />
+                <Typography variant="h5" sx={{ color: "#ffffff", fontWeight: 500 }}>
+                  LLM Fact Verification
+                </Typography>
+              </Box>
+              <Typography variant="body2" sx={{ color: "#93939f", mb: 3 }}>
+                Verified <strong>{stats.fact_check_done.toLocaleString()}</strong> of <strong>{stats.fact_check_eligible.toLocaleString()}</strong> checkworthy claim statuses.
+              </Typography>
+
+              <Box sx={{ mb: 3 }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
+                  <Typography variant="caption" sx={{ color: "#ffffff" }}>
+                    Completion Rate
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: "#1863dc", fontWeight: 600 }}>
+                    {factPercent.toFixed(1)}%
+                  </Typography>
+                </Box>
+                <LinearProgress
+                  variant="determinate"
+                  value={factPercent}
+                  sx={{
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: "rgba(255, 255, 255, 0.1)",
+                    "& .MuiLinearProgress-bar": { backgroundColor: "#1863dc" },
+                  }}
+                />
+              </Box>
+
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Typography variant="caption" sx={{ color: "#93939f" }}>
+                  Verification Source: DuckDuckGo + Wikipedia
+                </Typography>
+                <Box
+                  component={Link}
+                  to="/fact-check"
+                  sx={{ color: "#1863dc", textDecoration: "underline", fontSize: "14px", fontWeight: 500 }}
+                >
+                  View Verdicts &rarr;
+                </Box>
+              </Box>
+            </Box>
+          </Grid>
+        </Grid>
+      </Box>
+    </Box>
+  );
+}

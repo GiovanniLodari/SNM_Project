@@ -6,6 +6,9 @@ venv/
 __pycache__/
 *.pyc
 .pytest_cache/
+*.db
+DB/*.db
+
 
 # Claude Code / agent tooling
 .claude/
@@ -72,3 +75,7 @@ post_texts_remaining.jsonl
 # post_texts.jsonl (id, lang, text, created_at) e' tracciato: senza,
 # ai_scores.jsonl sarebbe solo id->probabilita' senza testo, illeggibile
 # per i colleghi senza un DB importato e collegato
+
+# Frontend React (frontend/) - node_modules e build locale, non tracciati
+frontend/node_modules/
+frontend/dist/

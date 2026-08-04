@@ -1,22 +1,195 @@
 from pathlib import Path
+import re
+import json
 
 import psycopg2
 import psycopg2.extensions
 import psycopg2.extras
 
-SCHEMA_PATH = Path(__file__).parent.parent.parent / "db" / "schema.sql"
+SCHEMA_PATH = Path(__file__).parent.parent.parent / "DB" / "schema.sql"
+
+
+class SQLiteCursorWrapper:
+    def __init__(self, cursor):
+        self.cursor = cursor
+
+    def execute(self, query, params=None):
+        query_translated = query.replace("%s", "?")
+        query_translated = query_translated.replace("now()", "datetime('now')")
+
+        # Translation of make_interval(days => ?)
+        query_translated = re.sub(
+            r"datetime\('now'\)\s*-\s*make_interval\(days\s*=>\s*\?\)",
+            r"datetime('now', '-' || ? || ' days')",
+            query_translated
+        )
+
+        # Translation of JSON operators
+        query_translated = re.sub(
+            r"([\w.]+)\s*->>\s*'(\w+)'",
+            r"json_extract(\1, '$.\2')",
+            query_translated
+        )
+        query_translated = re.sub(
+            r"([\w.]+)\s*->\s*'(\w+)'",
+            r"json_extract(\1, '$.\2')",
+            query_translated
+        )
+
+        # Translation of type casting
+        query_translated = re.sub(r"::int\b", r"", query_translated)
+        query_translated = re.sub(r"::float\b", r"", query_translated)
+        query_translated = re.sub(r"::text\b", r"", query_translated)
+
+        # Translation of ANY(?) -> IN (?, ?, ...)
+        if params is not None:
+            if not isinstance(params, (list, tuple)):
+                params = [params]
+            else:
+                params = list(params)
+
+            # Translation of = ANY(?)
+            while True:
+                match = re.search(r"(\b\w+\b)\s*=\s*ANY\s*\(\s*\?\s*\)", query_translated)
+                if not match:
+                    break
+                pre_query = query_translated[:match.start()]
+                param_idx = pre_query.count("?")
+                list_param = params[param_idx]
+                if not isinstance(list_param, (list, tuple, set)):
+                    list_param = [list_param]
+                list_param = list(list_param)
+
+                if len(list_param) == 0:
+                    replacement = "1=0"
+                else:
+                    placeholders = ", ".join(["?"] * len(list_param))
+                    col_name = match.group(1)
+                    replacement = f"{col_name} IN ({placeholders})"
+
+                query_translated = query_translated[:match.start()] + replacement + query_translated[match.end():]
+                params = params[:param_idx] + list_param + params[param_idx + 1:]
+
+            # Translation of NOT (column = ANY(?)) -> column NOT IN (?, ?, ...)
+            while True:
+                match = re.search(r"NOT\s*\(\s*(\b\w+\b)\s*=\s*ANY\s*\(\s*\?\s*\)\s*\)", query_translated)
+                if not match:
+                    break
+                pre_query = query_translated[:match.start()]
+                param_idx = pre_query.count("?")
+                list_param = params[param_idx]
+                if not isinstance(list_param, (list, tuple, set)):
+                    list_param = [list_param]
+                list_param = list(list_param)
+
+                if len(list_param) == 0:
+                    replacement = "1=1"
+                else:
+                    placeholders = ", ".join(["?"] * len(list_param))
+                    col_name = match.group(1)
+                    replacement = f"{col_name} NOT IN ({placeholders})"
+
+                query_translated = query_translated[:match.start()] + replacement + query_translated[match.end():]
+                params = params[:param_idx] + list_param + params[param_idx + 1:]
+
+        # Serialization of dict/list and boolean conversions
+        if params is not None:
+            final_params = []
+            for p in params:
+                if p.__class__.__name__ == 'Json':
+                    p = p.adapted
+                if isinstance(p, (dict, list)):
+                    final_params.append(json.dumps(p))
+                elif isinstance(p, bool):
+                    final_params.append(1 if p else 0)
+                else:
+                    final_params.append(p)
+            params = final_params
+
+        if params is not None:
+            return self.cursor.execute(query_translated, params)
+        else:
+            return self.cursor.execute(query_translated)
+
+    def fetchone(self):
+        return self.cursor.fetchone()
+
+    def fetchall(self):
+        return self.cursor.fetchall()
+
+    def __getattr__(self, name):
+        return getattr(self.cursor, name)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+
+class SQLiteConnectionWrapper:
+    def __init__(self, conn):
+        self.conn = conn
+
+    def cursor(self, *args, **kwargs):
+        return SQLiteCursorWrapper(self.conn.cursor())
+
+    def commit(self):
+        self.conn.commit()
+
+    def rollback(self):
+        self.conn.rollback()
+
+    def close(self):
+        self.conn.close()
+
+    def __getattr__(self, name):
+        return getattr(self.conn, name)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is not None:
+            self.rollback()
+        else:
+            self.commit()
 
 
 def get_connection(database_url: str) -> psycopg2.extensions.connection:
+    if database_url.startswith("sqlite://"):
+        import sqlite3
+        if database_url.startswith("sqlite:///"):
+            db_path = database_url[10:]
+        else:
+            db_path = database_url[9:]
+
+        if db_path and db_path != ":memory:":
+            db_file = Path(db_path)
+            db_file.parent.mkdir(parents=True, exist_ok=True)
+
+        sqlite_conn = sqlite3.connect(db_path)
+        sqlite_conn.execute("PRAGMA foreign_keys = ON;")
+        return SQLiteConnectionWrapper(sqlite_conn)
     return psycopg2.connect(database_url)
 
 
 def init_schema(conn: psycopg2.extensions.connection) -> None:
     """Crea le tabelle se non esistono già (idempotente)."""
-    sql = SCHEMA_PATH.read_text(encoding="utf-8")
+    is_sqlite = type(conn).__name__ == "SQLiteConnectionWrapper" or isinstance(conn, SQLiteConnectionWrapper)
+    if is_sqlite:
+        schema_path = Path(__file__).parent.parent.parent / "DB" / "schema_sqlite.sql"
+    else:
+        schema_path = SCHEMA_PATH
+        
+    sql = schema_path.read_text(encoding="utf-8")
     with conn.cursor() as cur:
-        cur.execute(sql)
+        if is_sqlite:
+            cur.cursor.executescript(sql)
+        else:
+            cur.execute(sql)
     conn.commit()
+
 
 
 def upsert_topic(conn: psycopg2.extensions.connection, name: str) -> int:

@@ -5,12 +5,13 @@ from urllib.parse import parse_qs, quote
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, File, Query, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from starlette.concurrency import run_in_threadpool
 
 from snm.analysis import run_db_import
-from snm.storage.db import get_connection
+from snm.storage.db import get_connection, init_schema
 from webapp import jobs, queries, results
 
 load_dotenv()
@@ -30,7 +31,31 @@ EXPORTS_DIR = PROJECT_ROOT / "exports"
 IMPORTS_DIR = PROJECT_ROOT / "imports"
 
 app = FastAPI(title="SNM Project")
+
+@app.on_event("startup")
+def startup_db():
+    conn = get_connection(os.environ["DATABASE_URL"])
+    try:
+        init_schema(conn)
+    finally:
+        conn.close()
+
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+
+# CORS para el frontend React (frontend/) en dev. El origen de Vite por
+# defecto. En produccion el frontend se sirve como static desde la misma
+# app (mismo origen) y CORS no hace falta, pero se deja abierto al localhost
+# para el flujo de desarrollo con el dev server.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def get_db():
@@ -321,3 +346,10 @@ async def db_sync_import(file: UploadFile = File(...), conn=Depends(get_db)):
         f"{table}: {c['new']} nuove/{c['existing']} gia' presenti" for table, c in counts.items()
     )
     return RedirectResponse(url=f"/db-sync?msg={quote(summary)}", status_code=303)
+
+
+# API JSON para el frontend React (frontend/). Se registra al final: api.py
+# importa get_db desde este modulo, asi hay que definirlo antes.
+from webapp import api as api  # noqa: E402
+
+app.include_router(api.router)
