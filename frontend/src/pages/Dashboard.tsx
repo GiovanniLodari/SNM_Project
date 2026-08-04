@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Grid, Typography, Box, CircularProgress, LinearProgress, Button, Chip } from "@mui/material";
+import { Grid, Typography, Box, CircularProgress, LinearProgress, Button } from "@mui/material";
 import { Link } from "react-router-dom";
 import { api, DashboardStats } from "../api/client.ts";
+import GraphHero from "../components/GraphHero.tsx";
 import {
   Article as PostsIcon,
   SyncAlt as FollowsIcon,
@@ -49,40 +50,12 @@ export default function Dashboard() {
 
   return (
     <Box>
-      {/* Hero Section */}
-      <Box sx={{ mb: 8 }}>
-        <Chip
-          label="OVERVIEW & PLATFORM METRICS"
-          sx={{
-            fontFamily: "ui-monospace, monospace",
-            fontSize: "11px",
-            color: "#75758a",
-            backgroundColor: "#eeece7",
-            mb: 2,
-            px: 1,
-          }}
-        />
-        <Typography
-          variant="h2"
-          sx={{
-            fontFamily: "Space Grotesk, Inter, sans-serif",
-            fontWeight: 400,
-            fontSize: { xs: "36px", md: "56px" },
-            lineHeight: 1.05,
-            letterSpacing: "-1.2px",
-            color: "#17171c",
-            mb: 2,
-          }}
-        >
-          Fediverse Intelligence Command Center.
-        </Typography>
-        <Typography variant="body1" sx={{ color: "#75758a", fontSize: "18px", maxWidth: 640 }}>
-          Real-time tracking of AI generated content, disinformation propagation, and follow network metrics across decentralized Mastodon nodes.
-        </Typography>
-      </Box>
+      {/* Dynamic Graph Hero Section (Incremental Render) */}
+      <GraphHero />
 
       {/* Main Grid Metrics */}
       <Grid container spacing={4} sx={{ mb: 6 }}>
+
         {/* Post Totali */}
         <Grid item xs={12} md={6}>
           <Box

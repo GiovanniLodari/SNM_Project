@@ -14,7 +14,7 @@ from snm.analysis import run_db_import
 from snm.storage.db import get_connection, init_schema
 from webapp import jobs, queries, results
 
-load_dotenv()
+load_dotenv(override=True)
 
 PROJECT_ROOT = Path(__file__).parent.parent
 # data/ai_scores.jsonl e' la copia pubblicata/tracciata in git (aggiornata

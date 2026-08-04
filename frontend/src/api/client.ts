@@ -111,6 +111,63 @@ export interface JobActionResponse {
   message: string;
 }
 
+export interface GraphNode {
+  id: number;
+  label: string;
+  bot: boolean;
+  group?: string;
+  domain?: string;
+  degree?: number;
+}
+
+export interface GraphLink {
+  source: number;
+  target: number;
+}
+
+export interface GraphData {
+  nodes: GraphNode[];
+  links: GraphLink[];
+}
+
+export interface AccountSearchResult {
+  id: number;
+  acct: string;
+  username: string;
+  bot: boolean;
+  domain: string;
+}
+
+export interface AccountField {
+  name: string;
+  value: string;
+  verified_at?: string | null;
+}
+
+export interface AccountDetail {
+  id: number;
+  acct: string;
+  username: string;
+  display_name: string;
+  bot: boolean;
+  domain: string;
+  avatar?: string | null;
+  header?: string | null;
+  note?: string | null;
+  url?: string | null;
+  followers_count?: number;
+  following_count?: number;
+  statuses_count?: number;
+  created_at?: string | null;
+  last_status_at?: string | null;
+  fields?: AccountField[];
+  fetched_at?: string | null;
+}
+
+export interface AccountDetailResponse {
+  account: AccountDetail | null;
+}
+
 function buildQuery(params: Record<string, string | string[] | number | undefined>): string {
   const qs = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -144,6 +201,13 @@ async function postJson<T>(url: string, body: URLSearchParams | FormData): Promi
 
 export const api = {
   dashboard: () => getJson<DashboardStats>("/api/dashboard"),
+  graph: (limit?: number, mode?: string) => getJson<GraphData>(`/api/graph${buildQuery({ limit, mode })}`),
+  accountGraph: (accountId: number, limit?: number) =>
+    getJson<GraphData>(`/api/graph/account/${accountId}${buildQuery({ limit })}`),
+  searchAccounts: (q: string) =>
+    getJson<{ accounts: AccountSearchResult[] }>(`/api/accounts/search${buildQuery({ q })}`),
+  accountDetail: (id: number) =>
+    getJson<AccountDetailResponse>(`/api/accounts/${id}/detail`),
   posts: (lang: string[], page: number) =>
     getJson<PostsResponse>(`/api/posts${buildQuery({ lang, page })}`),
   postDetail: (id: number) => getJson<PostDetailResponse>(`/api/posts/${id}`),
@@ -164,3 +228,5 @@ export const api = {
     return postJson<JobActionResponse>("/api/db-sync/import", form);
   },
 };
+
+

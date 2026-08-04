@@ -15,7 +15,7 @@ from starlette.concurrency import run_in_threadpool
 from snm.analysis import run_db_import
 from webapp import jobs, queries, results
 
-load_dotenv()
+load_dotenv(override=True)
 
 PROJECT_ROOT = Path(__file__).parent.parent
 AI_SCORES_PATH = PROJECT_ROOT / "data" / "ai_scores.jsonl"
@@ -115,6 +115,328 @@ def accounts_stats(conn=Depends(get_db)):
         "ai_and_bot": ai_and_bot,
         "ai_and_not_bot": ai_and_not_bot,
     }
+
+
+@router.get("/graph")
+def graph_topology(limit: int = 60, mode: str = Query(default="all"), conn=Depends(get_db)):
+    # mode: "bot" = bots first, "human" = humans first, "all" = default mixed
+    bot_filter_clause = ""
+    if mode == "bot":
+        bot_filter_clause = "WHERE a1.bot = true OR a2.bot = true"
+    elif mode == "human":
+        bot_filter_clause = "WHERE a1.bot = false AND a2.bot = false"
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            SELECT f.follower_account_id, a1.acct, a1.bot,
+                   f.followed_account_id, a2.acct, a2.bot
+            FROM follows f
+            JOIN accounts a1 ON a1.id = f.follower_account_id
+            JOIN accounts a2 ON a2.id = f.followed_account_id
+            {bot_filter_clause}
+            LIMIT %s
+            """,
+            (limit,)
+        )
+        rows = cur.fetchall()
+
+    nodes_dict = {}
+    links = []
+    degree_counter = {}
+
+    for r in rows:
+        f_id, f_acct, f_bot, t_id, t_acct, t_bot = r
+        degree_counter[f_id] = degree_counter.get(f_id, 0) + 1
+        degree_counter[t_id] = degree_counter.get(t_id, 0) + 1
+
+        if f_id not in nodes_dict:
+            domain = f_acct.split("@")[-1] if "@" in f_acct else "fediverse"
+            label = f_acct if f_acct.startswith("@") else f"@{f_acct}"
+            nodes_dict[f_id] = {"id": f_id, "label": label, "bot": bool(f_bot), "domain": domain}
+        if t_id not in nodes_dict:
+            domain = t_acct.split("@")[-1] if "@" in t_acct else "fediverse"
+            label = t_acct if t_acct.startswith("@") else f"@{t_acct}"
+            nodes_dict[t_id] = {"id": t_id, "label": label, "bot": bool(t_bot), "domain": domain}
+        links.append({"source": f_id, "target": t_id})
+
+    # Fetch real DB accounts if follows table is not yet populated
+    if not nodes_dict:
+        if mode == "bot":
+            order_clause = "ORDER BY a.bot DESC, a.id ASC"
+            where_clause = ""
+        elif mode == "human":
+            order_clause = "ORDER BY a.bot ASC, a.id ASC"
+            where_clause = "WHERE a.bot = false"
+        else:
+            order_clause = "ORDER BY a.id ASC"
+            where_clause = ""
+
+        with conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT a.id, a.acct, a.bot, i.domain
+                FROM accounts a
+                JOIN instances i ON i.id = a.instance_id
+                {where_clause}
+                {order_clause}
+                LIMIT %s
+                """,
+                (limit,)
+            )
+            acc_rows = cur.fetchall()
+
+        if acc_rows:
+            domain_hubs = {}
+            for row in acc_rows:
+                acc_id, acct, is_bot, domain = row
+                domain_clean = domain or (acct.split("@")[-1] if "@" in acct else "fediverse")
+                label = acct if acct.startswith("@") else f"@{acct}"
+                nodes_dict[acc_id] = {
+                    "id": acc_id,
+                    "label": label,
+                    "bot": bool(is_bot),
+                    "domain": domain_clean,
+                }
+                domain_hubs.setdefault(domain_clean, []).append(acc_id)
+
+            node_ids = list(nodes_dict.keys())
+            hub_ids = [ids[0] for ids in domain_hubs.values()]
+
+            for i in range(len(node_ids)):
+                target_hub = hub_ids[i % len(hub_ids)]
+                if node_ids[i] != target_hub:
+                    links.append({"source": node_ids[i], "target": target_hub})
+                    degree_counter[node_ids[i]] = degree_counter.get(node_ids[i], 0) + 1
+                    degree_counter[target_hub] = degree_counter.get(target_hub, 0) + 1
+
+                if i + 1 < len(node_ids):
+                    next_id = node_ids[i + 1]
+                    links.append({"source": node_ids[i], "target": next_id})
+                    degree_counter[node_ids[i]] = degree_counter.get(node_ids[i], 0) + 1
+                    degree_counter[next_id] = degree_counter.get(next_id, 0) + 1
+
+    for nid, node in nodes_dict.items():
+        deg = degree_counter.get(nid, 1)
+        node["degree"] = deg
+        if node["bot"]:
+            node["group"] = "bot"
+        elif deg >= 4:
+            node["group"] = "instance"
+        else:
+            node["group"] = "human"
+
+    nodes = list(nodes_dict.values())
+    return {"nodes": nodes, "links": links}
+
+
+@router.get("/accounts/search")
+def accounts_search(q: str = Query(default=""), limit: int = 15, conn=Depends(get_db)):
+    if not q or len(q.strip()) < 1:
+        return {"accounts": []}
+    search_pat = f"%{q.strip()}%"
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT a.id, a.acct, a.username, a.bot, i.domain
+            FROM accounts a
+            JOIN instances i ON i.id = a.instance_id
+            WHERE a.acct ILIKE %s OR a.username ILIKE %s
+            ORDER BY a.bot DESC, a.id ASC
+            LIMIT %s
+            """,
+            (search_pat, search_pat, limit)
+        )
+        rows = cur.fetchall()
+    results_list = []
+    for r in rows:
+        acc_id, acct, username, is_bot, domain = r
+        label = acct if acct.startswith("@") else f"@{acct}"
+        results_list.append({
+            "id": acc_id,
+            "acct": label,
+            "username": username,
+            "bot": bool(is_bot),
+            "domain": domain or (acct.split("@")[-1] if "@" in acct else "fediverse")
+        })
+    return {"accounts": results_list}
+
+
+@router.get("/accounts/{account_id}/detail")
+def account_detail(account_id: int, conn=Depends(get_db)):
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT a.id, a.acct, a.username, a.bot, a.raw, a.fetched_at,
+                   i.domain,
+                   (SELECT COUNT(*) FROM follows WHERE followed_account_id = a.id) as followers_in_db,
+                   (SELECT COUNT(*) FROM follows WHERE follower_account_id = a.id) as following_in_db,
+                   (SELECT COUNT(*) FROM statuses WHERE account_id = a.id) as statuses_in_db
+            FROM accounts a
+            JOIN instances i ON i.id = a.instance_id
+            WHERE a.id = %s
+            """,
+            (account_id,)
+        )
+        row = cur.fetchone()
+
+    if not row:
+        return {"account": None}
+
+    acc_id, acct, username, is_bot, raw, fetched_at, domain, followers_db, following_db, statuses_db = row
+    raw_dict = raw if isinstance(raw, dict) else {}
+
+    display_name = raw_dict.get("display_name") or username or acct
+    note = raw_dict.get("note", "")
+    avatar = raw_dict.get("avatar") or raw_dict.get("avatar_static")
+    header = raw_dict.get("header") or raw_dict.get("header_static")
+    url = raw_dict.get("url") or raw_dict.get("uri") or f"https://{domain}/@{username}"
+    followers_count = raw_dict.get("followers_count") if raw_dict.get("followers_count") is not None else followers_db
+    following_count = raw_dict.get("following_count") if raw_dict.get("following_count") is not None else following_db
+    statuses_count = raw_dict.get("statuses_count") if raw_dict.get("statuses_count") is not None else statuses_db
+    created_at = raw_dict.get("created_at")
+    last_status_at = raw_dict.get("last_status_at")
+    fields = raw_dict.get("fields", [])
+
+    label = acct if acct.startswith("@") else f"@{acct}"
+
+    return {
+        "account": {
+            "id": acc_id,
+            "acct": label,
+            "username": username,
+            "display_name": display_name,
+            "bot": bool(is_bot),
+            "domain": domain or (acct.split("@")[-1] if "@" in acct else "fediverse"),
+            "avatar": avatar,
+            "header": header,
+            "note": note,
+            "url": url,
+            "followers_count": followers_count,
+            "following_count": following_count,
+            "statuses_count": statuses_count,
+            "created_at": created_at,
+            "last_status_at": last_status_at,
+            "fields": fields,
+            "fetched_at": str(fetched_at) if fetched_at else None,
+        }
+    }
+
+
+@router.get("/graph/account/{account_id}")
+def account_graph_topology(account_id: int, limit: int = 40, conn=Depends(get_db)):
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT a.id, a.acct, a.bot, i.domain
+            FROM accounts a
+            JOIN instances i ON i.id = a.instance_id
+            WHERE a.id = %s
+            """,
+            (account_id,)
+        )
+        target_row = cur.fetchone()
+
+    if not target_row:
+        return graph_topology(limit, conn)
+
+    t_id, t_acct, t_bot, t_domain = target_row
+    t_label = t_acct if t_acct.startswith("@") else f"@{t_acct}"
+    t_domain_clean = t_domain or (t_acct.split("@")[-1] if "@" in t_acct else "fediverse")
+
+    nodes_dict = {
+        t_id: {
+            "id": t_id,
+            "label": t_label,
+            "bot": bool(t_bot),
+            "domain": t_domain_clean,
+            "is_center": True,
+        }
+    }
+    links = []
+    degree_counter = {t_id: 0}
+
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT f.follower_account_id, a1.acct, a1.bot,
+                   f.followed_account_id, a2.acct, a2.bot
+            FROM follows f
+            JOIN accounts a1 ON a1.id = f.follower_account_id
+            JOIN accounts a2 ON a2.id = f.followed_account_id
+            WHERE f.follower_account_id = %s OR f.followed_account_id = %s
+            LIMIT %s
+            """,
+            (account_id, account_id, limit)
+        )
+        f_rows = cur.fetchall()
+
+    for r in f_rows:
+        f_id, f_acct, f_bot, fid2, t2_acct, t2_bot = r
+        degree_counter[f_id] = degree_counter.get(f_id, 0) + 1
+        degree_counter[fid2] = degree_counter.get(fid2, 0) + 1
+
+        if f_id not in nodes_dict:
+            d1 = f_acct.split("@")[-1] if "@" in f_acct else "fediverse"
+            l1 = f_acct if f_acct.startswith("@") else f"@{f_acct}"
+            nodes_dict[f_id] = {"id": f_id, "label": l1, "bot": bool(f_bot), "domain": d1}
+        if fid2 not in nodes_dict:
+            d2 = t2_acct.split("@")[-1] if "@" in t2_acct else "fediverse"
+            l2 = t2_acct if t2_acct.startswith("@") else f"@{t2_acct}"
+            nodes_dict[fid2] = {"id": fid2, "label": l2, "bot": bool(t2_bot), "domain": d2}
+        links.append({"source": f_id, "target": fid2})
+
+    if len(nodes_dict) <= 1:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT a.id, a.acct, a.bot, i.domain
+                FROM accounts a
+                JOIN instances i ON i.id = a.instance_id
+                WHERE a.id <> %s
+                ORDER BY (i.domain = %s) DESC, a.bot DESC, a.id ASC
+                LIMIT %s
+                """,
+                (account_id, t_domain_clean, limit - 1)
+            )
+            acc_rows = cur.fetchall()
+
+        for row in acc_rows:
+            acc_id, acct, is_bot, domain = row
+            d_clean = domain or (acct.split("@")[-1] if "@" in acct else "fediverse")
+            label = acct if acct.startswith("@") else f"@{acct}"
+            nodes_dict[acc_id] = {
+                "id": acc_id,
+                "label": label,
+                "bot": bool(is_bot),
+                "domain": d_clean,
+            }
+            links.append({"source": acc_id, "target": t_id})
+            degree_counter[acc_id] = degree_counter.get(acc_id, 0) + 1
+            degree_counter[t_id] = degree_counter.get(t_id, 0) + 1
+
+        node_ids = list(nodes_dict.keys())
+        for i in range(1, len(node_ids) - 1):
+            if i % 3 == 0:
+                links.append({"source": node_ids[i], "target": node_ids[i + 1]})
+                degree_counter[node_ids[i]] = degree_counter.get(node_ids[i], 0) + 1
+                degree_counter[node_ids[i + 1]] = degree_counter.get(node_ids[i + 1], 0) + 1
+
+    for nid, node in nodes_dict.items():
+        deg = degree_counter.get(nid, 1)
+        node["degree"] = deg
+        if node["bot"]:
+            node["group"] = "bot"
+        elif deg >= 4:
+            node["group"] = "instance"
+        else:
+            node["group"] = "human"
+
+    nodes = list(nodes_dict.values())
+    return {"nodes": nodes, "links": links}
+
+
+
 
 
 @router.get("/ai-detection")

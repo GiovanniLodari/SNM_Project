@@ -19,5 +19,5 @@ if (-not (Test-Path ".venv")) {
 Write-Host "Attivazione dell'ambiente virtuale (.venv)..." -ForegroundColor Yellow
 . .venv\Scripts\Activate.ps1
 
-Write-Host "Avvio di uvicorn su http://127.0.0.1:8080 ..." -ForegroundColor Green
-uvicorn webapp.main:app --port 8080 --reload
+Write-Host "Avvio di uvicorn su http://127.0.0.1:8088 ..." -ForegroundColor Green
+uvicorn webapp.main:app --port 8088 --reload

@@ -18,7 +18,7 @@ if not exist .venv (
 echo Attivazione dell'ambiente virtuale (.venv)...
 call .venv\Scripts\activate.bat
 
-echo Avvio di uvicorn su http://127.0.0.1:8080 ...
-uvicorn webapp.main:app --port 8080 --reload
+echo Avvio di uvicorn su http://127.0.0.1:8088 ...
+uvicorn webapp.main:app --port 8088 --reload
 
 pause
