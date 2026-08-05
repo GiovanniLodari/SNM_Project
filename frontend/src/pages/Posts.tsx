@@ -4,6 +4,8 @@ import {
   Box,
   Button,
   CircularProgress,
+  Skeleton,
+  Stack,
   List,
   ListItem,
   ListItemText,
@@ -55,8 +57,14 @@ export default function Posts() {
 
   if (loading && !data) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh" }}>
-        <CircularProgress color="primary" />
+      <Box sx={{ p: 2 }}>
+        <Skeleton variant="text" width={180} height={28} sx={{ mb: 2, borderRadius: "12px" }} />
+        <Skeleton variant="rectangular" width="40%" height={40} sx={{ mb: 4, borderRadius: "12px" }} />
+        <Stack spacing={2}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} variant="rectangular" height={100} sx={{ borderRadius: "16px", backgroundColor: "#f9f8f6" }} />
+          ))}
+        </Stack>
       </Box>
     );
   }

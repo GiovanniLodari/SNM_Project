@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Typography, Box, Grid, CircularProgress, Paper, LinearProgress, Chip } from "@mui/material";
+import { Typography, Box, Grid, Skeleton, Paper, LinearProgress, Chip } from "@mui/material";
 import { api, AccountsStats } from "../api/client.ts";
 import { SmartToy as BotIcon, People as HumanIcon, Psychology as AiIcon } from "@mui/icons-material";
 
@@ -23,8 +23,20 @@ export default function Accounts() {
 
   if (loading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh" }}>
-        <CircularProgress color="primary" />
+      <Box sx={{ p: 2 }}>
+        <Skeleton variant="text" width={220} height={30} sx={{ mb: 2, borderRadius: "12px" }} />
+        <Skeleton variant="rectangular" width="60%" height={50} sx={{ mb: 4, borderRadius: "12px" }} />
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={4}>
+            <Skeleton variant="rectangular" height={180} sx={{ borderRadius: "16px", backgroundColor: "#eeece7" }} />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Skeleton variant="rectangular" height={180} sx={{ borderRadius: "16px", backgroundColor: "#eeece7" }} />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Skeleton variant="rectangular" height={180} sx={{ borderRadius: "16px", backgroundColor: "#eeece7" }} />
+          </Grid>
+        </Grid>
       </Box>
     );
   }

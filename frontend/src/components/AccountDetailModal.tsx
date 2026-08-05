@@ -17,11 +17,6 @@ import {
   Close as CloseIcon,
   SmartToy as BotIcon,
   Person as HumanIcon,
-  Launch as LaunchIcon,
-  CalendarToday as CalendarIcon,
-  Article as PostsIcon,
-  Group as FollowersIcon,
-  PersonAdd as FollowingIcon,
 } from "@mui/icons-material";
 import { AccountDetail } from "../api/client.ts";
 

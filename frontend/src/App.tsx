@@ -39,6 +39,7 @@ import FactChecking from "./pages/FactChecking.tsx";
 import Accounts from "./pages/Accounts.tsx";
 import Pipelines from "./pages/Pipelines.tsx";
 import DbSync from "./pages/DbSync.tsx";
+import { NotificationProvider } from "./context/NotificationContext.tsx";
 
 const drawerWidth = 270;
 
@@ -296,9 +297,10 @@ export default function App() {
 
   return (
     <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <HashRouter>
-        <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "#ffffff" }}>
+      <NotificationProvider>
+        <CssBaseline />
+        <HashRouter>
+          <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "#ffffff" }}>
           {/* Top Bar */}
           <AppBar
             position="fixed"
@@ -484,7 +486,8 @@ export default function App() {
             </Box>
           </Box>
         </Box>
-      </HashRouter>
+        </HashRouter>
+      </NotificationProvider>
     </ThemeProvider>
   );
 }

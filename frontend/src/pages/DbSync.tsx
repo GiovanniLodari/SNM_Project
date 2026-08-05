@@ -18,8 +18,10 @@ import {
   Terminal as ConsoleIcon,
 } from "@mui/icons-material";
 import { api, DbSyncResponse } from "../api/client.ts";
+import { useNotification } from "../context/NotificationContext.tsx";
 
 export default function DbSync() {
+  const { notify } = useNotification();
   const [status, setStatus] = useState<DbSyncResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -53,15 +55,18 @@ export default function DbSync() {
   const handleStartExport = () => {
     setActionLoading(true);
     setMessage({ type: "info", text: "Avvio dell'esportazione del database in corso..." });
+    notify("Esportazione database avviata in background", "info");
     api.pipelineStart("db_export", "")
       .then((res) => {
         setMessage({ type: "success", text: res.message });
+        notify("Pipeline di esportazione completata!", "success");
         setActionLoading(false);
         fetchSyncStatus();
       })
       .catch((err) => {
         console.error(err);
         setMessage({ type: "error", text: "Errore durante l'avvio dell'esportazione." });
+        notify("Errore durante l'esportazione database", "error");
         setActionLoading(false);
       });
   };
@@ -76,14 +81,17 @@ export default function DbSync() {
     if (!selectedFile) return;
     setActionLoading(true);
     setMessage({ type: "info", text: "Importazione del file ZIP e fusione dei dati in corso. Attendere..." });
+    notify("Importazione file ZIP in corso...", "info");
     
     api.dbImport(selectedFile)
       .then((res) => {
         if (res.ok) {
           setMessage({ type: "success", text: `Importazione completata con successo: ${res.message}` });
+          notify("Importazione database e merge completati!", "success");
           setSelectedFile(null);
         } else {
           setMessage({ type: "error", text: res.message });
+          notify(`Errore durante importazione: ${res.message}`, "error");
         }
         setActionLoading(false);
         fetchSyncStatus();
@@ -91,6 +99,7 @@ export default function DbSync() {
       .catch((err) => {
         console.error(err);
         setMessage({ type: "error", text: "Importazione fallita o timeout della connessione." });
+        notify("Importazione fallita o timeout di rete", "error");
         setActionLoading(false);
       });
   };

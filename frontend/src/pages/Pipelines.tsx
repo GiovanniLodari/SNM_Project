@@ -17,8 +17,10 @@ import {
   Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import { api, JobRow, PipelinesResponse } from "../api/client.ts";
+import { useNotification } from "../context/NotificationContext.tsx";
 
 function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }) {
+  const { notify } = useNotification();
   const [paramValue, setParamValue] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const logEndRef = useRef<HTMLDivElement | null>(null);
@@ -33,13 +35,13 @@ function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }
     setActionLoading(true);
     api.pipelineStart(job.name, paramValue)
       .then((res) => {
-        alert(res.message);
+        notify(res.message, "success");
         setActionLoading(false);
         onRefresh();
       })
       .catch((err) => {
         console.error(err);
-        alert("Errore durante l'avvio della pipeline.");
+        notify("Errore durante l'avvio della pipeline.", "error");
         setActionLoading(false);
       });
   };
@@ -48,13 +50,13 @@ function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }
     setActionLoading(true);
     api.pipelineStop(job.name)
       .then((res) => {
-        alert(res.message);
+        notify(res.message, "info");
         setActionLoading(false);
         onRefresh();
       })
       .catch((err) => {
         console.error(err);
-        alert("Errore durante l'arresto della pipeline.");
+        notify("Errore durante l'arresto della pipeline.", "error");
         setActionLoading(false);
       });
   };
