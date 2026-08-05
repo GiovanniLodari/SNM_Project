@@ -15,21 +15,31 @@ import {
   Chip,
   LinearProgress,
   Grid,
+  ToggleButtonGroup,
+  ToggleButton,
 } from "@mui/material";
 import { Link } from "react-router-dom";
 import { api, AiDetectionResponse } from "../api/client.ts";
-import { ArrowBack as PrevIcon, ArrowForward as NextIcon, SmartToy as BotIcon } from "@mui/icons-material";
+import {
+  ArrowBack as PrevIcon,
+  ArrowForward as NextIcon,
+  SmartToy as BotIcon,
+  ArrowUpward as TopIcon,
+  ArrowDownward as BottomIcon,
+  FormatListNumbered as IdIcon,
+} from "@mui/icons-material";
 
 export default function AiDetection() {
   const [data, setData] = useState<AiDetectionResponse | null>(null);
   const [selectedBuckets, setSelectedBuckets] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<string>("id");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchAiData = (buckets: string[], pg: number) => {
+  const fetchAiData = (buckets: string[], pg: number, sort: string) => {
     setLoading(true);
-    api.aiDetection(buckets, pg)
+    api.aiDetection(buckets, pg, sort)
       .then((res) => {
         setData(res);
         setLoading(false);
@@ -42,7 +52,7 @@ export default function AiDetection() {
   };
 
   useEffect(() => {
-    fetchAiData(selectedBuckets, page);
+    fetchAiData(selectedBuckets, page, sortBy);
   }, [page]);
 
   const handleBucketChange = (bucket: string) => {
@@ -51,8 +61,16 @@ export default function AiDetection() {
       : [...selectedBuckets, bucket];
     setSelectedBuckets(nextBuckets);
     setPage(1);
-    fetchAiData(nextBuckets, 1);
+    fetchAiData(nextBuckets, 1, sortBy);
   };
+
+  const handleSortChange = (_: any, newSort: string | null) => {
+    if (!newSort) return;
+    setSortBy(newSort);
+    setPage(1);
+    fetchAiData(selectedBuckets, 1, newSort);
+  };
+
 
   if (loading && !data) {
     return (
@@ -316,6 +334,7 @@ export default function AiDetection() {
                     </Box>
                   )}
                 </Paper>
+
               </Grid>
             ))}
           </Grid>
@@ -324,8 +343,47 @@ export default function AiDetection() {
 
 
       <Grid container spacing={4}>
-        {/* Filters */}
+        {/* Filters & Sorting */}
+
         <Grid item xs={12} md={3}>
+
+          <Paper sx={{ p: 3, borderRadius: "16px", border: "1px solid #e5e7eb", backgroundColor: "#ffffff", mb: 3 }}>
+            <Typography variant="caption" sx={{ color: "#75758a", mb: 1.5, display: "block" }}>
+              SORT PROBABILITIES
+            </Typography>
+            <ToggleButtonGroup
+              value={sortBy}
+              exclusive
+              onChange={handleSortChange}
+              size="small"
+              fullWidth
+              sx={{
+                "& .MuiToggleButton-root": {
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  textTransform: "none",
+                  py: 0.8,
+                  "&.Mui-selected": {
+                    backgroundColor: "#ff7759",
+                    color: "#ffffff",
+                    "&:hover": { backgroundColor: "#e66043" },
+                  },
+                },
+              }}
+            >
+              <ToggleButton value="top">
+                <TopIcon sx={{ fontSize: 16, mr: 0.5 }} /> Top %
+              </ToggleButton>
+              <ToggleButton value="bottom">
+                <BottomIcon sx={{ fontSize: 16, mr: 0.5 }} /> Bottom %
+              </ToggleButton>
+              <ToggleButton value="id">
+                <IdIcon sx={{ fontSize: 16, mr: 0.5 }} /> Default
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Paper>
+
           <Paper sx={{ p: 3, borderRadius: "16px", border: "1px solid #e5e7eb", backgroundColor: "#ffffff" }}>
             <Typography variant="caption" sx={{ color: "#75758a", mb: 2, display: "block" }}>
               SCORE QUARTILES
@@ -360,6 +418,7 @@ export default function AiDetection() {
             )}
           </Paper>
         </Grid>
+
 
         {/* AI Posts List */}
         <Grid item xs={12} md={9}>

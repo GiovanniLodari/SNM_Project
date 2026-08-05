@@ -11,8 +11,11 @@ export interface Post {
 export interface AiScore {
   id: number;
   probability: number;
+  criterion?: number | null;
+  ntokens?: number | null;
   model?: string;
 }
+
 
 export interface FactCheck {
   id: number;
@@ -69,7 +72,9 @@ export interface AiDetectionResponse {
   has_next: boolean;
   prob_buckets: string[];
   selected_buckets: string[];
+  sort_by?: string;
 }
+
 
 
 export interface FactCheckResponse {
@@ -214,8 +219,9 @@ export const api = {
     getJson<PostsResponse>(`/api/posts${buildQuery({ lang, page })}`),
   postDetail: (id: number) => getJson<PostDetailResponse>(`/api/posts/${id}`),
   accounts: () => getJson<AccountsStats>("/api/accounts"),
-  aiDetection: (probBucket: string[], page: number) =>
-    getJson<AiDetectionResponse>(`/api/ai-detection${buildQuery({ prob_bucket: probBucket, page })}`),
+  aiDetection: (probBucket: string[], page: number, sortBy: string = "id") =>
+    getJson<AiDetectionResponse>(`/api/ai-detection${buildQuery({ prob_bucket: probBucket, page, sort_by: sortBy })}`),
+
   factCheck: (verdict: string[], page: number) =>
     getJson<FactCheckResponse>(`/api/fact-check${buildQuery({ verdict, page })}`),
   pipelines: () => getJson<PipelinesResponse>("/api/pipelines"),

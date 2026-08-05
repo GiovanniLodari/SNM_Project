@@ -443,6 +443,7 @@ def account_graph_topology(account_id: int, limit: int = 40, conn=Depends(get_db
 def ai_detection(
     page: int = 1,
     prob_bucket: list[str] = Query(default=[]),
+    sort_by: str = Query(default="id"),
     conn=Depends(get_db),
 ):
     ai_scores = results.load_ai_scores(AI_SCORES_PATH)
@@ -456,6 +457,13 @@ def ai_detection(
             (status_id, p) for status_id, p in all_scored
             if results.probability_bucket_of(p) in prob_bucket
         ]
+
+    if sort_by == "top":
+        all_scored.sort(key=lambda kv: kv[1], reverse=True)
+    elif sort_by == "bottom":
+        all_scored.sort(key=lambda kv: kv[1])
+    elif sort_by == "id_desc":
+        all_scored.sort(key=lambda kv: kv[0], reverse=True)
 
     page = max(page, 1)
     offset = (page - 1) * PAGE_SIZE
@@ -481,7 +489,9 @@ def ai_detection(
         "has_next": len(page_ids) == PAGE_SIZE,
         "prob_buckets": results.PROBABILITY_FILTER_BUCKETS,
         "selected_buckets": prob_bucket,
+        "sort_by": sort_by,
     }
+
 
 
 

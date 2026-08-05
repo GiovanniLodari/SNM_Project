@@ -189,9 +189,21 @@ export default function PostDetail() {
                     {(ai_score.probability * 100).toFixed(1)}%
                   </Typography>
                 </Box>
-                <Typography variant="caption" sx={{ color: "#75758a" }}>
-                  Model: {ai_score.model || "N/A"}
-                </Typography>
+                <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 0.5 }}>
+                  <Typography variant="caption" sx={{ color: "#75758a" }}>
+                    Model: <strong>{ai_score.model || "N/A"}</strong>
+                  </Typography>
+                  {ai_score.criterion !== undefined && ai_score.criterion !== null && (
+                    <Typography variant="caption" sx={{ color: "#75758a" }}>
+                      Log Likelihood Criterion: <strong>{typeof ai_score.criterion === "number" ? ai_score.criterion.toFixed(4) : String(ai_score.criterion)}</strong>
+                    </Typography>
+                  )}
+                  {ai_score.ntokens !== undefined && ai_score.ntokens !== null && (
+                    <Typography variant="caption" sx={{ color: "#75758a" }}>
+                      Tokens Evaluated: <strong>{ai_score.ntokens}</strong>
+                    </Typography>
+                  )}
+                </Box>
                 <Box sx={{ mt: 2 }}>
                   {ai_score.probability >= 0.5 ? (
                     <Chip label="PROBABLE AI SYNTHETIC" sx={{ backgroundColor: "#ff7759", color: "#ffffff", fontWeight: 600 }} />
@@ -200,6 +212,7 @@ export default function PostDetail() {
                   )}
                 </Box>
               </Box>
+
             ) : (
               <Typography variant="body2" sx={{ color: "#75758a" }}>
                 No AI detection scores available for this status record.
