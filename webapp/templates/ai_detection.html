@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}AI Detection - SNM Project{% endblock %}
+{% block content %}
+<h1>Risultati AI Detection</h1>
+{% if eligible > 0 %}
+<p>{{ done }} / {{ eligible }} post processati ({{ (100 * done / eligible) | round(1) }}%)</p>
+{% endif %}
+{% if done > 0 %}
+<p><strong>{{ "{:,}".format(ai_classified).replace(",", ".") }}</strong> classificati come generati da IA (soglia probabilita' > {{ ai_threshold }}, {{ (100 * ai_classified / done) | round(1) }}% dei processati) — la probabilita' grezza da sola (es. 0.2) non basta a dire "generato da IA", serve superare questa soglia.</p>
+{% endif %}
+{% if done > 0 %}
+<h2>Distribuzione probabilita'</h2>
+<table>
+  <tbody>
+    {% for bucket, count in histogram.items() %}
+    <tr><td>{{ bucket }}</td><td>{{ count }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>Post analizzati</h2>
+<form method="get" class="filters">
+  <details {% if selected_buckets %}open{% endif %}>
+    <summary>Probabilita'{% if selected_buckets %} ({{ selected_buckets | length }}){% endif %}</summary>
+    <span style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.4rem;">
+      {% for b in prob_buckets %}
+      <label style="display: inline-flex; align-items: center; gap: 0.25rem; font-weight: normal;">
+        <input type="checkbox" name="prob_bucket" value="{{ b }}" {% if b in selected_buckets %}checked{% endif %}>
+        {{ b }}%
+      </label>
+      {% endfor %}
+    </span>
+  </details>
+  <button type="submit">Filtra</button>
+</form>
+{% if page_rows %}
+<table>
+  <thead><tr><th>id</th><th>probabilita'</th><th>testo</th></tr></thead>
+  <tbody>
+    {% for row in page_rows %}
+    <tr>
+      <td><a href="/posts/{{ row.post.id }}">{{ row.post.id }}</a></td>
+      <td>{{ row.probability | round(3) }}</td>
+      <td>{{ row.post.content[:80] }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<div class="pagination">
+{% macro bucket_qs() %}{% for b in selected_buckets %}prob_bucket={{ b | urlencode }}&{% endfor %}{% endmacro %}
+{% if page > 1 %}<a href="?{{ bucket_qs() }}page={{ page - 1 }}">&laquo; precedente</a>{% endif %}
+<a href="?{{ bucket_qs() }}page={{ page + 1 }}">successivo &raquo;</a>
+</div>
+{% else %}
+<p class="empty-state">Nessun post in questa pagina.</p>
+{% endif %}
+{% else %}
+<p class="empty-state">Nessun dato ancora disponibile.</p>
+{% endif %}
+{% endblock %}

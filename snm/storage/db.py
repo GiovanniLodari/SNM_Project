@@ -1,0 +1,663 @@
+from pathlib import Path
+import re
+import json
+
+import psycopg2
+import psycopg2.extensions
+import psycopg2.extras
+
+SCHEMA_PATH = Path(__file__).parent.parent.parent / "DB" / "schema.sql"
+
+
+class SQLiteCursorWrapper:
+    def __init__(self, cursor):
+        self.cursor = cursor
+
+    def execute(self, query, params=None):
+        query_translated = query.replace("%s", "?")
+        query_translated = query_translated.replace("now()", "datetime('now')")
+
+        # Translation of make_interval(days => ?)
+        query_translated = re.sub(
+            r"datetime\('now'\)\s*-\s*make_interval\(days\s*=>\s*\?\)",
+            r"datetime('now', '-' || ? || ' days')",
+            query_translated
+        )
+
+        # Translation of JSON operators
+        query_translated = re.sub(
+            r"([\w.]+)\s*->>\s*'(\w+)'",
+            r"json_extract(\1, '$.\2')",
+            query_translated
+        )
+        query_translated = re.sub(
+            r"([\w.]+)\s*->\s*'(\w+)'",
+            r"json_extract(\1, '$.\2')",
+            query_translated
+        )
+
+        # Translation of type casting
+        query_translated = re.sub(r"::int\b", r"", query_translated)
+        query_translated = re.sub(r"::float\b", r"", query_translated)
+        query_translated = re.sub(r"::text\b", r"", query_translated)
+
+        # Translation of ANY(?) -> IN (?, ?, ...)
+        if params is not None:
+            if not isinstance(params, (list, tuple)):
+                params = [params]
+            else:
+                params = list(params)
+
+            # Translation of = ANY(?)
+            while True:
+                match = re.search(r"(\b\w+\b)\s*=\s*ANY\s*\(\s*\?\s*\)", query_translated)
+                if not match:
+                    break
+                pre_query = query_translated[:match.start()]
+                param_idx = pre_query.count("?")
+                list_param = params[param_idx]
+                if not isinstance(list_param, (list, tuple, set)):
+                    list_param = [list_param]
+                list_param = list(list_param)
+
+                if len(list_param) == 0:
+                    replacement = "1=0"
+                else:
+                    placeholders = ", ".join(["?"] * len(list_param))
+                    col_name = match.group(1)
+                    replacement = f"{col_name} IN ({placeholders})"
+
+                query_translated = query_translated[:match.start()] + replacement + query_translated[match.end():]
+                params = params[:param_idx] + list_param + params[param_idx + 1:]
+
+            # Translation of NOT (column = ANY(?)) -> column NOT IN (?, ?, ...)
+            while True:
+                match = re.search(r"NOT\s*\(\s*(\b\w+\b)\s*=\s*ANY\s*\(\s*\?\s*\)\s*\)", query_translated)
+                if not match:
+                    break
+                pre_query = query_translated[:match.start()]
+                param_idx = pre_query.count("?")
+                list_param = params[param_idx]
+                if not isinstance(list_param, (list, tuple, set)):
+                    list_param = [list_param]
+                list_param = list(list_param)
+
+                if len(list_param) == 0:
+                    replacement = "1=1"
+                else:
+                    placeholders = ", ".join(["?"] * len(list_param))
+                    col_name = match.group(1)
+                    replacement = f"{col_name} NOT IN ({placeholders})"
+
+                query_translated = query_translated[:match.start()] + replacement + query_translated[match.end():]
+                params = params[:param_idx] + list_param + params[param_idx + 1:]
+
+        # Serialization of dict/list and boolean conversions
+        if params is not None:
+            final_params = []
+            for p in params:
+                if p.__class__.__name__ == 'Json':
+                    p = p.adapted
+                if isinstance(p, (dict, list)):
+                    final_params.append(json.dumps(p))
+                elif isinstance(p, bool):
+                    final_params.append(1 if p else 0)
+                else:
+                    final_params.append(p)
+            params = final_params
+
+        if params is not None:
+            return self.cursor.execute(query_translated, params)
+        else:
+            return self.cursor.execute(query_translated)
+
+    def fetchone(self):
+        return self.cursor.fetchone()
+
+    def fetchall(self):
+        return self.cursor.fetchall()
+
+    def __getattr__(self, name):
+        return getattr(self.cursor, name)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+
+class SQLiteConnectionWrapper:
+    def __init__(self, conn):
+        self.conn = conn
+
+    def cursor(self, *args, **kwargs):
+        return SQLiteCursorWrapper(self.conn.cursor())
+
+    def commit(self):
+        self.conn.commit()
+
+    def rollback(self):
+        self.conn.rollback()
+
+    def close(self):
+        self.conn.close()
+
+    def __getattr__(self, name):
+        return getattr(self.conn, name)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is not None:
+            self.rollback()
+        else:
+            self.commit()
+
+
+def get_connection(database_url: str) -> psycopg2.extensions.connection:
+    if database_url.startswith("sqlite://"):
+        import sqlite3
+        if database_url.startswith("sqlite:///"):
+            db_path = database_url[10:]
+        else:
+            db_path = database_url[9:]
+
+        if db_path and db_path != ":memory:":
+            db_file = Path(db_path)
+            db_file.parent.mkdir(parents=True, exist_ok=True)
+
+        sqlite_conn = sqlite3.connect(db_path)
+        sqlite_conn.execute("PRAGMA foreign_keys = ON;")
+        return SQLiteConnectionWrapper(sqlite_conn)
+    return psycopg2.connect(database_url)
+
+
+def init_schema(conn: psycopg2.extensions.connection) -> None:
+    """Crea le tabelle se non esistono già (idempotente)."""
+    is_sqlite = type(conn).__name__ == "SQLiteConnectionWrapper" or isinstance(conn, SQLiteConnectionWrapper)
+    if is_sqlite:
+        schema_path = Path(__file__).parent.parent.parent / "DB" / "schema_sqlite.sql"
+    else:
+        schema_path = SCHEMA_PATH
+        
+    sql = schema_path.read_text(encoding="utf-8")
+    with conn.cursor() as cur:
+        if is_sqlite:
+            cur.cursor.executescript(sql)
+        else:
+            cur.execute(sql)
+    conn.commit()
+
+
+
+def upsert_topic(conn: psycopg2.extensions.connection, name: str) -> int:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO topics (name) VALUES (%s)
+            ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+            RETURNING id
+            """,
+            (name,),
+        )
+        (topic_id,) = cur.fetchone()
+    conn.commit()
+    return topic_id
+
+
+def upsert_instance(
+    conn: psycopg2.extensions.connection,
+    domain: str,
+    active_users: int,
+    discovered_via_topic_id: int | None,
+) -> int:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO instances (domain, active_users, discovered_via_topic_id)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (domain) DO UPDATE SET active_users = EXCLUDED.active_users
+            RETURNING id
+            """,
+            (domain, active_users, discovered_via_topic_id),
+        )
+        (instance_id,) = cur.fetchone()
+    conn.commit()
+    return instance_id
+
+
+def upsert_account(conn: psycopg2.extensions.connection, instance_id: int, account_json: dict) -> int:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO accounts (instance_id, mastodon_id, acct, username, bot, raw)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (instance_id, mastodon_id) DO UPDATE SET raw = EXCLUDED.raw
+            RETURNING id
+            """,
+            (
+                instance_id,
+                account_json["id"],
+                account_json["acct"],
+                account_json["username"],
+                account_json.get("bot", False),
+                psycopg2.extras.Json(account_json),
+            ),
+        )
+        (account_id,) = cur.fetchone()
+    conn.commit()
+    return account_id
+
+
+def _find_status_id_by_mastodon_id(conn, instance_id: int, mastodon_id: str) -> int | None:
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id FROM statuses WHERE instance_id = %s AND mastodon_id = %s",
+            (instance_id, mastodon_id),
+        )
+        row = cur.fetchone()
+    return row[0] if row else None
+
+
+def upsert_status(
+    conn: psycopg2.extensions.connection,
+    instance_id: int,
+    status_json: dict,
+    source: str = "hashtag",
+) -> int:
+    """Inserisce (o aggiorna) uno status. Se è un reblog, inserisce prima ricorsivamente
+    lo status originale e collega reblog_of_id. Popola hashtag e mention associati.
+    Il source indica la provenienza; in caso di post già presente il source
+    originale non viene sovrascritto."""
+    reblog_of_id = None
+    if status_json.get("reblog"):
+        reblog_of_id = upsert_status(conn, instance_id, status_json["reblog"], source=source)
+
+    account_id = upsert_account(conn, instance_id, status_json["account"])
+
+    in_reply_to_mastodon_id = status_json.get("in_reply_to_id")
+    in_reply_to_id = None
+    if in_reply_to_mastodon_id:
+        in_reply_to_id = _find_status_id_by_mastodon_id(conn, instance_id, in_reply_to_mastodon_id)
+
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO statuses (
+                instance_id, mastodon_id, account_id, content, language, created_at,
+                reblog_of_id, in_reply_to_mastodon_id, in_reply_to_id, raw, source
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (instance_id, mastodon_id) DO UPDATE SET raw = EXCLUDED.raw
+            RETURNING id
+            """,
+            (
+                instance_id,
+                status_json["id"],
+                account_id,
+                status_json.get("content", ""),
+                status_json.get("language"),
+                status_json.get("created_at"),
+                reblog_of_id,
+                in_reply_to_mastodon_id,
+                in_reply_to_id,
+                psycopg2.extras.Json(status_json),
+                source,
+            ),
+        )
+        (status_id,) = cur.fetchone()
+
+        for tag in status_json.get("tags", []):
+            cur.execute(
+                """
+                INSERT INTO status_hashtags (status_id, hashtag) VALUES (%s, %s)
+                ON CONFLICT (status_id, hashtag) DO NOTHING
+                """,
+                (status_id, tag["name"].lower()),
+            )
+
+        for mention in status_json.get("mentions", []):
+            cur.execute(
+                """
+                INSERT INTO mentions (status_id, mentioned_acct) VALUES (%s, %s)
+                ON CONFLICT (status_id, mentioned_acct) DO NOTHING
+                """,
+                (status_id, mention["acct"]),
+            )
+    conn.commit()
+    return status_id
+
+
+def insert_reblog(
+    conn: psycopg2.extensions.connection, status_id: int, booster_account_id: int
+) -> bool:
+    """Registra l'arco 'booster ha boostato status' (idempotente). Ritorna
+    True se la riga era nuova, False se gia' presente (usato dall'import
+    per il riepilogo)."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO reblogs (status_id, booster_account_id) VALUES (%s, %s)
+            ON CONFLICT (status_id, booster_account_id) DO NOTHING
+            RETURNING status_id
+            """,
+            (status_id, booster_account_id),
+        )
+        inserted = cur.fetchone() is not None
+    conn.commit()
+    return inserted
+
+
+def mark_enriched(conn: psycopg2.extensions.connection, status_id: int) -> None:
+    """Marca lo status come processato dall'arricchimento interazioni."""
+    with conn.cursor() as cur:
+        cur.execute("UPDATE statuses SET enriched_at = now() WHERE id = %s", (status_id,))
+    conn.commit()
+
+
+def mark_deleted(conn: psycopg2.extensions.connection, status_id: int) -> None:
+    """Marca lo status come cancellato sull'istanza di origine (visto 404)."""
+    with conn.cursor() as cur:
+        cur.execute("UPDATE statuses SET deleted_at = now() WHERE id = %s", (status_id,))
+    conn.commit()
+
+
+def list_statuses_to_enrich(
+    conn: psycopg2.extensions.connection, refresh_older_than_days: int | None = None
+) -> list[tuple]:
+    """Post con interazioni dichiarate non ancora arricchiti, con l'istanza di
+    provenienza. Con refresh_older_than_days include anche i post già arricchiti
+    più di N giorni fa (ri-arricchimento: cattura interazioni tardive). I post
+    cancellati (deleted_at) sono esclusi. Righe: (status_id, mastodon_id,
+    instance_id, domain, reblogs_count, replies_count)."""
+    refresh_clause = ""
+    params: tuple = ()
+    if refresh_older_than_days is not None:
+        refresh_clause = "OR s.enriched_at < now() - make_interval(days => %s)"
+        params = (refresh_older_than_days,)
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            SELECT s.id, s.mastodon_id, s.instance_id, i.domain,
+                   COALESCE((s.raw->>'reblogs_count')::int, 0),
+                   COALESCE((s.raw->>'replies_count')::int, 0)
+            FROM statuses s JOIN instances i ON i.id = s.instance_id
+            WHERE s.deleted_at IS NULL
+              AND (s.enriched_at IS NULL {refresh_clause})
+              AND (COALESCE((s.raw->>'reblogs_count')::int, 0) > 0
+                   OR COALESCE((s.raw->>'replies_count')::int, 0) > 0)
+            ORDER BY i.domain, s.id
+            """,
+            params,
+        )
+        return cur.fetchall()
+
+
+def upsert_ai_label(
+    conn: psycopg2.extensions.connection, status_id: int, probability: float,
+    criterion: float | None, model: str,
+) -> None:
+    """Registra/aggiorna la probabilita' di generazione IA per un post
+    (idempotente: un nuovo run sullo stesso post sovrascrive)."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO ai_labels (status_id, ai_probability, criterion, model)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (status_id) DO UPDATE SET
+                ai_probability = EXCLUDED.ai_probability,
+                criterion = EXCLUDED.criterion,
+                model = EXCLUDED.model,
+                detected_at = now()
+            """,
+            (status_id, probability, criterion, model),
+        )
+    conn.commit()
+
+
+def list_statuses_to_fact_check(
+    conn: psycopg2.extensions.connection, limit: int | None = None
+) -> list[tuple]:
+    """Post non ancora fact-checkati (veracity NULL), esclusi cancellati e
+    reblog puri (testo vuoto, il contenuto sta nell'originale). Righe:
+    (status_id, content, language)."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, content, language FROM statuses
+            WHERE veracity IS NULL
+              AND deleted_at IS NULL
+              AND reblog_of_id IS NULL
+              AND content IS NOT NULL AND content <> ''
+            ORDER BY id
+            LIMIT %s
+            """,
+            (limit,),
+        )
+        return cur.fetchall()
+
+
+def upsert_fact_check(
+    conn: psycopg2.extensions.connection,
+    status_id: int,
+    veracity: int,
+    verdict: str,
+    reasoning: str | None,
+    evidence: list[dict],
+    model: str,
+) -> None:
+    """Registra l'esito del fact-checking: aggiorna statuses.veracity e
+    il dettaglio in fact_checks (idempotente, un rerun sovrascrive)."""
+    with conn.cursor() as cur:
+        cur.execute("UPDATE statuses SET veracity = %s WHERE id = %s", (veracity, status_id))
+        cur.execute(
+            """
+            INSERT INTO fact_checks (status_id, verdict, reasoning, evidence, model)
+            VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT (status_id) DO UPDATE SET
+                verdict = EXCLUDED.verdict,
+                reasoning = EXCLUDED.reasoning,
+                evidence = EXCLUDED.evidence,
+                model = EXCLUDED.model,
+                checked_at = now()
+            """,
+            (status_id, verdict, reasoning, psycopg2.extras.Json(evidence), model),
+        )
+    conn.commit()
+
+
+def record_topic_hashtags(
+    conn: psycopg2.extensions.connection,
+    topic_id: int,
+    instance_id: int,
+    hashtags: list[tuple[str, int]],
+) -> None:
+    """Sostituisce gli hashtag scoperti per (topic, istanza) con la lista fornita."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "DELETE FROM topic_hashtags WHERE topic_id = %s AND instance_id = %s",
+            (topic_id, instance_id),
+        )
+        for hashtag, usage_count in hashtags:
+            cur.execute(
+                """
+                INSERT INTO topic_hashtags (topic_id, instance_id, hashtag, usage_count)
+                VALUES (%s, %s, %s, %s)
+                """,
+                (topic_id, instance_id, hashtag, usage_count),
+            )
+    conn.commit()
+
+
+def list_accounts_to_crawl(
+    conn: psycopg2.extensions.connection, include_isolated: bool = False
+) -> list[tuple]:
+    """Account con timeline non ancora scaricata, con l'istanza di provenienza.
+    Default: solo account connessi (compaiono in reblogs, reply o mention) —
+    sono quelli che densificano la rete. Righe: (account_id, mastodon_id, domain)."""
+    connected_filter = """
+        AND (
+            EXISTS (SELECT 1 FROM reblogs r WHERE r.booster_account_id = a.id)
+            OR EXISTS (SELECT 1 FROM reblogs r JOIN statuses s ON s.id = r.status_id
+                       WHERE s.account_id = a.id)
+            OR EXISTS (SELECT 1 FROM statuses s WHERE s.account_id = a.id
+                       AND s.in_reply_to_id IS NOT NULL)
+            OR EXISTS (SELECT 1 FROM statuses p JOIN statuses c ON c.in_reply_to_id = p.id
+                       WHERE p.account_id = a.id)
+            OR EXISTS (SELECT 1 FROM mentions m WHERE m.mentioned_acct = a.acct)
+        )
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            SELECT a.id, a.mastodon_id, i.domain
+            FROM accounts a JOIN instances i ON i.id = a.instance_id
+            WHERE a.timeline_crawled_at IS NULL
+            {"" if include_isolated else connected_filter}
+            ORDER BY i.domain, a.id
+            """
+        )
+        return cur.fetchall()
+
+
+def mark_timeline_crawled(conn: psycopg2.extensions.connection, account_id: int) -> None:
+    """Marca l'account come processato dal crawler timeline."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE accounts SET timeline_crawled_at = now() WHERE id = %s", (account_id,)
+        )
+    conn.commit()
+
+
+def known_hashtags(conn: psycopg2.extensions.connection) -> set[str]:
+    """Hashtag già scoperti dalla pipeline (lowercase), per filtrare le timeline."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT DISTINCT lower(hashtag) FROM topic_hashtags")
+        return {row[0] for row in cur.fetchall()}
+
+
+def get_since_cursor(
+    conn: psycopg2.extensions.connection, instance_id: int, hashtag: str
+) -> str | None:
+    """Ultimo cursore non nullo per (istanza, hashtag): id del post più recente
+    visto dai run precedenti, da passare come since_id per la raccolta
+    incrementale. None se mai raccolto."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT max_id_cursor FROM collection_runs
+            WHERE instance_id = %s AND hashtag = %s AND max_id_cursor IS NOT NULL
+            ORDER BY started_at DESC LIMIT 1
+            """,
+            (instance_id, hashtag),
+        )
+        row = cur.fetchone()
+    return row[0] if row else None
+
+
+def record_collection_run(
+    conn: psycopg2.extensions.connection,
+    topic_id: int,
+    instance_id: int,
+    hashtag: str,
+    max_id_cursor: str | None,
+    posts_collected: int,
+) -> int:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO collection_runs (topic_id, instance_id, hashtag, max_id_cursor, posts_collected, finished_at)
+            VALUES (%s, %s, %s, %s, %s, now())
+            RETURNING id
+            """,
+            (topic_id, instance_id, hashtag, max_id_cursor, posts_collected),
+        )
+        (run_id,) = cur.fetchone()
+    conn.commit()
+    return run_id
+
+
+def get_or_create_instance_id(conn: psycopg2.extensions.connection, domain: str) -> int:
+    """Id dell'istanza per domain, creandola con active_users NULL se non
+    esiste già (istanza scoperta da una relazione follow, non da topic
+    discovery: non sovrascrive active_users di un'istanza già nota)."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO instances (domain) VALUES (%s)
+            ON CONFLICT (domain) DO UPDATE SET domain = EXCLUDED.domain
+            RETURNING id
+            """,
+            (domain,),
+        )
+        (instance_id,) = cur.fetchone()
+    conn.commit()
+    return instance_id
+
+
+def insert_follow(
+    conn: psycopg2.extensions.connection, follower_account_id: int, followed_account_id: int
+) -> bool:
+    """Registra l'arco 'follower segue followed' (idempotente). Ritorna
+    True se la riga era nuova, False se gia' presente."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO follows (follower_account_id, followed_account_id) VALUES (%s, %s)
+            ON CONFLICT (follower_account_id, followed_account_id) DO NOTHING
+            RETURNING follower_account_id
+            """,
+            (follower_account_id, followed_account_id),
+        )
+        inserted = cur.fetchone() is not None
+    conn.commit()
+    return inserted
+
+
+def list_accounts_for_follow_crawl(
+    conn: psycopg2.extensions.connection, limit: int | None = None, before=None
+) -> list[tuple]:
+    """Account con followers e/o following non ancora scaricati, con l'istanza
+    di provenienza e quali direzioni mancano. Righe: (account_id, mastodon_id,
+    domain, need_followers, need_following). Con limit=None, LIMIT NULL in
+    PostgreSQL equivale a nessun limite. Con before=<datetime>, esclude gli
+    account scoperti da questo stesso crawler dopo quella data (i follower/
+    following via via scoperti non allargano lo scope di un resume mirato al
+    set di partenza)."""
+    before_clause = "AND a.fetched_at < %s" if before is not None else ""
+    params: tuple = (before, limit) if before is not None else (limit,)
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            SELECT a.id, a.mastodon_id, i.domain,
+                   a.followers_crawled_at IS NULL, a.following_crawled_at IS NULL
+            FROM accounts a JOIN instances i ON i.id = a.instance_id
+            WHERE (a.followers_crawled_at IS NULL OR a.following_crawled_at IS NULL)
+            {before_clause}
+            ORDER BY i.domain, a.id
+            LIMIT %s
+            """,
+            params,
+        )
+        return cur.fetchall()
+
+
+def mark_followers_crawled(conn: psycopg2.extensions.connection, account_id: int) -> None:
+    """Marca l'account come processato per la direzione followers."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE accounts SET followers_crawled_at = now() WHERE id = %s", (account_id,)
+        )
+    conn.commit()
+
+
+def mark_following_crawled(conn: psycopg2.extensions.connection, account_id: int) -> None:
+    """Marca l'account come processato per la direzione following."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE accounts SET following_crawled_at = now() WHERE id = %s", (account_id,)
+        )
+    conn.commit()

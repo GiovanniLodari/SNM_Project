@@ -1,0 +1,16 @@
+Politics: politics, election, government, democracy
+Medicine: medicine, medical, pharma
+Sport: sport, soccer, football, nfl, basketball, baseball, tennis, cricket, rugby, golf, formula1, hockey
+Climate change: climate change, climate, global warming, climate crisis
+Gaming: gaming, videogames, esports, playstation, xbox, nintendo
+Music: music, musician, concert, hiphop, rock, pop
+Artificial Intelligence: artificial intelligence, ai, machine learning, chatgpt, llm
+Computer Science: computer science, programming, software, opensource
+Economy: economy, finance, inflation, stockmarket
+Physics: physics, quantum, astronomy, space
+Entertainment: entertainment, movies, cinema, tv, netflix, celebrity
+Healthcare: healthcare, health, hospital, mental health
+Photography: photography, photo, photographer
+Memes: memes, meme, funny, humor
+Explicit content: nsfw, adult content
+Fashion: fashion, style, streetwear

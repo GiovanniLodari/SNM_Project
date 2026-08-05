@@ -1,0 +1,81 @@
+.env
+.env.*
+.env.example
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.db
+DB/*.db
+
+
+# Claude Code / agent tooling
+.claude/
+.claude.json
+.superpowers/
+CLAUDE.md
+CLAUDE.local.md
+
+# Graphify knowledge graph output
+graphify-out/
+graph-out/
+
+# Vecchia cartella fase_1_beta (analisi preliminare di un collega) - non
+# esiste piu' sul disco, tolta dal tracking (era rimasta solo nell'indice git)
+fase_1_beta/
+
+# Fast-DetectGPT (external tool, fase 1 AI detection) - non tracciato.
+# E' un repo git annidato (ha il proprio .git) - un file al suo interno non
+# si puo' "detracciare" dal repo esterno senza diventare un embedded
+# repo/submodule. Il risultato finale (ai_scores.jsonl) va quindi copiato
+# in data/ (fuori da questo repo annidato) per essere tracciato normalmente.
+fast-detect-gpt/
+
+# Copia di lavoro dei codici del "fisso" (secondo PC, esegue l'AI detection
+# su GPU) - non tracciato, stesso motivo di fast-detect-gpt/
+fisso/
+
+# Modelli HuggingFace scaricati per checkworthiness (fase 2 fact-check) - non tracciato
+cache/
+
+# Report outputs (tex build artifacts, docx, txt reports)
+*.aux
+*.log
+*.toc
+report*.docx
+report*.txt
+report_*.docx
+report_*.txt
+
+# Project docs (specs/plans) - kept local, not pushed
+docs/
+
+# Tests - kept local, not pushed
+tests/
+
+# File PID e log del supervisore pipeline (webapp/jobs.py) - stato locale
+.pids/
+.logs/
+
+# Export/import DB per condivisione dati con colleghi - stato locale
+exports/
+imports/
+
+# Risultati AI detection / fact-check / checkworthiness - locali finche' non
+# validati (gate: si aggiungono al DB solo dopo revisione utente+colleghi)
+/ai_scores.jsonl
+checkworthy_scores.jsonl
+fact_check_report*.csv
+
+# File di consegna temporanei (rigenerati al bisogno da post_texts.jsonl +
+# ai_scores.jsonl, es. per passare al fisso i post ancora da processare)
+post_texts_remaining.jsonl
+
+# post_texts.jsonl (id, lang, text, created_at) e' tracciato: senza,
+# ai_scores.jsonl sarebbe solo id->probabilita' senza testo, illeggibile
+# per i colleghi senza un DB importato e collegato
+
+# Frontend React (frontend/) - node_modules e build locale, non tracciati
+frontend/node_modules/
+frontend/dist/
