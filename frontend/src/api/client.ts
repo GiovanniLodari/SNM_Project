@@ -62,6 +62,7 @@ export interface AiDetectionResponse {
   ai_classified: number;
   ai_threshold: number;
   histogram: Record<string, number>;
+  bucket_samples?: Record<string, { post: Post; probability: number }[]>;
   page_rows: { post: Post; probability: number }[];
   page: number;
   page_size: number;
@@ -69,6 +70,7 @@ export interface AiDetectionResponse {
   prob_buckets: string[];
   selected_buckets: string[];
 }
+
 
 export interface FactCheckResponse {
   done: number;

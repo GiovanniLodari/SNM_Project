@@ -178,6 +178,151 @@ export default function AiDetection() {
         </Grid>
       )}
 
+      {/* Bucket Sampling / Exploration Module */}
+      {data && data.bucket_samples && (
+        <Paper
+          sx={{
+            p: 4,
+            mb: 6,
+            borderRadius: "22px",
+            border: "1px solid #e5e7eb",
+            backgroundColor: "#fafaf8",
+          }}
+        >
+          <Box sx={{ mb: 3 }}>
+            <Chip
+              label="TIER EXPLORER"
+              size="small"
+              sx={{
+                fontFamily: "ui-monospace, monospace",
+                fontSize: "10px",
+                color: "#ff7759",
+                backgroundColor: "#fff0ec",
+                fontWeight: 700,
+                mb: 1,
+              }}
+            />
+            <Typography variant="h5" sx={{ fontWeight: 600, color: "#17171c" }}>
+              Esplorazione Post per Scaglione di Probabilità AI
+            </Typography>
+            <Typography variant="body2" sx={{ color: "#75758a", mt: 0.5 }}>
+              Campioni estratti direttamente da <code>ai_scores.jsonl</code> per ciascuna fascia di confidenza del modello Fast-DetectGPT.
+            </Typography>
+          </Box>
+
+          <Grid container spacing={3}>
+            {Object.entries(data.bucket_samples).map(([bucketName, samples]) => (
+              <Grid item xs={12} md={2.4} key={bucketName}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2.5,
+                    borderRadius: "16px",
+                    border: "1px solid #e2e4e8",
+                    backgroundColor: "#ffffff",
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                    <Chip
+                      label={`Scaglione ${bucketName}`}
+                      size="small"
+                      sx={{
+                        fontWeight: 700,
+                        fontSize: "11px",
+                        backgroundColor:
+                          bucketName.startsWith("0.8") || bucketName.startsWith("0.6")
+                            ? "#ff7759"
+                            : "#eeece7",
+                        color:
+                          bucketName.startsWith("0.8") || bucketName.startsWith("0.6")
+                            ? "#ffffff"
+                            : "#17171c",
+                      }}
+                    />
+                    <Typography variant="caption" sx={{ color: "#75758a", fontWeight: 600 }}>
+                      {samples.length} post
+                    </Typography>
+                  </Box>
+
+                  {samples.length === 0 ? (
+                    <Typography variant="caption" sx={{ color: "#9e9ea7", fontStyle: "italic", my: "auto" }}>
+                      Nessun post presente in questo scaglione.
+                    </Typography>
+                  ) : (
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, flexGrow: 1, maxHeight: 600, overflowY: "auto", pr: 0.5 }}>
+
+                      {samples.map(({ post, probability }) => (
+                        <Box
+                          key={post.id}
+                          sx={{
+                            p: 1.5,
+                            borderRadius: "10px",
+                            backgroundColor: "#f8f9fa",
+                            border: "1px solid #eff0f3",
+                          }}
+                        >
+                          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                            <Typography
+                              variant="caption"
+                              sx={{ fontWeight: 600, color: "#17171c", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100px" }}
+                            >
+                              {post.acct}
+                            </Typography>
+                            <Chip
+                              label={`${(probability * 100).toFixed(1)}%`}
+                              size="small"
+                              sx={{
+                                height: "20px",
+                                fontSize: "10px",
+                                fontWeight: 700,
+                                backgroundColor: probability >= 0.5 ? "#fff0ec" : "#eeece7",
+                                color: probability >= 0.5 ? "#d94a2b" : "#555566",
+                              }}
+                            />
+                          </Box>
+
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              display: "-webkit-box",
+                              WebkitLineClamp: 3,
+                              WebkitBoxOrient: "vertical",
+                              overflow: "hidden",
+                              color: "#4a4a5a",
+                              fontSize: "12px",
+                              lineHeight: 1.4,
+                              mb: 1,
+                            }}
+                          >
+                            {post.content}
+                          </Typography>
+
+                          <Link
+                            to={`/posts/${post.id}`}
+                            style={{
+                              color: "#1863dc",
+                              fontSize: "11px",
+                              fontWeight: 600,
+                              textDecoration: "none",
+                            }}
+                          >
+                            Dettaglio &rarr;
+                          </Link>
+                        </Box>
+                      ))}
+                    </Box>
+                  )}
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        </Paper>
+      )}
+
+
       <Grid container spacing={4}>
         {/* Filters */}
         <Grid item xs={12} md={3}>

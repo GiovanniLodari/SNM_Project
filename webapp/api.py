@@ -466,12 +466,15 @@ def ai_detection(
         for status_id, probability in page_ids if status_id in posts_by_id
     ]
 
+    bucket_samples = results.sample_posts_by_probability_bucket(ai_scores, conn, samples_per_bucket=100)
+
     return {
         "done": len(ai_scores),
         "eligible": eligible,
         "ai_classified": ai_classified,
         "ai_threshold": AI_CLASSIFICATION_THRESHOLD,
         "histogram": histogram,
+        "bucket_samples": bucket_samples,
         "page_rows": page_rows,
         "page": page,
         "page_size": PAGE_SIZE,
@@ -479,6 +482,7 @@ def ai_detection(
         "prob_buckets": results.PROBABILITY_FILTER_BUCKETS,
         "selected_buckets": prob_bucket,
     }
+
 
 
 @router.get("/fact-check")

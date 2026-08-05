@@ -28,6 +28,6 @@ Start-Process powershell.exe -ArgumentList "-NoExit", "-Command", $frontendCmd
 Write-Host ""
 Write-Host "---------------------------------------------------" -ForegroundColor Green
 Write-Host "[OK] Entrambi i servizi sono in fase di avvio!" -ForegroundColor Green
-Write-Host "  Backend API: http://127.0.0.1:8088" -ForegroundColor White
-Write-Host "  Frontend App: http://localhost:5173" -ForegroundColor White
+Write-Host "  Backend API: http://127.0.0.1:8089" -ForegroundColor White
+Write-Host "  Frontend App: http://localhost:5179" -ForegroundColor White
 Write-Host "---------------------------------------------------" -ForegroundColor Green

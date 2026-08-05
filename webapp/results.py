@@ -183,6 +183,58 @@ def ai_probability_histogram(ai_scores: dict[int, dict]) -> dict[str, int]:
     return hist
 
 
+def sample_posts_by_probability_bucket(
+    ai_scores: dict[int, dict], conn, samples_per_bucket: int = 100
+) -> dict[str, list[dict]]:
+    """Raggruppa gli status id nei 5 scaglioni dell'istogramma e seleziona fino a N
+    post rappresentativi per ciascuno scaglione con la relativa probabilita'."""
+    from webapp import queries
+
+    buckets_status_ids: dict[str, list[tuple[int, float]]] = {b: [] for b in _HISTOGRAM_BUCKETS}
+
+    for status_id, row in ai_scores.items():
+        p = row.get("probability")
+        if p is None or p != p:  # NaN check
+            continue
+        idx = min(int(p * 5), 4)
+        b_name = _HISTOGRAM_BUCKETS[idx]
+        buckets_status_ids[b_name].append((status_id, float(p)))
+
+    # Per ogni bucket, prendiamo fino a samples_per_bucket status_id distribuiti in modo uniforme o casuale/ordinato
+    all_needed_ids = set()
+    sampled_ids_per_bucket = {}
+
+    for b_name, items in buckets_status_ids.items():
+        if not items:
+            sampled_ids_per_bucket[b_name] = []
+            continue
+        # Ordiniamo per id per avere risultati deterministici
+        items.sort(key=lambda x: x[0])
+        # Campionamento a passo regolare se gli elementi sono piu' del limite
+        if len(items) <= samples_per_bucket:
+            selected = items
+        else:
+            step = len(items) / samples_per_bucket
+            selected = [items[int(i * step)] for i in range(samples_per_bucket)]
+
+        sampled_ids_per_bucket[b_name] = selected
+        for sid, _ in selected:
+            all_needed_ids.add(sid)
+
+    posts_by_id = queries.get_posts_by_ids(conn, list(all_needed_ids))
+
+    result = {}
+    for b_name, selected in sampled_ids_per_bucket.items():
+        result[b_name] = [
+            {"post": posts_by_id[sid], "probability": prob}
+            for sid, prob in selected
+            if sid in posts_by_id
+        ]
+
+    return result
+
+
+
 PROBABILITY_FILTER_BUCKETS = ["0-25", "25-50", "50-75", "75-100"]
 
 
