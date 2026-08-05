@@ -74,31 +74,9 @@ export default function GraphHero() {
   const hoveredNodeRef = useRef<PhysicsNode | null>(null);
   const isDraggingRef = useRef<boolean>(false);
   const draggedNodeRef = useRef<PhysicsNode | null>(null);
-  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
 
   hoveredNodeRef.current = hoveredNode;
-
-  // Auto-open detail modal when hovering a node for 600ms
-  useEffect(() => {
-    if (hoverTimerRef.current) {
-      clearTimeout(hoverTimerRef.current);
-      hoverTimerRef.current = null;
-    }
-
-    if (hoveredNode && !modalOpen && !isDraggingRef.current) {
-      hoverTimerRef.current = setTimeout(() => {
-        handleNodeClick(hoveredNode);
-      }, 600);
-    }
-
-    return () => {
-      if (hoverTimerRef.current) {
-        clearTimeout(hoverTimerRef.current);
-        hoverTimerRef.current = null;
-      }
-    };
-  }, [hoveredNode, modalOpen]);
 
   // Load initial graph data
   useEffect(() => {

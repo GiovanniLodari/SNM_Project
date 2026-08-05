@@ -9,7 +9,10 @@ import {
   Button,
   Avatar,
   Divider,
+  Slide,
 } from "@mui/material";
+import { TransitionProps } from "@mui/material/transitions";
+import React from "react";
 import {
   Close as CloseIcon,
   SmartToy as BotIcon,
@@ -28,6 +31,15 @@ interface AccountDetailModalProps {
   account: AccountDetail | null;
   loading?: boolean;
 }
+
+const Transition = React.forwardRef(function Transition(
+  props: TransitionProps & {
+    children: React.ReactElement<any, any>;
+  },
+  ref: React.Ref<unknown>,
+) {
+  return <Slide direction="up" ref={ref} {...props} />;
+});
 
 export default function AccountDetailModal({
   open,
@@ -51,15 +63,17 @@ export default function AccountDetailModal({
       onClose={onClose}
       maxWidth="sm"
       fullWidth
+      TransitionComponent={Transition}
+      keepMounted
       PaperProps={{
         sx: {
-          borderRadius: "28px",
-          backgroundColor: "#131924", // Cohere Dark Glass Surface
+          borderRadius: "22px",
+          backgroundColor: "#17171c",
           color: "#ffffff",
           backgroundImage: "none",
-          boxShadow: "0 24px 48px -12px rgba(0,0,0,0.7)",
-          border: "1px solid rgba(255, 255, 255, 0.12)",
-          overflow: "hidden",
+          boxShadow: "none",
+          border: "1px solid rgba(255, 255, 255, 0.08)",
+          overflow: "visible",
         },
       }}
     >
@@ -68,7 +82,7 @@ export default function AccountDetailModal({
         sx={{
           height: 120,
           width: "100%",
-          backgroundColor: "#0b0f19",
+          backgroundColor: "#071829",
           backgroundImage: account?.header ? `url(${account.header})` : "none",
           backgroundSize: "cover",
           backgroundPosition: "center",
@@ -93,7 +107,7 @@ export default function AccountDetailModal({
         </IconButton>
       </Box>
 
-      <DialogContent sx={{ p: 4, pt: 0, position: "relative" }}>
+      <DialogContent sx={{ p: 4, pt: 0, position: "relative", overflow: "visible" }}>
         {/* Avatar positioned overlapping banner */}
         <Box
           sx={{
@@ -109,11 +123,11 @@ export default function AccountDetailModal({
             sx={{
               width: 84,
               height: 84,
-              border: "4px solid #131924",
-              boxShadow: "0 8px 16px rgba(0,0,0,0.4)",
-              backgroundColor: account?.bot ? "#ff7759" : "#10b981",
+              border: "4px solid #17171c",
+              backgroundColor: account?.bot ? "#ff7759" : "#1863dc",
               fontSize: "32px",
-              fontWeight: 700,
+              fontWeight: 400,
+              fontFamily: "Space Grotesk, Inter, sans-serif",
             }}
           >
             {account?.display_name ? account.display_name[0].toUpperCase() : "?"}
@@ -122,14 +136,15 @@ export default function AccountDetailModal({
           {/* Account Category Badge */}
           {account?.bot ? (
             <Chip
-              icon={<BotIcon sx={{ fontSize: "14px !important", color: "#ffffff !important" }} />}
+              icon={<BotIcon sx={{ fontSize: "14px !important", color: "#17171c !important" }} />}
               label="BOT ACCOUNT"
               sx={{
                 backgroundColor: "#ff7759",
-                color: "#ffffff",
-                fontWeight: 700,
-                fontSize: "11px",
+                color: "#17171c",
+                fontWeight: 500,
+                fontSize: "12px",
                 fontFamily: "ui-monospace, monospace",
+                borderRadius: "30px",
               }}
             />
           ) : (
@@ -137,11 +152,12 @@ export default function AccountDetailModal({
               icon={<HumanIcon sx={{ fontSize: "14px !important", color: "#ffffff !important" }} />}
               label="HUMAN USER"
               sx={{
-                backgroundColor: "#10b981",
+                backgroundColor: "#1863dc",
                 color: "#ffffff",
-                fontWeight: 700,
-                fontSize: "11px",
+                fontWeight: 500,
+                fontSize: "12px",
                 fontFamily: "ui-monospace, monospace",
+                borderRadius: "30px",
               }}
             />
           )}
@@ -152,10 +168,11 @@ export default function AccountDetailModal({
           variant="h4"
           sx={{
             fontFamily: "Space Grotesk, Inter, sans-serif",
-            fontWeight: 600,
-            fontSize: "24px",
+            fontWeight: 400,
+            fontSize: "32px",
             color: "#ffffff",
             lineHeight: 1.2,
+            letterSpacing: "-0.32px",
           }}
         >
           {account?.display_name || account?.username || "Utente Fediverse"}
@@ -166,8 +183,8 @@ export default function AccountDetailModal({
             variant="body2"
             sx={{
               fontFamily: "ui-monospace, monospace",
-              color: "#00e5ff",
-              fontSize: "13px",
+              color: "#93939f",
+              fontSize: "14px",
               wordBreak: "break-all",
             }}
           >
@@ -178,10 +195,12 @@ export default function AccountDetailModal({
             label={account?.domain || "fediverse"}
             size="small"
             sx={{
-              backgroundColor: "rgba(255, 255, 255, 0.08)",
-              color: "#cbd5e1",
-              fontSize: "10px",
+              backgroundColor: "transparent",
+              border: "1px solid rgba(255, 255, 255, 0.12)",
+              color: "#93939f",
+              fontSize: "12px",
               fontFamily: "ui-monospace, monospace",
+              borderRadius: "30px",
             }}
           />
         </Stack>
@@ -192,19 +211,18 @@ export default function AccountDetailModal({
             sx={{
               flex: 1,
               p: 2,
-              borderRadius: "16px",
-              backgroundColor: "rgba(255, 255, 255, 0.04)",
+              borderRadius: "8px",
+              backgroundColor: "transparent",
               border: "1px solid rgba(255, 255, 255, 0.08)",
               textAlign: "center",
             }}
           >
             <Stack direction="row" spacing={0.5} justifyContent="center" alignItems="center" sx={{ mb: 0.5 }}>
-              <FollowersIcon sx={{ fontSize: "16px", color: "#00e5ff" }} />
-              <Typography variant="caption" sx={{ color: "#64748b", textTransform: "uppercase", fontSize: "10px" }}>
+              <Typography variant="caption" sx={{ color: "#75758a", textTransform: "uppercase", fontSize: "12px", fontFamily: "ui-monospace, monospace" }}>
                 FOLLOWER
               </Typography>
             </Stack>
-            <Typography variant="h6" sx={{ fontFamily: "Space Grotesk", fontWeight: 700, color: "#ffffff" }}>
+            <Typography variant="h6" sx={{ fontFamily: "Space Grotesk, Inter, sans-serif", fontWeight: 400, color: "#ffffff", fontSize: "24px" }}>
               {(account?.followers_count ?? 0).toLocaleString()}
             </Typography>
           </Box>
@@ -213,19 +231,18 @@ export default function AccountDetailModal({
             sx={{
               flex: 1,
               p: 2,
-              borderRadius: "16px",
-              backgroundColor: "rgba(255, 255, 255, 0.04)",
+              borderRadius: "8px",
+              backgroundColor: "transparent",
               border: "1px solid rgba(255, 255, 255, 0.08)",
               textAlign: "center",
             }}
           >
             <Stack direction="row" spacing={0.5} justifyContent="center" alignItems="center" sx={{ mb: 0.5 }}>
-              <FollowingIcon sx={{ fontSize: "16px", color: "#10b981" }} />
-              <Typography variant="caption" sx={{ color: "#64748b", textTransform: "uppercase", fontSize: "10px" }}>
+              <Typography variant="caption" sx={{ color: "#75758a", textTransform: "uppercase", fontSize: "12px", fontFamily: "ui-monospace, monospace" }}>
                 SEGUITI
               </Typography>
             </Stack>
-            <Typography variant="h6" sx={{ fontFamily: "Space Grotesk", fontWeight: 700, color: "#ffffff" }}>
+            <Typography variant="h6" sx={{ fontFamily: "Space Grotesk, Inter, sans-serif", fontWeight: 400, color: "#ffffff", fontSize: "24px" }}>
               {(account?.following_count ?? 0).toLocaleString()}
             </Typography>
           </Box>
@@ -234,39 +251,35 @@ export default function AccountDetailModal({
             sx={{
               flex: 1,
               p: 2,
-              borderRadius: "16px",
-              backgroundColor: "rgba(255, 255, 255, 0.04)",
+              borderRadius: "8px",
+              backgroundColor: "transparent",
               border: "1px solid rgba(255, 255, 255, 0.08)",
               textAlign: "center",
             }}
           >
             <Stack direction="row" spacing={0.5} justifyContent="center" alignItems="center" sx={{ mb: 0.5 }}>
-              <PostsIcon sx={{ fontSize: "16px", color: "#ff7759" }} />
-              <Typography variant="caption" sx={{ color: "#64748b", textTransform: "uppercase", fontSize: "10px" }}>
+              <Typography variant="caption" sx={{ color: "#75758a", textTransform: "uppercase", fontSize: "12px", fontFamily: "ui-monospace, monospace" }}>
                 POST
               </Typography>
             </Stack>
-            <Typography variant="h6" sx={{ fontFamily: "Space Grotesk", fontWeight: 700, color: "#ffffff" }}>
+            <Typography variant="h6" sx={{ fontFamily: "Space Grotesk, Inter, sans-serif", fontWeight: 400, color: "#ffffff", fontSize: "24px" }}>
               {(account?.statuses_count ?? 0).toLocaleString()}
             </Typography>
           </Box>
         </Stack>
 
         {/* Bio / Description Note */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="caption" sx={{ color: "#64748b", textTransform: "uppercase", fontSize: "11px", display: "block", mb: 1 }}>
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="caption" sx={{ color: "#93939f", textTransform: "uppercase", fontSize: "12px", display: "block", mb: 1, fontFamily: "ui-monospace, monospace" }}>
             BIOGRAFIA & PROFILO
           </Typography>
           <Typography
-            variant="body2"
+            variant="body1"
             sx={{
-              color: "#cbd5e1",
-              fontSize: "14px",
-              lineHeight: 1.6,
-              backgroundColor: "rgba(0, 0, 0, 0.2)",
-              p: 2,
-              borderRadius: "12px",
-              border: "1px solid rgba(255, 255, 255, 0.05)",
+              color: "#ffffff",
+              fontSize: "16px",
+              lineHeight: 1.5,
+              fontFamily: "Inter, sans-serif",
             }}
           >
             {cleanNote(account?.note)}
@@ -276,8 +289,7 @@ export default function AccountDetailModal({
         {/* Registration & Activity Dates */}
         {account?.created_at && (
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
-            <CalendarIcon sx={{ fontSize: "16px", color: "#64748b" }} />
-            <Typography variant="caption" sx={{ color: "#94a3b8" }}>
+            <Typography variant="caption" sx={{ color: "#93939f", fontFamily: "ui-monospace, monospace", fontSize: "12px" }}>
               Registrato il: <strong style={{ color: "#ffffff" }}>{new Date(account.created_at).toLocaleDateString("it-IT")}</strong>
             </Typography>
           </Stack>
@@ -294,15 +306,17 @@ export default function AccountDetailModal({
             rel="noopener noreferrer"
             variant="contained"
             fullWidth
-            endIcon={<LaunchIcon />}
+            disableElevation
             sx={{
               borderRadius: "32px",
-              backgroundColor: "#1863dc",
-              color: "#ffffff",
-              fontWeight: 600,
+              backgroundColor: "#ffffff",
+              color: "#17171c",
+              fontWeight: 500,
+              fontSize: "14px",
+              fontFamily: "Inter, sans-serif",
               py: 1.5,
               "&:hover": {
-                backgroundColor: "#1452b8",
+                backgroundColor: "#e5e7eb",
               },
             }}
           >
