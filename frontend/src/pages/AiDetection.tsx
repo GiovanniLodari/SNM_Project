@@ -272,65 +272,110 @@ export default function AiDetection() {
                   ) : (
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, flexGrow: 1, maxHeight: 600, overflowY: "auto", pr: 0.5 }}>
 
-                      {samples.map(({ post, probability }) => (
-                        <Box
-                          key={post.id}
-                          sx={{
-                            p: 1.5,
-                            borderRadius: "10px",
-                            backgroundColor: "#f8f9fa",
-                            border: "1px solid #eff0f3",
-                          }}
-                        >
-                          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                      {samples.map(({ post, probability }) => {
+                        const isHighProb = probability >= 0.5;
+                        const probColor = isHighProb ? "#ff7759" : "#3b82f6";
+                        const probBg = isHighProb ? "#fff1ef" : "#eff6ff";
+                        return (
+                          <Paper
+                            key={post.id}
+                            elevation={0}
+                            sx={{
+                              p: 2,
+                              borderRadius: "14px",
+                              backgroundColor: "#ffffff",
+                              border: "1px solid #eef0f4",
+                              boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
+                              transition: "all 0.2s ease-in-out",
+                              position: "relative",
+                              overflow: "hidden",
+                              "&:hover": {
+                                transform: "translateY(-2px)",
+                                boxShadow: "0 6px 16px rgba(0,0,0,0.06)",
+                                borderColor: isHighProb ? "#ffc4b8" : "#bfdbfe",
+                              },
+                              "&::before": {
+                                content: '""',
+                                position: "absolute",
+                                left: 0,
+                                top: 0,
+                                bottom: 0,
+                                width: "4px",
+                                backgroundColor: probColor,
+                                borderRadius: "4px 0 0 4px",
+                              },
+                            }}
+                          >
+                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1, pl: 0.5 }}>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  fontWeight: 700,
+                                  color: "#17171c",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                  maxWidth: "110px",
+                                  fontSize: "12px",
+                                }}
+                              >
+                                {post.acct}
+                              </Typography>
+                              <Chip
+                                label={`${(probability * 100).toFixed(1)}%`}
+                                size="small"
+                                sx={{
+                                  height: "22px",
+                                  fontSize: "11px",
+                                  fontWeight: 700,
+                                  fontFamily: "Space Grotesk, monospace",
+                                  backgroundColor: probBg,
+                                  color: probColor,
+                                  border: `1px solid ${isHighProb ? "#ffe4df" : "#dbeafe"}`,
+                                }}
+                              />
+                            </Box>
+
                             <Typography
                               variant="caption"
-                              sx={{ fontWeight: 600, color: "#17171c", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100px" }}
-                            >
-                              {post.acct}
-                            </Typography>
-                            <Chip
-                              label={`${(probability * 100).toFixed(1)}%`}
-                              size="small"
                               sx={{
-                                height: "20px",
-                                fontSize: "10px",
-                                fontWeight: 700,
-                                backgroundColor: probability >= 0.5 ? "#fff0ec" : "#eeece7",
-                                color: probability >= 0.5 ? "#d94a2b" : "#555566",
+                                display: "-webkit-box",
+                                WebkitLineClamp: 3,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
+                                color: "#475569",
+                                fontSize: "12px",
+                                lineHeight: 1.5,
+                                mb: 1.5,
+                                pl: 0.5,
                               }}
-                            />
-                          </Box>
+                            >
+                              {post.content}
+                            </Typography>
 
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              display: "-webkit-box",
-                              WebkitLineClamp: 3,
-                              WebkitBoxOrient: "vertical",
-                              overflow: "hidden",
-                              color: "#4a4a5a",
-                              fontSize: "12px",
-                              lineHeight: 1.4,
-                              mb: 1,
-                            }}
-                          >
-                            {post.content}
-                          </Typography>
+                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pl: 0.5 }}>
+                              <Typography variant="caption" sx={{ color: "#94a3b8", fontSize: "10px", fontFamily: "monospace" }}>
+                                #{post.id}
+                              </Typography>
+                              <Link
+                                to={`/posts/${post.id}`}
+                                style={{
+                                  color: "#2563eb",
+                                  fontSize: "11px",
+                                  fontWeight: 600,
+                                  textDecoration: "none",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "2px",
+                                }}
+                              >
+                                Ispeziona &rarr;
+                              </Link>
+                            </Box>
+                          </Paper>
+                        );
+                      })}
 
-                          <Link
-                            to={`/posts/${post.id}`}
-                            style={{
-                              color: "#1863dc",
-                              fontSize: "11px",
-                              fontWeight: 600,
-                              textDecoration: "none",
-                            }}
-                          >
-                            Dettaglio &rarr;
-                          </Link>
-                        </Box>
-                      ))}
                     </Box>
                   )}
                 </Paper>
