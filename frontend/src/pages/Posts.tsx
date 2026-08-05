@@ -43,6 +43,7 @@ export default function Posts() {
 
   useEffect(() => {
     fetchPosts(selectedLangs, page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [page]);
 
   const formatTime = (timeStr: string | null) => {

@@ -40,6 +40,7 @@ import Accounts from "./pages/Accounts.tsx";
 import Pipelines from "./pages/Pipelines.tsx";
 import DbSync from "./pages/DbSync.tsx";
 import { NotificationProvider } from "./context/NotificationContext.tsx";
+import ErrorBoundary from "./components/ErrorBoundary.tsx";
 
 const drawerWidth = 270;
 
@@ -296,9 +297,10 @@ export default function App() {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <NotificationProvider>
-        <CssBaseline />
+    <ErrorBoundary>
+      <ThemeProvider theme={theme}>
+        <NotificationProvider>
+          <CssBaseline />
         <HashRouter>
           <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "#ffffff" }}>
           {/* Top Bar */}
@@ -489,5 +491,6 @@ export default function App() {
         </HashRouter>
       </NotificationProvider>
     </ThemeProvider>
+  </ErrorBoundary>
   );
 }

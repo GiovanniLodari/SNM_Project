@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Typography, Box, Grid, Skeleton, Paper, LinearProgress, Chip } from "@mui/material";
+import { Typography, Box, Grid, Skeleton, Paper, LinearProgress, Chip, Tooltip, Stack } from "@mui/material";
 import { api, AccountsStats } from "../api/client.ts";
-import { SmartToy as BotIcon, People as HumanIcon, Psychology as AiIcon } from "@mui/icons-material";
+import { SmartToy as BotIcon, People as HumanIcon, Psychology as AiIcon, HelpOutline as HelpIcon } from "@mui/icons-material";
 
 export default function Accounts() {
   const [stats, setStats] = useState<AccountsStats | null>(null);
@@ -98,9 +98,14 @@ export default function Accounts() {
               height: "100%",
             }}
           >
-            <Typography variant="h6" sx={{ fontWeight: 600, color: "#17171c", mb: 3 }}>
-              Global Bot Classification
-            </Typography>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: "#17171c" }}>
+                Global Bot Classification
+              </Typography>
+              <Tooltip title="La classificazione distingue tra account automatizzati (Bot) e utenti umani basandosi su euristiche di attività e metadati del profilo." arrow>
+                <HelpIcon sx={{ fontSize: 18, color: "#93939f", cursor: "pointer" }} />
+              </Tooltip>
+            </Stack>
             <Grid container spacing={2} sx={{ mb: 4 }}>
               <Grid item xs={6}>
                 <Paper sx={{ p: 3, textAlign: "center", borderRadius: "16px", backgroundColor: "#eeece7" }}>
