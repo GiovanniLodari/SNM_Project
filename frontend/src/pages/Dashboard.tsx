@@ -3,6 +3,7 @@ import { Grid, Typography, Box, CircularProgress, LinearProgress, Button } from 
 import { Link } from "react-router-dom";
 import { api, DashboardStats } from "../api/client.ts";
 import GraphHero from "../components/GraphHero.tsx";
+import DescriptiveStatsBlock from "../components/DescriptiveStatsBlock.tsx";
 import {
   Article as PostsIcon,
   SyncAlt as FollowsIcon,
@@ -53,8 +54,12 @@ export default function Dashboard() {
       {/* Dynamic Graph Hero Section (Incremental Render) */}
       <GraphHero />
 
+      {/* Block Statistiche Descrittive Conforme a DESIGN.md */}
+      <DescriptiveStatsBlock />
+
       {/* Main Grid Metrics */}
       <Grid container spacing={4} sx={{ mb: 6 }}>
+
 
         {/* Post Totali */}
         <Grid item xs={12} md={6}>
