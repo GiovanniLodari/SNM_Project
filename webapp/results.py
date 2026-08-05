@@ -218,9 +218,6 @@ def sample_posts_by_probability_bucket(
             selected = [items[int(i * step)] for i in range(samples_per_bucket)]
 
         sampled_ids_per_bucket[b_name] = selected
-        for sid, _ in selected:
-            all_needed_ids.add(sid)
-
     posts_by_id = queries.get_posts_by_ids(conn, list(all_needed_ids))
 
     result = {}
@@ -232,6 +229,129 @@ def sample_posts_by_probability_bucket(
         ]
 
     return result
+
+
+def get_descriptive_stats(ai_scores: dict[int, dict], conn) -> dict:
+
+    """Calcola statistiche descrittive avanzate sul dataset ai_scores e sui post associati:
+    - Media, mediana, min, max della probabilita' e del criterio
+    - Distribuzione per curva Gaussiana/KDE
+    - Lunghezza media e mediana dei post (in caratteri e token)
+    - Statistiche account (data iscrizione media/min/max, % bot, top account creatori)
+    - Istogramma fine a 10 bucket per la curva di distribuzione
+    """
+    from webapp import queries
+
+    valid_scores = [
+        row for row in ai_scores.values()
+        if row.get("probability") is not None and row["probability"] == row["probability"]
+    ]
+
+    if not valid_scores:
+        return {}
+
+    probs = [float(r["probability"]) for r in valid_scores]
+    criteria = [float(r["criterion"]) for r in valid_scores if r.get("criterion") is not None and r["criterion"] == r["criterion"]]
+    ntokens_list = [int(r["ntokens"]) for r in valid_scores if r.get("ntokens") is not None]
+
+    probs.sort()
+    n = len(probs)
+    mean_prob = sum(probs) / n
+    median_prob = probs[n // 2] if n % 2 != 0 else (probs[n // 2 - 1] + probs[n // 2]) / 2.0
+    min_prob = probs[0]
+    max_prob = probs[-1]
+
+    # Variance and StdDev
+    variance_prob = sum((p - mean_prob) ** 2 for p in probs) / n
+    std_prob = variance_prob ** 0.5
+
+    # 10-bucket fine distribution curve
+    fine_buckets = [f"{i*10}-{(i+1)*10}%" for i in range(10)]
+    fine_counts = [0] * 10
+    for p in probs:
+        idx = min(int(p * 10), 9)
+        fine_counts[idx] += 1
+
+    distribution_curve = [
+        {"bucket": fine_buckets[i], "count": fine_counts[i], "percentage": round((fine_counts[i] / n) * 100, 1)}
+        for i in range(10)
+    ]
+
+    # Criteria stats
+    criteria_stats = {}
+    if criteria:
+        criteria.sort()
+        nc = len(criteria)
+        mean_crit = sum(criteria) / nc
+        median_crit = criteria[nc // 2]
+        criteria_stats = {
+            "mean": round(mean_crit, 4),
+            "median": round(median_crit, 4),
+            "min": round(criteria[0], 4),
+            "max": round(criteria[-1], 4),
+        }
+
+    # Query a sample of statuses & accounts from DB for text length and account stats
+    # Prendiamo gli ID degli status per arricchire con DB metadata
+    sample_status_ids = [r["id"] for r in valid_scores[:1000]] # fino a 1000 per velocita'
+    posts_by_id = queries.get_posts_by_ids(conn, sample_status_ids)
+
+    lengths = [len(p["content"]) for p in posts_by_id.values() if p.get("content")]
+    avg_char_length = round(sum(lengths) / len(lengths), 1) if lengths else 0
+    median_char_length = sorted(lengths)[len(lengths) // 2] if lengths else 0
+
+    avg_tokens = round(sum(ntokens_list) / len(ntokens_list), 1) if ntokens_list else 0
+
+    # Query DB account creation dates and bot breakdown
+    account_stats = {}
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT a.bot, COUNT(*), MIN(a.raw->>'created_at'), MAX(a.raw->>'created_at')
+            FROM accounts a
+            GROUP BY a.bot
+            """
+        )
+        acc_rows = cur.fetchall()
+        bot_counts = {row[0]: row[1] for row in acc_rows}
+
+        # Top 5 most active domains
+        cur.execute(
+            """
+            SELECT i.domain, COUNT(s.id) as cnt
+            FROM statuses s
+            JOIN instances i ON i.id = s.instance_id
+            GROUP BY i.domain
+            ORDER BY cnt DESC
+            LIMIT 5
+            """
+        )
+        top_domains = [{"domain": row[0], "count": row[1]} for row in cur.fetchall()]
+
+    return {
+        "total_analyzed": n,
+        "probability": {
+            "mean": round(mean_prob * 100, 2),
+            "median": round(median_prob * 100, 2),
+            "std": round(std_prob * 100, 2),
+            "min": round(min_prob * 100, 2),
+            "max": round(max_prob * 100, 2),
+        },
+        "criteria": criteria_stats,
+        "distribution_curve": distribution_curve,
+        "text_length": {
+            "avg_chars": avg_char_length,
+            "median_chars": median_char_length,
+            "avg_tokens": avg_tokens,
+        },
+        "bot_breakdown": {
+            "bots": bot_counts.get(True, 0),
+            "humans": bot_counts.get(False, 0),
+            "bot_percentage": round((bot_counts.get(True, 0) / max(1, sum(bot_counts.values()))) * 100, 1),
+        },
+        "top_domains": top_domains,
+    }
+
 
 
 

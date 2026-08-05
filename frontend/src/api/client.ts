@@ -59,6 +59,35 @@ export interface AccountsStats {
   ai_and_not_bot: number;
 }
 
+export interface DescriptiveStats {
+  total_analyzed: number;
+  probability: {
+    mean: number;
+    median: number;
+    std: number;
+    min: number;
+    max: number;
+  };
+  criteria?: {
+    mean: number;
+    median: number;
+    min: number;
+    max: number;
+  };
+  distribution_curve: { bucket: string; count: number; percentage: number }[];
+  text_length: {
+    avg_chars: number;
+    median_chars: number;
+    avg_tokens: number;
+  };
+  bot_breakdown: {
+    bots: number;
+    humans: number;
+    bot_percentage: number;
+  };
+  top_domains: { domain: string; count: number }[];
+}
+
 export interface AiDetectionResponse {
   done: number;
   eligible: number;
@@ -66,6 +95,7 @@ export interface AiDetectionResponse {
   ai_threshold: number;
   histogram: Record<string, number>;
   bucket_samples?: Record<string, { post: Post; probability: number }[]>;
+  stats?: DescriptiveStats;
   page_rows: { post: Post; probability: number }[];
   page: number;
   page_size: number;
@@ -74,6 +104,7 @@ export interface AiDetectionResponse {
   selected_buckets: string[];
   sort_by?: string;
 }
+
 
 
 

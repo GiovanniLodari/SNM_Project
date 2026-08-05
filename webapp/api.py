@@ -475,6 +475,7 @@ def ai_detection(
     ]
 
     bucket_samples = results.sample_posts_by_probability_bucket(ai_scores, conn, samples_per_bucket=100)
+    stats = results.get_descriptive_stats(ai_scores, conn)
 
     return {
         "done": len(ai_scores),
@@ -483,6 +484,7 @@ def ai_detection(
         "ai_threshold": AI_CLASSIFICATION_THRESHOLD,
         "histogram": histogram,
         "bucket_samples": bucket_samples,
+        "stats": stats,
         "page_rows": page_rows,
         "page": page,
         "page_size": PAGE_SIZE,
@@ -491,6 +493,7 @@ def ai_detection(
         "selected_buckets": prob_bucket,
         "sort_by": sort_by,
     }
+
 
 
 

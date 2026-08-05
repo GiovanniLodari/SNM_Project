@@ -27,7 +27,9 @@ import {
   ArrowUpward as TopIcon,
   ArrowDownward as BottomIcon,
   FormatListNumbered as IdIcon,
+  Analytics as AnalyticsIcon,
 } from "@mui/icons-material";
+import StatsModal from "../components/StatsModal.tsx";
 
 export default function AiDetection() {
   const [data, setData] = useState<AiDetectionResponse | null>(null);
@@ -35,8 +37,10 @@ export default function AiDetection() {
   const [sortBy, setSortBy] = useState<string>("id");
   const [page, setPage] = useState(1);
   const [bucketPages, setBucketPages] = useState<Record<string, number>>({});
+  const [statsModalOpen, setStatsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
 
   const ITEMS_PER_BUCKET_PAGE = 5;
 
@@ -154,11 +158,39 @@ export default function AiDetection() {
               <Typography variant="body2" sx={{ color: "#75758a" }}>
                 Out of <strong>{data.eligible.toLocaleString()}</strong> eligible English statuses.
               </Typography>
-              <Typography variant="caption" sx={{ color: "#75758a", display: "block", mt: 3 }}>
+              <Typography variant="caption" sx={{ color: "#75758a", display: "block", mt: 2, mb: 2 }}>
                 Threshold for AI flag: &ge; {data.ai_threshold * 100}%
               </Typography>
+
+              <Button
+                variant="contained"
+                startIcon={<AnalyticsIcon />}
+                onClick={() => setStatsModalOpen(true)}
+                sx={{
+                  mt: 1,
+                  w: "100%",
+                  borderRadius: "16px",
+                  py: 1.2,
+                  px: 2.5,
+                  fontWeight: 700,
+                  fontSize: "13px",
+                  textTransform: "none",
+                  background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)",
+                  color: "#ffffff",
+                  boxShadow: "0 8px 20px rgba(30, 27, 75, 0.3)",
+                  transition: "all 0.2s ease-in-out",
+                  "&:hover": {
+                    background: "linear-gradient(135deg, #312e81 0%, #4338ca 100%)",
+                    transform: "translateY(-2px)",
+                    boxShadow: "0 12px 24px rgba(30, 27, 75, 0.4)",
+                  },
+                }}
+              >
+                Statistiche Descrittive
+              </Button>
             </Box>
           </Grid>
+
 
           {/* Histogram Chart */}
           <Grid item xs={12} md={8}>
@@ -616,6 +648,14 @@ export default function AiDetection() {
           )}
         </Grid>
       </Grid>
+
+      {/* Descriptive Statistics Modal */}
+      <StatsModal
+        open={statsModalOpen}
+        onClose={() => setStatsModalOpen(false)}
+        stats={data?.stats}
+      />
     </Box>
   );
 }
+
