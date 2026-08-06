@@ -126,18 +126,7 @@ export default function StatsModal({
   const q3 = +(stats.probability.median + stats.probability.std * 0.674).toFixed(1);
   const iqr = +(q3 - q1).toFixed(1);
 
-  // AI classified count (posts above 50%)
-  const aboveThreshold = stats.distribution_curve
-    .filter((b) => {
-      const lo = parseFloat(b.bucket.split("-")[0]);
-      return lo >= 0.5;
-    })
-    .reduce((s, b) => s + b.count, 0);
 
-  const classificationRate =
-    stats.total_analyzed > 0
-      ? ((aboveThreshold / stats.total_analyzed) * 100).toFixed(1)
-      : "0.0";
 
   return (
     <Dialog
@@ -226,9 +215,9 @@ export default function StatsModal({
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
             <KpiCard
-              label="Classificati come IA"
-              value={`${classificationRate}%`}
-              sub={`${aboveThreshold.toLocaleString("it-IT")} post su ${stats.total_analyzed.toLocaleString("it-IT")} totali`}
+              label="Lunghezza Media Post"
+              value={`${stats.text_length.avg_chars}`}
+              sub={`Mediana: ${stats.text_length.median_chars} caratteri · ~${stats.text_length.avg_tokens} token`}
               accent="#003c33"
             />
           </Grid>
@@ -503,27 +492,7 @@ export default function StatsModal({
                 })}
               </Box>
 
-              {/* Classification summary row */}
-              <Box sx={{ mt: 3, pt: 2.5, borderTop: "1px solid #e5e7eb", display: "flex", gap: 3, flexWrap: "wrap" }}>
-                <Box>
-                  <Typography variant="caption" sx={{ color: "#75758a", display: "block" }}>Classificati IA (≥50%)</Typography>
-                  <Typography sx={{ fontFamily: "Space Grotesk", fontWeight: 700, fontSize: "20px", color: "#ff7759" }}>
-                    {classificationRate}%
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" sx={{ color: "#75758a", display: "block" }}>Post classificati</Typography>
-                  <Typography sx={{ fontFamily: "Space Grotesk", fontWeight: 700, fontSize: "20px", color: "#17171c" }}>
-                    {aboveThreshold.toLocaleString("it-IT")}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" sx={{ color: "#75758a", display: "block" }}>Post umani (stima)</Typography>
-                  <Typography sx={{ fontFamily: "Space Grotesk", fontWeight: 700, fontSize: "20px", color: "#003c33" }}>
-                    {(stats.total_analyzed - aboveThreshold).toLocaleString("it-IT")}
-                  </Typography>
-                </Box>
-              </Box>
+
             </Box>
           </Grid>
         </Grid>
