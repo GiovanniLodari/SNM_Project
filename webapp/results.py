@@ -327,7 +327,8 @@ def get_descriptive_stats(ai_scores: dict[int, dict], conn) -> dict:
     else:
         avg_tokens = round(avg_char_length / 4.2) if avg_char_length else 0
 
-    # Account bot breakdown & top domains derived directly from analyzed post sample
+    # Account bot breakdown & top domains derived from uniform sample and scaled to total analyzed (n)
+    sample_total = max(1, len(posts_by_id))
     bot_counts = {True: 0, False: 0}
     domain_counts: dict[str, int] = defaultdict(int)
     for p in posts_by_id.values():
@@ -336,8 +337,15 @@ def get_descriptive_stats(ai_scores: dict[int, dict], conn) -> dict:
         if p.get("domain"):
             domain_counts[p["domain"]] += 1
 
+    bot_pct = bot_counts.get(True, 0) / sample_total
+    est_bots = int(round(bot_pct * n))
+    est_humans = n - est_bots
+
     sorted_domains = sorted(domain_counts.items(), key=lambda x: x[1], reverse=True)[:8]
-    top_domains = [{"domain": dom, "count": cnt} for dom, cnt in sorted_domains]
+    top_domains = [
+        {"domain": dom, "count": int(round((cnt / sample_total) * n))}
+        for dom, cnt in sorted_domains
+    ]
 
     return {
         "total_analyzed": n,
@@ -356,9 +364,9 @@ def get_descriptive_stats(ai_scores: dict[int, dict], conn) -> dict:
             "avg_tokens": avg_tokens,
         },
         "bot_breakdown": {
-            "bots": bot_counts.get(True, 0),
-            "humans": bot_counts.get(False, 0),
-            "bot_percentage": round((bot_counts.get(True, 0) / max(1, sum(bot_counts.values()))) * 100, 1),
+            "bots": est_bots,
+            "humans": est_humans,
+            "bot_percentage": round(bot_pct * 100, 1),
         },
         "top_domains": top_domains,
     }
