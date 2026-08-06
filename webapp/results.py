@@ -229,6 +229,12 @@ def sample_posts_by_probability_bucket(
             selected = [items[int(i * step)] for i in range(samples_per_bucket)]
 
         sampled_ids_per_bucket[b_name] = selected
+    
+    # Raccogliamo tutti gli id necessari DOPO aver costruito sampled_ids_per_bucket
+    for b_items in sampled_ids_per_bucket.values():
+        for sid, _ in b_items:
+            all_needed_ids.add(sid)
+    
     posts_by_id = queries.get_posts_by_ids(conn, list(all_needed_ids))
 
     result = {}
