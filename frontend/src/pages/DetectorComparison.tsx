@@ -35,6 +35,7 @@ import {
   DetectorComparisonSummaryResponse,
   ComparisonPostRow,
 } from "../api/client.ts";
+import { useDebounce } from "../hooks/useDebounce.ts";
 
 export default function DetectorComparison() {
   const [summary, setSummary] = useState<DetectorComparisonSummaryResponse | null>(null);
@@ -57,17 +58,19 @@ export default function DetectorComparison() {
       .finally(() => setLoadingSummary(false));
   }, []);
 
+  const debouncedSearch = useDebounce(searchTerm, 400);
+
   // Fetch paginated posts
   useEffect(() => {
     setLoadingPosts(true);
-    api.detectorComparisonPosts(filterType, page, pageSize, searchTerm)
+    api.detectorComparisonPosts(filterType, page, pageSize, debouncedSearch)
       .then((data) => {
         setPosts(data.posts);
         setTotalPosts(data.total);
       })
       .catch((err) => console.error("Error fetching comparison posts:", err))
       .finally(() => setLoadingPosts(false));
-  }, [filterType, page, pageSize, searchTerm]);
+  }, [filterType, page, pageSize, debouncedSearch]);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
     setFilterType(newValue);

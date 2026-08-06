@@ -44,7 +44,7 @@ export default function Posts() {
   useEffect(() => {
     fetchPosts(selectedLangs, page);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [page]);
+  }, [page, selectedLangs]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const formatTime = (timeStr: string | null) => {
     if (!timeStr) return "";

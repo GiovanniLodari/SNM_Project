@@ -60,7 +60,7 @@ export default function AiDetection() {
 
   useEffect(() => {
     fetchAiData(selectedBuckets, page, sortBy);
-  }, [page]);
+  }, [page, selectedBuckets, sortBy]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleBucketChange = (bucket: string) => {
     const nextBuckets = selectedBuckets.includes(bucket)
@@ -68,14 +68,14 @@ export default function AiDetection() {
       : [...selectedBuckets, bucket];
     setSelectedBuckets(nextBuckets);
     setPage(1);
-    fetchAiData(nextBuckets, 1, sortBy);
+    // fetchAiData verrà chiamato dall'useEffect al cambio di selectedBuckets
   };
 
   const handleSortChange = (_: any, newSort: string | null) => {
     if (!newSort) return;
     setSortBy(newSort);
     setPage(1);
-    fetchAiData(selectedBuckets, 1, newSort);
+    // fetchAiData verrà chiamato dall'useEffect al cambio di sortBy
   };
 
   const getBucketPage = (bName: string) => bucketPages[bName] || 1;
@@ -115,9 +115,11 @@ export default function AiDetection() {
           variant="h2"
           sx={{
             fontFamily: "Space Grotesk, Inter, sans-serif",
-            fontWeight: 700,
+            fontWeight: 400,
             fontSize: { xs: "32px", md: "48px" },
             color: "#17171c",
+            letterSpacing: "-0.48px",
+            lineHeight: 1.2,
             mb: 1,
           }}
         >
@@ -168,23 +170,21 @@ export default function AiDetection() {
                 variant="contained"
                 startIcon={<AnalyticsIcon />}
                 onClick={() => setStatsModalOpen(true)}
+                disableElevation
                 sx={{
                   mt: 1,
-                  w: "100%",
-                  borderRadius: "16px",
+                  width: "100%",
+                  borderRadius: "32px",
                   py: 1.2,
                   px: 2.5,
-                  fontWeight: 700,
-                  fontSize: "13px",
+                  fontWeight: 500,
+                  fontSize: "14px",
                   textTransform: "none",
-                  background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)",
+                  backgroundColor: "#17171c",
                   color: "#ffffff",
-                  boxShadow: "0 8px 20px rgba(30, 27, 75, 0.3)",
-                  transition: "all 0.2s ease-in-out",
+                  transition: "background-color 0.15s ease",
                   "&:hover": {
-                    background: "linear-gradient(135deg, #312e81 0%, #4338ca 100%)",
-                    transform: "translateY(-2px)",
-                    boxShadow: "0 12px 24px rgba(30, 27, 75, 0.4)",
+                    backgroundColor: "#2e2e38",
                   },
                 }}
               >
@@ -347,7 +347,7 @@ export default function AiDetection() {
                                   <Typography
                                     variant="caption"
                                     sx={{
-                                      fontWeight: 700,
+                                      fontWeight: 600,
                                       color: "#17171c",
                                       overflow: "hidden",
                                       textOverflow: "ellipsis",
@@ -378,7 +378,7 @@ export default function AiDetection() {
                                     WebkitLineClamp: 3,
                                     WebkitBoxOrient: "vertical",
                                     overflow: "hidden",
-                                    color: "#334155",
+                                    color: "#212121",
                                     fontSize: "12px",
                                     lineHeight: 1.4,
                                     mb: 1.5,
@@ -388,7 +388,7 @@ export default function AiDetection() {
                                 </Typography>
 
                                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                  <Typography variant="caption" sx={{ color: "#94a3b8", fontSize: "10px", fontFamily: "monospace" }}>
+                                  <Typography variant="caption" sx={{ color: "#75758a", fontSize: "10px", fontFamily: "monospace" }}>
                                     #{post.id}
                                   </Typography>
                                   <Button

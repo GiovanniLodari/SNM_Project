@@ -30,6 +30,7 @@ import {
   Cell,
 } from "recharts";
 import { api, FactCheckResponse } from "../api/client.ts";
+import { useDebounce } from "../hooks/useDebounce.ts";
 
 export default function FactChecking() {
   const [data, setData] = useState<FactCheckResponse | null>(null);
@@ -53,9 +54,11 @@ export default function FactChecking() {
       });
   };
 
+  const debouncedSearch = useDebounce(searchTerm, 400);
+
   useEffect(() => {
-    fetchFactCheckData(selectedVerdicts, page, searchTerm);
-  }, [page, selectedVerdicts, searchTerm]);
+    fetchFactCheckData(selectedVerdicts, page, debouncedSearch);
+  }, [page, selectedVerdicts, debouncedSearch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleVerdictToggle = (verdict: string) => {
     const nextVerdicts = selectedVerdicts.includes(verdict)

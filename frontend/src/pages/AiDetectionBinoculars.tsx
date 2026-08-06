@@ -59,7 +59,7 @@ export default function AiDetectionBinoculars() {
 
   useEffect(() => {
     fetchAiData(selectedBuckets, page, sortBy);
-  }, [page]);
+  }, [page, selectedBuckets, sortBy]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleBucketChange = (bucket: string) => {
     const nextBuckets = selectedBuckets.includes(bucket)
@@ -67,14 +67,14 @@ export default function AiDetectionBinoculars() {
       : [...selectedBuckets, bucket];
     setSelectedBuckets(nextBuckets);
     setPage(1);
-    fetchAiData(nextBuckets, 1, sortBy);
+    // fetchAiData verrà chiamato dall'useEffect al cambio di selectedBuckets
   };
 
   const handleSortChange = (_: any, newSort: string | null) => {
     if (!newSort) return;
     setSortBy(newSort);
     setPage(1);
-    fetchAiData(selectedBuckets, 1, newSort);
+    // fetchAiData verrà chiamato dall'useEffect al cambio di sortBy
   };
 
   const getBucketPage = (bName: string) => bucketPages[bName] || 1;
@@ -112,9 +112,11 @@ export default function AiDetectionBinoculars() {
           variant="h2"
           sx={{
             fontFamily: "Space Grotesk, Inter, sans-serif",
-            fontWeight: 700,
+            fontWeight: 400,
             fontSize: { xs: "32px", md: "48px" },
             color: "#17171c",
+            letterSpacing: "-0.48px",
+            lineHeight: 1.2,
             mb: 1,
           }}
         >
