@@ -50,9 +50,9 @@ from webapp.main import get_db  # noqa: E402
 @router.get("/dashboard")
 def dashboard(conn=Depends(get_db)):
     ai_scores = results.load_ai_scores(AI_SCORES_PATH)
-    fact_checks = results.load_fact_checks(FACT_CHECK_PATH)
-    ai_eligible = results.count_eligible_posts(POST_TEXTS_PATH)
-    fact_check_eligible = results.count_checkworthy_eligible_posts(POST_TEXTS_PATH, CHECKWORTHY_PATH)
+    fact_check_done = len(fact_checks)
+    raw_fc_eligible = results.count_checkworthy_eligible_posts(POST_TEXTS_PATH, CHECKWORTHY_PATH)
+    fact_check_eligible = max(fact_check_done, raw_fc_eligible)
     ai_classified = len(results.status_ids_above_probability(ai_scores, AI_CLASSIFICATION_THRESHOLD))
 
     return {

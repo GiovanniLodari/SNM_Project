@@ -20,7 +20,7 @@ import {
   Tab,
   Stack,
 } from "@mui/material";
-import { Search as SearchIcon } from "@mui/icons-material";
+import { Search as SearchIcon, Lightbulb as LightbulbIcon } from "@mui/icons-material";
 import {
   ResponsiveContainer,
   BarChart,
@@ -559,8 +559,8 @@ export default function DetectorComparison() {
             </Grid>
 
             <Box sx={{ p: 2, borderRadius: "12px", backgroundColor: "#eeece7" }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#000000", mb: 0.5 }}>
-                💡 Esito dell'Indagine:
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#000000", mb: 0.5, display: "flex", alignItems: "center" }}>
+                <LightbulbIcon sx={{ color: "#ff7759", fontSize: 18, mr: 0.8 }} /> Esito dell'Indagine:
               </Typography>
               <Typography variant="body2" sx={{ color: "#212121", fontSize: "13.5px", lineHeight: 1.5 }}>
                 Un account bot <strong>non equivale</strong> a testo generato da un LLM: molti bot su Mastodon sono aggregatori automatici di articoli di giornale o bollettini scritti da persone. I modelli zero-shot (Binoculars e FastDetectGPT) distinguono correttamente la naturalezza del testo, mentre il modello supervisionato (Desklib) tende a scambiare l'automazione del formato per generazione IA.

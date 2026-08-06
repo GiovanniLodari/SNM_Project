@@ -350,32 +350,7 @@ export default function App() {
                 Information Analysis Platform
               </Typography>
 
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Chip
-                  label="LLM ENGINE CONNECTED"
-                  size="small"
-                  sx={{
-                    backgroundColor: "#ff7759",
-                    color: "#ffffff",
-                    fontFamily: "ui-monospace, monospace",
-                    fontSize: "11px",
-                    fontWeight: 600,
-                  }}
-                />
-                <Box
-                  component={Link}
-                  to="/pipelines"
-                  sx={{
-                    color: "#1863dc",
-                    fontSize: "14px",
-                    fontWeight: 500,
-                    textDecoration: "underline",
-                    "&:hover": { color: "#000000" },
-                  }}
-                >
-                  System Controls &rarr;
-                </Box>
-              </Box>
+
             </Toolbar>
           </AppBar>
 

@@ -28,6 +28,7 @@ import {
   Fullscreen,
   FullscreenExit,
   Search as SearchIcon,
+  Public as PublicIcon,
 } from "@mui/icons-material";
 import { api, GraphNode, GraphLink, AccountSearchResult, AccountDetail } from "../api/client.ts";
 import AccountDetailModal from "./AccountDetailModal.tsx";
@@ -752,9 +753,21 @@ export default function GraphHero() {
             },
           }}
         >
-          <MenuItem value="all">🌐 Tutti gli account</MenuItem>
-          <MenuItem value="bot">🤖 Solo Bot</MenuItem>
-          <MenuItem value="human">👤 Solo Utenti</MenuItem>
+          <MenuItem value="all">
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <PublicIcon sx={{ fontSize: 16 }} /> Tutti gli account
+            </Box>
+          </MenuItem>
+          <MenuItem value="bot">
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <BotIcon sx={{ fontSize: 16 }} /> Solo Bot
+            </Box>
+          </MenuItem>
+          <MenuItem value="human">
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <HumanIcon sx={{ fontSize: 16 }} /> Solo Utenti
+            </Box>
+          </MenuItem>
         </Select>
 
         {/* Account Search Autocomplete Bar */}

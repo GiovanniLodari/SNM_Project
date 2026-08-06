@@ -115,7 +115,7 @@ def count_checkworthy_eligible_posts(
     non li processa mai, quindi non vanno nel denominatore. File cache
     assente = 0 (checkworthiness non ancora eseguito)."""
     if not checkworthy_path.exists():
-        return 0
+        return count_eligible_posts(post_texts_path, lang=lang)
 
     def _load():
         eligible_ids: set[int] = set()
