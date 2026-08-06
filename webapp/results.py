@@ -308,9 +308,14 @@ def get_descriptive_stats(ai_scores: dict[int, dict], conn) -> dict:
             "max": round(criteria[-1], 4),
         }
 
-    # Query a sample of statuses & accounts from DB for text length and account stats
-    # Prendiamo gli ID degli status per arricchire con DB metadata
-    sample_status_ids = [r["id"] for r in valid_scores[:1000]] # fino a 1000 per velocita'
+    # Uniform step sampling of 1000 status IDs across the full dataset
+    if len(valid_scores) <= 1000:
+        sample_scores = valid_scores
+    else:
+        step = len(valid_scores) / 1000.0
+        sample_scores = [valid_scores[int(i * step)] for i in range(1000)]
+
+    sample_status_ids = [r["id"] for r in sample_scores]
     posts_by_id = queries.get_posts_by_ids(conn, sample_status_ids)
 
     lengths = [len(p["content"]) for p in posts_by_id.values() if p.get("content")]
@@ -322,31 +327,17 @@ def get_descriptive_stats(ai_scores: dict[int, dict], conn) -> dict:
     else:
         avg_tokens = round(avg_char_length / 4.2) if avg_char_length else 0
 
-    # Query DB account creation dates and bot breakdown
-    account_stats = {}
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            SELECT a.bot, COUNT(*), MIN(a.raw->>'created_at'), MAX(a.raw->>'created_at')
-            FROM accounts a
-            GROUP BY a.bot
-            """
-        )
-        acc_rows = cur.fetchall()
-        bot_counts = {row[0]: row[1] for row in acc_rows}
+    # Account bot breakdown & top domains derived directly from analyzed post sample
+    bot_counts = {True: 0, False: 0}
+    domain_counts: dict[str, int] = defaultdict(int)
+    for p in posts_by_id.values():
+        if p.get("bot") is not None:
+            bot_counts[bool(p["bot"])] += 1
+        if p.get("domain"):
+            domain_counts[p["domain"]] += 1
 
-        # Top 5 most active domains
-        cur.execute(
-            """
-            SELECT i.domain, COUNT(s.id) as cnt
-            FROM statuses s
-            JOIN instances i ON i.id = s.instance_id
-            GROUP BY i.domain
-            ORDER BY cnt DESC
-            LIMIT 5
-            """
-        )
-        top_domains = [{"domain": row[0], "count": row[1]} for row in cur.fetchall()]
+    sorted_domains = sorted(domain_counts.items(), key=lambda x: x[1], reverse=True)[:8]
+    top_domains = [{"domain": dom, "count": cnt} for dom, cnt in sorted_domains]
 
     return {
         "total_analyzed": n,
