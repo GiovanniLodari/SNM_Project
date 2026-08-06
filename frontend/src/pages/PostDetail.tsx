@@ -89,17 +89,6 @@ export default function PostDetail() {
       </Button>
 
       <Box sx={{ mb: 4 }}>
-        <Chip
-          label="STATUS INSPECTOR & AUDIT"
-          sx={{
-            fontFamily: "ui-monospace, monospace",
-            fontSize: "11px",
-            color: "#75758a",
-            backgroundColor: "#eeece7",
-            mb: 2,
-            px: 1,
-          }}
-        />
         <Typography
           variant="h4"
           sx={{

@@ -346,8 +346,8 @@ export const api = {
     getJson<{ accounts: AccountSearchResult[] }>(`/api/accounts/search${buildQuery({ q })}`),
   accountDetail: (id: number) =>
     getJson<AccountDetailResponse>(`/api/accounts/${id}/detail`),
-  posts: (lang: string[], page: number) =>
-    getJson<PostsResponse>(`/api/posts${buildQuery({ lang, page })}`),
+  posts: (lang: string[], page: number, pageSize: number = 25) =>
+    getJson<PostsResponse>(`/api/posts${buildQuery({ lang, page, page_size: pageSize })}`),
   postDetail: (id: number) => getJson<PostDetailResponse>(`/api/posts/${id}`),
   accounts: () => getJson<AccountsStats>("/api/accounts"),
   aiDetection: (probBucket: string[], page: number, sortBy: string = "id", detector: string = "fastdetect") =>

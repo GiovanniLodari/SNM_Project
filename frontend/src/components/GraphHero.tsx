@@ -655,7 +655,7 @@ export default function GraphHero() {
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
             <Chip
               icon={<HubIcon sx={{ fontSize: "14px !important", color: "#00e5ff !important" }} />}
-              label="PROGRESSIVE TOPOLOGY STREAM"
+              label="COMMUNITY TOPOLOGY DYNAMICS"
               sx={{
                 fontFamily: "ui-monospace, monospace",
                 fontSize: "10px",
@@ -710,7 +710,7 @@ export default function GraphHero() {
               color: "#ffffff",
             }}
           >
-            Fediverse Intelligence Command Center.
+            Fediverse Intelligence Command Center
           </Typography>
         </Box>
 

@@ -70,13 +70,15 @@ def dashboard(conn=Depends(get_db)):
 def posts_list(
     lang: list[str] = Query(default=[]),
     page: int = 1,
+    page_size: int = Query(default=25, ge=5, le=100),
     conn=Depends(get_db),
 ):
     page = max(page, 1)
-    offset = (page - 1) * PAGE_SIZE
-    posts = queries.list_posts(conn, langs=lang or None, offset=offset, limit=PAGE_SIZE)
+    limit = max(5, min(100, page_size))
+    offset = (page - 1) * limit
+    posts = queries.list_posts(conn, langs=lang or None, offset=offset, limit=limit)
     available_langs = queries.distinct_languages(conn)
-    has_next = len(posts) == PAGE_SIZE
+    has_next = len(posts) == limit
 
     fd_scores = results.load_ai_scores(AI_SCORES_PATH)
     bino_scores = results.load_binoculars_scores(BINOCULARS_SCORES_PATH)

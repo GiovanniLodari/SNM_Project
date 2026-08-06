@@ -13,8 +13,6 @@ import {
   Paper,
   Chip,
   Grid,
-  Autocomplete,
-  TextField,
 } from "@mui/material";
 import { Link } from "react-router-dom";
 import { api, PostsResponse } from "../api/client.ts";
@@ -24,12 +22,13 @@ export default function Posts() {
   const [data, setData] = useState<PostsResponse | null>(null);
   const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPosts = (langs: string[], pg: number) => {
+  const fetchPosts = (langs: string[], pg: number, ps: number) => {
     setLoading(true);
-    api.posts(langs, pg)
+    api.posts(langs, pg, ps)
       .then((res) => {
         setData(res);
         setLoading(false);
@@ -42,9 +41,17 @@ export default function Posts() {
   };
 
   useEffect(() => {
-    fetchPosts(selectedLangs, page);
+    fetchPosts(selectedLangs, page, pageSize);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [page, selectedLangs]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [page, selectedLangs, pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleLangToggle = (langCode: string) => {
+    const next = selectedLangs.includes(langCode)
+      ? selectedLangs.filter((l) => l !== langCode)
+      : [...selectedLangs, langCode];
+    setSelectedLangs(next);
+    setPage(1);
+  };
 
   const formatTime = (timeStr: string | null) => {
     if (!timeStr) return "";
@@ -94,7 +101,7 @@ export default function Posts() {
             mb: 1,
           }}
         >
-          Fediverse Status Archive.
+          Fediverse Status Archive
         </Typography>
         <Typography variant="body1" sx={{ color: "#75758a" }}>
           Inspect raw posts collected from discovered Mastodon instances with language filtering.
@@ -105,54 +112,51 @@ export default function Posts() {
         {/* Left Side Filters */}
         <Grid item xs={12} md={3}>
           <Paper sx={{ p: 3, borderRadius: "16px", border: "1px solid #e5e7eb", backgroundColor: "#ffffff" }}>
-            <Typography variant="caption" sx={{ color: "#75758a", mb: 2, display: "block" }}>
-              LANGUAGE TAXONOMY
+            <Typography variant="caption" sx={{ color: "#75758a", mb: 2, fontWeight: 700, letterSpacing: "0.5px", display: "block" }}>
+              FILTRA PER LINGUA
             </Typography>
             {data && data.available_langs.length > 0 ? (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-                <Autocomplete
-                  multiple
-                  size="small"
-                  options={data.available_langs}
-                  value={selectedLangs}
-                  onChange={(_, newValue) => {
-                    setSelectedLangs(newValue);
-                    setPage(1);
-                    fetchPosts(newValue, 1);
-                  }}
-                  renderTags={(value, getTagProps) =>
-                    value.map((option, index) => (
-                      <Chip
-                        {...getTagProps({ index })}
-                        key={option}
-                        label={option.toUpperCase()}
-                        size="small"
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                {data.available_langs.map((langCode) => {
+                  const isChecked = selectedLangs.includes(langCode);
+                  return (
+                    <Box
+                      key={langCode}
+                      onClick={() => handleLangToggle(langCode)}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.5,
+                        p: 1,
+                        borderRadius: "10px",
+                        cursor: "pointer",
+                        backgroundColor: isChecked ? "#fff0ec" : "transparent",
+                        border: isChecked ? "1px solid #ffad9b" : "1px solid transparent",
+                        transition: "all 0.15s ease",
+                        "&:hover": { backgroundColor: "#f9f8f6" },
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {}} // Handled by container onClick
+                        style={{ cursor: "pointer", accentColor: "#ff7759" }}
+                      />
+                      <Typography
+                        variant="body2"
                         sx={{
                           fontFamily: "ui-monospace, monospace",
-                          fontSize: "11px",
-                          fontWeight: 700,
-                          backgroundColor: "#ff7759",
-                          color: "#ffffff",
-                          "& .MuiChip-deleteIcon": { color: "#ffffff" },
+                          fontWeight: isChecked ? 700 : 500,
+                          fontSize: "13px",
+                          color: isChecked ? "#ff7759" : "#17171c",
                         }}
-                      />
-                    ))
-                  }
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      placeholder={selectedLangs.length === 0 ? "Seleziona lingue..." : ""}
-                      variant="outlined"
-                    />
-                  )}
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: "12px",
-                      fontSize: "13px",
-                      fontFamily: "ui-monospace, monospace",
-                    },
-                  }}
-                />
+                      >
+                        {langCode.toUpperCase()}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+
                 {selectedLangs.length > 0 && (
                   <Button
                     size="small"
@@ -160,9 +164,8 @@ export default function Posts() {
                     onClick={() => {
                       setSelectedLangs([]);
                       setPage(1);
-                      fetchPosts([], 1);
                     }}
-                    sx={{ color: "#75758a", textTransform: "none", fontSize: "12px", alignSelf: "flex-start" }}
+                    sx={{ color: "#ff7759", textTransform: "none", fontSize: "12px", alignSelf: "flex-start", mt: 1 }}
                   >
                     Reset filtri ({selectedLangs.length})
                   </Button>
@@ -170,7 +173,7 @@ export default function Posts() {
               </Box>
             ) : (
               <Typography variant="body2" sx={{ color: "#75758a" }}>
-                No languages available.
+                Nessuna lingua disponibile.
               </Typography>
             )}
           </Paper>
@@ -333,28 +336,57 @@ export default function Posts() {
                 </List>
               </Paper>
 
-              {/* Pagination */}
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              {/* Pagination & Page Size Control */}
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
                 <Button
                   variant="outlined"
                   startIcon={<PrevIcon />}
                   disabled={page <= 1}
                   onClick={() => setPage(page - 1)}
-                  sx={{ borderRadius: "32px" }}
+                  sx={{ borderRadius: "32px", textTransform: "none", fontSize: "13px" }}
                 >
-                  Previous
+                  Indietro
                 </Button>
-                <Typography variant="caption" sx={{ color: "#75758a" }}>
-                  Page {page}
-                </Typography>
+
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Typography variant="caption" sx={{ color: "#75758a", fontWeight: 500 }}>
+                    Pagina {page}
+                  </Typography>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Typography variant="caption" sx={{ color: "#75758a" }}>
+                      Post per pagina:
+                    </Typography>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(Number(e.target.value));
+                        setPage(1);
+                      }}
+                      style={{
+                        padding: "4px 8px",
+                        borderRadius: "8px",
+                        border: "1px solid #d1d5db",
+                        fontSize: "12px",
+                        fontFamily: "Inter, sans-serif",
+                        cursor: "pointer",
+                        backgroundColor: "#ffffff",
+                      }}
+                    >
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                    </select>
+                  </Box>
+                </Box>
+
                 <Button
                   variant="outlined"
                   endIcon={<NextIcon />}
                   disabled={!data.has_next}
                   onClick={() => setPage(page + 1)}
-                  sx={{ borderRadius: "32px" }}
+                  sx={{ borderRadius: "32px", textTransform: "none", fontSize: "13px" }}
                 >
-                  Next
+                  Avanti
                 </Button>
               </Box>
             </Box>

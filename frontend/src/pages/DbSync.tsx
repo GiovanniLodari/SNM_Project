@@ -141,7 +141,7 @@ export default function DbSync() {
               mb: 1,
             }}
           >
-            Database Synchronization.
+            Database Synchronization
           </Typography>
           <Typography variant="body1" sx={{ color: "#75758a" }}>
             Export local records to a portable JSONL archive or merge external ZIP database backups into your node.

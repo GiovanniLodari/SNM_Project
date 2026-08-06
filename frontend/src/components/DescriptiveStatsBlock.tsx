@@ -74,7 +74,7 @@ export default function DescriptiveStatsBlock() {
               letterSpacing: "-0.48px",
             }}
           >
-            Statistiche Descrittive del Corpus.
+            Statistiche Descrittive del Corpus
           </Typography>
           <Typography variant="body2" sx={{ color: "#75758a", mt: 0.5 }}>
             Metriche di sintesi e curve di distribuzione per il rilevamento del testo sintetico.

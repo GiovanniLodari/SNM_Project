@@ -82,18 +82,19 @@ export default function Dashboard() {
                 <PostsIcon sx={{ color: "#17171c" }} />
               </Box>
               <Typography
-                variant="h1"
-                sx={{
-                  fontFamily: "Space Grotesk, Inter, sans-serif",
-                  fontWeight: 400,
-                  fontSize: "64px",
-                  color: "#17171c",
-                  lineHeight: 1.0,
-                  mb: 1,
-                }}
-              >
-                {stats.posts_total.toLocaleString()}
-              </Typography>
+          variant="h3"
+          sx={{
+            fontFamily: "Space Grotesk, Inter, sans-serif",
+            fontWeight: 400,
+            fontSize: { xs: "32px", md: "48px" },
+            color: "#17171c",
+            letterSpacing: "-1.2px",
+            lineHeight: 1.05,
+            mb: 2,
+          }}
+        >
+          Statistiche Descrittive del Corpus
+        </Typography>
               <Typography variant="body2" sx={{ color: "#75758a" }}>
                 Total post records collected from monitored instance nodes.
               </Typography>

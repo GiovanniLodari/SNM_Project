@@ -1,11 +1,13 @@
 import { useEffect, useState, useRef } from "react";
 import {
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
   Typography,
   Box,
   Button,
   CircularProgress,
   TextField,
-  Paper,
   LinearProgress,
   Chip,
   Grid,
@@ -15,6 +17,7 @@ import {
   Stop as StopIcon,
   Terminal as ConsoleIcon,
   Refresh as RefreshIcon,
+  ExpandMore as ExpandMoreIcon,
 } from "@mui/icons-material";
 import { api, JobRow, PipelinesResponse } from "../api/client.ts";
 import { useNotification } from "../context/NotificationContext.tsx";
@@ -149,32 +152,47 @@ function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }
         </Box>
       )}
 
-      {/* Console Log */}
+      {/* Console Log Accordion */}
       {job.log_lines && job.log_lines.length > 0 && (
-        <Paper
+        <Accordion
           elevation={0}
           sx={{
-            p: 2,
-            mb: 3,
             backgroundColor: "#000000",
             color: "#00e5ff",
-            fontFamily: "ui-monospace, monospace",
-            fontSize: "12px",
-            maxHeight: 180,
-            overflowY: "auto",
-            borderRadius: "12px",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
+            borderRadius: "12px !important",
+            border: "1px solid rgba(255, 255, 255, 0.15)",
+            mb: 3,
+            "&::before": { display: "none" },
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 1, color: "#93939f" }}>
-            <ConsoleIcon style={{ fontSize: 14 }} />
-            <Typography variant="caption" sx={{ color: "#93939f" }}>AGENT LOG CONSOLE</Typography>
-          </Box>
-          {job.log_lines.map((line, idx) => (
-            <div key={idx}>{line}</div>
-          ))}
-          <div ref={logEndRef} />
-        </Paper>
+          <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: "#00e5ff" }} />}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <ConsoleIcon sx={{ fontSize: 16, color: "#00e5ff" }} />
+              <Typography variant="caption" sx={{ fontFamily: "ui-monospace, monospace", color: "#ffffff", fontWeight: 600 }}>
+                Log Console & Dettagli Tecnici ({job.log_lines.length} righe)
+              </Typography>
+            </Box>
+          </AccordionSummary>
+          <AccordionDetails sx={{ pt: 0 }}>
+            <Box
+              sx={{
+                p: 1.5,
+                backgroundColor: "#050811",
+                color: "#00e5ff",
+                fontFamily: "ui-monospace, monospace",
+                fontSize: "11px",
+                maxHeight: 200,
+                overflowY: "auto",
+                borderRadius: "8px",
+              }}
+            >
+              {job.log_lines.map((line, idx) => (
+                <div key={idx}>{line}</div>
+              ))}
+              <div ref={logEndRef} />
+            </Box>
+          </AccordionDetails>
+        </Accordion>
       )}
 
       <Box sx={{ display: "flex", gap: 2, mt: "auto" }}>
@@ -279,7 +297,7 @@ export default function Pipelines() {
               mb: 1,
             }}
           >
-            Pipeline Command System.
+            Pipeline Command System
           </Typography>
           <Typography variant="body1" sx={{ color: "#75758a" }}>
             Orchestrate background crawlers, relationship density generators, Fast-DetectGPT, and LLM fact checkers.

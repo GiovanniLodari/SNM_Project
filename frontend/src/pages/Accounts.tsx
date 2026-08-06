@@ -79,7 +79,7 @@ export default function Accounts() {
             mb: 1,
           }}
         >
-          Fediverse Account Taxonomy.
+          Fediverse Account Taxonomy
         </Typography>
         <Typography variant="body1" sx={{ color: "#75758a" }}>
           Cross-referenced statistics comparing bot accounts vs human creators of synthetic AI content.
@@ -189,6 +189,9 @@ export default function Accounts() {
                 <Typography variant="h5" sx={{ fontFamily: "Space Grotesk, sans-serif", fontWeight: 600, color: "#ff7759", mt: 0.5 }}>
                   {stats.ai_and_bot.toLocaleString()}
                 </Typography>
+                <Typography variant="caption" sx={{ color: "#75758a", fontSize: "11px", display: "block", mt: 0.5 }}>
+                  ({stats.bot_total > 0 ? ((stats.ai_and_bot / stats.bot_total) * 100).toFixed(1) : 0}% dei bot usano IA)
+                </Typography>
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="caption" sx={{ color: "#75758a" }}>
@@ -196,6 +199,9 @@ export default function Accounts() {
                 </Typography>
                 <Typography variant="h5" sx={{ fontFamily: "Space Grotesk, sans-serif", fontWeight: 600, color: "#003c33", mt: 0.5 }}>
                   {stats.ai_and_not_bot.toLocaleString()}
+                </Typography>
+                <Typography variant="caption" sx={{ color: "#75758a", fontSize: "11px", display: "block", mt: 0.5 }}>
+                  ({stats.nonbot_total > 0 ? ((stats.ai_and_not_bot / stats.nonbot_total) * 100).toFixed(1) : 0}% degli umani usano IA)
                 </Typography>
               </Grid>
             </Grid>

@@ -61,7 +61,7 @@ function NavigationContent() {
     { text: "Confronto Detector", path: "/detector-comparison", icon: <CompareIcon sx={{ fontSize: 20 }} /> },
     { text: "Fact Checking", path: "/fact-check", icon: <FactCheckIcon sx={{ fontSize: 20 }} /> },
     { text: "Accounts & Bot", path: "/accounts", icon: <AccountsIcon sx={{ fontSize: 20 }} /> },
-    { text: "Pipeline System", path: "/pipelines", icon: <PipelineIcon sx={{ fontSize: 20 }} /> },
+    { text: "Pipelines", path: "/pipelines", icon: <PipelineIcon sx={{ fontSize: 20 }} /> },
     { text: "Database Sync", path: "/db-sync", icon: <SyncIcon sx={{ fontSize: 20 }} /> },
   ];
 
@@ -75,11 +75,11 @@ function NavigationContent() {
             fontFamily: "Space Grotesk, Inter, sans-serif",
             fontWeight: 700,
             fontSize: "20px",
-            color: "#000000",
+            color: "#17171c",
             letterSpacing: "-0.5px",
           }}
         >
-          snm<Box component="span" sx={{ color: "#ff7759" }}>.</Box>intelligence
+          SNM.Intelligence
         </Typography>
         <Typography
           variant="caption"
@@ -389,22 +389,23 @@ export default function App() {
             </Drawer>
           </Box>
 
-          {/* Main Workspace */}
+          {/* Main Content Area */}
           <Box
             component="main"
             sx={{
               flexGrow: 1,
-              width: { sm: `calc(100% - ${drawerWidth}px)` },
-              backgroundColor: "#ffffff",
+              width: "100%",
               minHeight: "100vh",
+              pt: { xs: 8, sm: 9 },
+              display: "flex",
+              flexDirection: "column",
             }}
           >
-            <Toolbar sx={{ height: "64px" }} />
-            <Container maxWidth="xl" sx={{ py: 5, px: { xs: 3, md: 5 } }}>
+            <Container maxWidth="xl" sx={{ flexGrow: 1, px: { xs: 2, sm: 4, md: 6 } }}>
               <Suspense
                 fallback={
-                  <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
-                    <CircularProgress sx={{ color: "#17171c" }} />
+                  <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh" }}>
+                    <CircularProgress sx={{ color: "#ff7759" }} />
                   </Box>
                 }
               >
@@ -412,70 +413,85 @@ export default function App() {
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/posts" element={<Posts />} />
                   <Route path="/posts/:id" element={<PostDetail />} />
+                  <Route path="/accounts" element={<Accounts />} />
                   <Route path="/ai-detection" element={<AiDetection />} />
                   <Route path="/ai-detection-binoculars" element={<AiDetectionBinoculars />} />
                   <Route path="/ai-detection-desklib" element={<AiDetectionDesklib />} />
                   <Route path="/detector-comparison" element={<DetectorComparison />} />
                   <Route path="/fact-check" element={<FactChecking />} />
-                  <Route path="/accounts" element={<Accounts />} />
                   <Route path="/pipelines" element={<Pipelines />} />
                   <Route path="/db-sync" element={<DbSync />} />
                 </Routes>
               </Suspense>
             </Container>
 
-            {/* Dark Enterprise Footer */}
+            {/* Sleek Enterprise Footer */}
             <Box
               sx={{
-                mt: 12,
-                py: 8,
+                mt: 10,
+                py: 6,
                 px: { xs: 3, md: 6 },
                 backgroundColor: "#17171c",
                 color: "#ffffff",
               }}
             >
               <Container maxWidth="xl">
-                <Grid container spacing={4} sx={{ mb: 6 }}>
-                  <Grid item xs={12} md={6}>
+                <Grid container spacing={4} sx={{ mb: 4, alignItems: "center" }}>
+                  <Grid item xs={12} md={7}>
                     <Typography
-                      variant="h4"
+                      variant="h5"
                       sx={{
                         fontFamily: "Space Grotesk, Inter, sans-serif",
-                        fontWeight: 400,
+                        fontWeight: 600,
                         color: "#ffffff",
-                        mb: 2,
+                        letterSpacing: "-0.5px",
+                        mb: 1,
                       }}
                     >
-                      Enterprise Information Command
+                      SNM.Intelligence
                     </Typography>
-                    <Typography variant="body1" sx={{ color: "#93939f", maxWidth: 460 }}>
-                      Scalable detection of synthetic content, misinformation propagation, and network density analysis across the Fediverse.
+                    <Typography variant="body2" sx={{ color: "#93939f", maxWidth: 520, fontSize: "14px", lineHeight: 1.6 }}>
+                      Piattaforma di analisi avanzata per il tracciamento della topologia social, rilevamento di testo sintetico (LLM) ed audit della veridicità nel Fediverso.
                     </Typography>
                   </Grid>
 
-                  <Grid item xs={12} md={6} sx={{ display: "flex", justifyContent: { md: "flex-end" }, alignItems: "center" }}>
+                  <Grid item xs={12} md={5} sx={{ display: "flex", justifyContent: { xs: "flex-start", md: "flex-end" }, gap: 1.5, flexWrap: "wrap" }}>
                     <Chip
-                      label="ENTERPRISE SYSTEM READY"
+                      label="SNM.INTELLIGENCE v2.4"
+                      size="small"
                       sx={{
                         backgroundColor: "#003c33",
                         color: "#ffffff",
-                        px: 2,
-                        py: 2.5,
                         fontFamily: "ui-monospace, monospace",
-                        fontSize: "12px",
+                        fontSize: "11px",
+                        fontWeight: 600,
+                        px: 1,
+                      }}
+                    />
+                    <Chip
+                      label="MASTODON FEDIVERSE AUDIT"
+                      size="small"
+                      sx={{
+                        backgroundColor: "rgba(255,119,89,0.15)",
+                        color: "#ff7759",
+                        border: "1px solid rgba(255,119,89,0.3)",
+                        fontFamily: "ui-monospace, monospace",
+                        fontSize: "11px",
+                        fontWeight: 600,
+                        px: 1,
                       }}
                     />
                   </Grid>
                 </Grid>
 
-                <Box sx={{ borderTop: "1px solid rgba(255, 255, 255, 0.1)", pt: 4, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 2 }}>
-                  <Typography variant="caption" sx={{ color: "#93939f" }}>
-                    &copy; {new Date().getFullYear()} SNM Enterprise AI Analysis System. All rights reserved.
+                <Box sx={{ borderTop: "1px solid rgba(255, 255, 255, 0.1)", pt: 3, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 2, alignItems: "center" }}>
+                  <Typography variant="caption" sx={{ color: "#75758a", fontFamily: "ui-monospace, monospace" }}>
+                    &copy; {new Date().getFullYear()} SNM.Intelligence • Social Network & LLM Auditing Infrastructure
                   </Typography>
                   <Box sx={{ display: "flex", gap: 3 }}>
-                    <Typography variant="caption" sx={{ color: "#93939f" }}>Privacy Policy</Typography>
-                    <Typography variant="caption" sx={{ color: "#93939f" }}>Terms of Service</Typography>
-                    <Typography variant="caption" sx={{ color: "#93939f" }}>API Documentation</Typography>
+                    <Typography variant="caption" sx={{ color: "#93939f" }}>Corpus Hashtag ~200k</Typography>
+                    <Typography variant="caption" sx={{ color: "#93939f" }}>Multi-Model AI Detection</Typography>
+                    <Typography variant="caption" sx={{ color: "#93939f" }}>Fact-Check Audit</Typography>
                   </Box>
                 </Box>
               </Container>
