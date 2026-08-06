@@ -16,19 +16,18 @@ from webapp import jobs, queries, results
 
 load_dotenv(override=True)
 
-PROJECT_ROOT = Path(__file__).parent.parent
-# data/ai_scores.jsonl e' la copia pubblicata/tracciata in git (aggiornata
-# a mano quando un nuovo run di snm_detect.py produce risultati da
-# condividere) - non fast-detect-gpt/ai_scores.jsonl direttamente, quel
-# path vive dentro un repo git annidato (fast-detect-gpt/ ha il proprio
-# .git) e comunque e' gitignorato: i colleghi che clonano non hanno quella
-# cartella, ma hanno data/ai_scores.jsonl.
-AI_SCORES_PATH = PROJECT_ROOT / "data" / "ai_scores.jsonl"
-FACT_CHECK_PATH = PROJECT_ROOT / "fact_check_report.csv"
-POST_TEXTS_PATH = PROJECT_ROOT / "post_texts.jsonl"
-CHECKWORTHY_PATH = PROJECT_ROOT / "checkworthy_scores.jsonl"
-EXPORTS_DIR = PROJECT_ROOT / "exports"
-IMPORTS_DIR = PROJECT_ROOT / "imports"
+from webapp.path_utils import (
+    PROJECT_ROOT,
+    AI_SCORES_PATH,
+    FACT_CHECK_PATH,
+    POST_TEXTS_PATH,
+    CHECKWORTHY_PATH,
+    EXPORTS_DIR,
+    IMPORTS_DIR,
+    EXPORT_ZIP_PATH,
+    BINOCULARS_SCORES_PATH,
+    DESKLIB_SCORES_PATH,
+)
 
 app = FastAPI(title="SNM Project")
 

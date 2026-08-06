@@ -17,22 +17,19 @@ from webapp import jobs, queries, results
 
 load_dotenv(override=True)
 
-PROJECT_ROOT = Path(__file__).parent.parent
-AI_SCORES_PATH = PROJECT_ROOT / "data" / "ai_scores.jsonl"
-FACT_CHECK_PATH = (
-    PROJECT_ROOT / "fact_checking" / "fact_check_report.csv"
-    if (PROJECT_ROOT / "fact_checking" / "fact_check_report.csv").exists()
-    else PROJECT_ROOT / "fact_check_report.csv"
+from webapp.path_utils import (
+    PROJECT_ROOT,
+    AI_SCORES_PATH,
+    FACT_CHECK_PATH,
+    POST_TEXTS_PATH,
+    CHECKWORTHY_PATH,
+    EXPORTS_DIR,
+    IMPORTS_DIR,
+    EXPORT_ZIP_PATH,
+    BINOCULAR_ALL_DIR,
+    BINOCULARS_SCORES_PATH,
+    DESKLIB_SCORES_PATH,
 )
-POST_TEXTS_PATH = PROJECT_ROOT / "post_texts.jsonl"
-
-CHECKWORTHY_PATH = PROJECT_ROOT / "checkworthy_scores.jsonl"
-EXPORTS_DIR = PROJECT_ROOT / "exports"
-IMPORTS_DIR = PROJECT_ROOT / "imports"
-EXPORT_ZIP_PATH = EXPORTS_DIR / "export.zip"
-BINOCULAR_ALL_DIR = PROJECT_ROOT / "desklib_detector" / "risultati_binocular_all"
-BINOCULARS_SCORES_PATH = BINOCULAR_ALL_DIR / "ai_scores_binoculars.jsonl"
-DESKLIB_SCORES_PATH = BINOCULAR_ALL_DIR / "risultati.jsonl"
 
 AI_CLASSIFICATION_THRESHOLD = 0.5
 PAGE_SIZE = 50
