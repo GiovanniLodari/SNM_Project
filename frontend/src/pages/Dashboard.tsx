@@ -180,26 +180,26 @@ export default function Dashboard() {
         </Typography>
 
         <Grid container spacing={4}>
-          {/* AI Detection Card */}
+          {/* AI Detection Multi-Model Card */}
           <Grid item xs={12} md={6}>
             <Box sx={{ borderTop: "1px solid rgba(255, 255, 255, 0.15)", pt: 3 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
                 <AiIcon sx={{ color: "#ff7759" }} />
                 <Typography variant="h5" sx={{ color: "#ffffff", fontWeight: 500 }}>
-                  Fast-DetectGPT Classifier
+                  Rilevamento Testo Sintetico (3 Modelli)
                 </Typography>
               </Box>
-              <Typography variant="body2" sx={{ color: "#93939f", mb: 3 }}>
-                Analyzed <strong>{stats.ai_done.toLocaleString()}</strong> of <strong>{stats.ai_eligible.toLocaleString()}</strong> eligible English language statuses.
+              <Typography variant="body2" sx={{ color: "#93939f", mb: 2 }}>
+                Analisi comparativa del testo tramite <strong>FastDetectGPT</strong>, <strong>Binoculars (ICML 2024)</strong> e <strong>Desklib AI Detector</strong>.
               </Typography>
 
-              <Box sx={{ mb: 3 }}>
+              <Box sx={{ mb: 2.5 }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
                   <Typography variant="caption" sx={{ color: "#ffffff" }}>
-                    Completion Rate
+                    Completamento FastDetectGPT
                   </Typography>
                   <Typography variant="caption" sx={{ color: "#ff7759", fontWeight: 600 }}>
-                    {aiPercent.toFixed(1)}%
+                    {aiPercent.toFixed(1)}% ({stats.ai_done.toLocaleString()} / {stats.ai_eligible.toLocaleString()})
                   </Typography>
                 </Box>
                 <LinearProgress
@@ -214,17 +214,41 @@ export default function Dashboard() {
                 />
               </Box>
 
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography variant="caption" sx={{ color: "#93939f" }}>
-                  Flagged AI (&ge; {stats.ai_threshold}): <strong style={{ color: "#ffffff" }}>{stats.ai_classified.toLocaleString()}</strong>
-                </Typography>
-                <Box
+              {/* Links to all 3 models + comparison */}
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, pt: 1 }}>
+                <Button
                   component={Link}
                   to="/ai-detection"
-                  sx={{ color: "#1863dc", textDecoration: "underline", fontSize: "14px", fontWeight: 500 }}
+                  size="small"
+                  sx={{ color: "#ffffff", backgroundColor: "rgba(255,255,255,0.1)", borderRadius: "16px", textTransform: "none", fontSize: "12px", "&:hover": { backgroundColor: "rgba(255,255,255,0.2)" } }}
                 >
-                  View Details &rarr;
-                </Box>
+                  FastDetectGPT
+                </Button>
+                <Button
+                  component={Link}
+                  to="/ai-detection-binoculars"
+                  size="small"
+                  sx={{ color: "#ffffff", backgroundColor: "rgba(255,255,255,0.1)", borderRadius: "16px", textTransform: "none", fontSize: "12px", "&:hover": { backgroundColor: "rgba(255,255,255,0.2)" } }}
+                >
+                  Binoculars
+                </Button>
+                <Button
+                  component={Link}
+                  to="/ai-detection-desklib"
+                  size="small"
+                  sx={{ color: "#ffffff", backgroundColor: "rgba(255,255,255,0.1)", borderRadius: "16px", textTransform: "none", fontSize: "12px", "&:hover": { backgroundColor: "rgba(255,255,255,0.2)" } }}
+                >
+                  Desklib
+                </Button>
+                <Button
+                  component={Link}
+                  to="/detector-comparison"
+                  size="small"
+                  variant="outlined"
+                  sx={{ color: "#ff7759", borderColor: "#ff7759", borderRadius: "16px", textTransform: "none", fontSize: "12px", fontWeight: 600, "&:hover": { backgroundColor: "rgba(255,119,89,0.1)", borderColor: "#ff7759" } }}
+                >
+                  Confronto &rarr;
+                </Button>
               </Box>
             </Box>
           </Grid>
