@@ -317,7 +317,10 @@ def get_descriptive_stats(ai_scores: dict[int, dict], conn) -> dict:
     avg_char_length = round(sum(lengths) / len(lengths), 1) if lengths else 0
     median_char_length = sorted(lengths)[len(lengths) // 2] if lengths else 0
 
-    avg_tokens = round(sum(ntokens_list) / len(ntokens_list), 1) if ntokens_list else 0
+    if ntokens_list and (sum(ntokens_list) / len(ntokens_list)) > 5:
+        avg_tokens = round(sum(ntokens_list) / len(ntokens_list), 1)
+    else:
+        avg_tokens = round(avg_char_length / 4.2) if avg_char_length else 0
 
     # Query DB account creation dates and bot breakdown
     account_stats = {}
