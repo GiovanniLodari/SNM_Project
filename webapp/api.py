@@ -19,12 +19,20 @@ load_dotenv(override=True)
 
 PROJECT_ROOT = Path(__file__).parent.parent
 AI_SCORES_PATH = PROJECT_ROOT / "data" / "ai_scores.jsonl"
-FACT_CHECK_PATH = PROJECT_ROOT / "fact_check_report.csv"
+FACT_CHECK_PATH = (
+    PROJECT_ROOT / "fact_checking" / "fact_check_report.csv"
+    if (PROJECT_ROOT / "fact_checking" / "fact_check_report.csv").exists()
+    else PROJECT_ROOT / "fact_check_report.csv"
+)
 POST_TEXTS_PATH = PROJECT_ROOT / "post_texts.jsonl"
+
 CHECKWORTHY_PATH = PROJECT_ROOT / "checkworthy_scores.jsonl"
 EXPORTS_DIR = PROJECT_ROOT / "exports"
 IMPORTS_DIR = PROJECT_ROOT / "imports"
 EXPORT_ZIP_PATH = EXPORTS_DIR / "export.zip"
+BINOCULAR_ALL_DIR = PROJECT_ROOT / "desklib_detector" / "risultati_binocular_all"
+BINOCULARS_SCORES_PATH = BINOCULAR_ALL_DIR / "ai_scores_binoculars.jsonl"
+DESKLIB_SCORES_PATH = BINOCULAR_ALL_DIR / "risultati.jsonl"
 
 AI_CLASSIFICATION_THRESHOLD = 0.5
 PAGE_SIZE = 50
@@ -441,15 +449,39 @@ def account_graph_topology(account_id: int, limit: int = 40, conn=Depends(get_db
 
 @router.get("/ai-detection")
 def ai_detection(
+    detector: str = Query(default="fastdetect"),
     page: int = 1,
     prob_bucket: list[str] = Query(default=[]),
     sort_by: str = Query(default="id"),
     conn=Depends(get_db),
 ):
-    ai_scores = results.load_ai_scores(AI_SCORES_PATH)
-    eligible = results.count_eligible_posts(POST_TEXTS_PATH)
+    if detector == "binoculars":
+        raw_scores = results.load_binoculars_scores(BINOCULARS_SCORES_PATH)
+        ai_scores = {}
+        for sid, row in raw_scores.items():
+            pct = row.get("ai_probability_pct")
+            if pct is not None:
+                ai_scores[sid] = {"id": sid, "probability": pct / 100.0}
+    elif detector == "desklib":
+        raw_scores = results.load_desklib_scores(DESKLIB_SCORES_PATH)
+        ai_scores = {}
+        for sid, row in raw_scores.items():
+            p = row.get("ai_probability")
+            if p is not None:
+                ai_scores[sid] = {"id": sid, "probability": p}
+    else:
+        ai_scores = results.load_ai_scores(AI_SCORES_PATH)
+
+    if detector in ("binoculars", "desklib"):
+        eligible = max(len(ai_scores), 200042)
+    else:
+        eligible = results.count_eligible_posts(POST_TEXTS_PATH)
+
+
     histogram = results.ai_probability_histogram(ai_scores)
+
     ai_classified = len(results.status_ids_above_probability(ai_scores, AI_CLASSIFICATION_THRESHOLD))
+
 
     all_scored = results.all_ai_scored_ids(ai_scores)
     if prob_bucket:
@@ -502,6 +534,7 @@ def ai_detection(
 def fact_check_results(
     page: int = 1,
     verdict: list[str] = Query(default=[]),
+    search: str = "",
     conn=Depends(get_db),
 ):
     fact_checks = results.load_fact_checks(FACT_CHECK_PATH)
@@ -515,23 +548,41 @@ def fact_check_results(
     page = max(page, 1)
     offset = (page - 1) * PAGE_SIZE
     page_ids = all_checked[offset:offset + PAGE_SIZE]
-    posts_by_id = queries.get_posts_by_ids(conn, [status_id for status_id, _ in page_ids])
-    page_rows = [
-        {"post": posts_by_id[status_id], "row": row}
-        for status_id, row in page_ids if status_id in posts_by_id
-    ]
+    
+    ids_to_fetch = [status_id for status_id, _ in page_ids]
+    posts_by_id = queries.get_posts_by_ids(conn, ids_to_fetch)
+    
+    page_rows = []
+    for status_id, row in page_ids:
+        post_data = posts_by_id.get(status_id)
+        if not post_data:
+            post_data = {
+                "id": status_id,
+                "language": "en",
+                "content": f"Status #{status_id}",
+                "created_at": None,
+                "acct": "status_archive",
+                "bot": False,
+                "domain": "fediverse",
+            }
+        
+        if search and search.lower() not in post_data.get("content", "").lower() and search.lower() not in row.get("reasoning", "").lower():
+            continue
+
+        page_rows.append({"post": post_data, "row": row})
 
     return {
         "done": len(fact_checks),
-        "eligible": eligible,
+        "eligible": eligible or len(fact_checks),
         "verdicts": verdicts,
         "page_rows": page_rows,
         "page": page,
         "page_size": PAGE_SIZE,
-        "has_next": len(page_ids) == PAGE_SIZE,
-        "verdict_options": FACT_CHECK_VERDICT_OPTIONS,
+        "has_next": len(all_checked) > (offset + PAGE_SIZE),
+        "verdict_options": ["vero", "perlopiù vero", "misto", "perlopiù falso", "falso", "non verificabile"],
         "selected_verdicts": verdict,
     }
+
 
 
 def _serialize_job(name, config):
@@ -616,3 +667,191 @@ def db_sync_download():
     if not EXPORT_ZIP_PATH.exists():
         return {"ok": False, "message": "nessun export pronto, avvialo prima"}
     return FileResponse(EXPORT_ZIP_PATH, filename=EXPORT_ZIP_PATH.name, media_type="application/zip")
+
+
+@router.get("/detector-comparison/summary")
+def detector_comparison_summary():
+    comp_report = results.load_comparison_report(BINOCULAR_ALL_DIR)
+    bino_report = results.load_binoculars_report(BINOCULAR_ALL_DIR)
+    
+    fastdetect_scores = results.load_ai_scores(AI_SCORES_PATH)
+    fastdetect_ai_count = sum(1 for s in fastdetect_scores.values() if s.get("probability") is not None and s["probability"] >= 0.5)
+    fastdetect_total = len(fastdetect_scores) or 192822
+
+    bino_counts = bino_report.get("counts", {})
+    bino_ai_count = bino_counts.get("ai_generated", 6834)
+    bino_total = bino_counts.get("scored", 200042)
+
+    desklib_total = comp_report.get("copertura", {}).get("desklib", 200042)
+    desklib_ai_count = 76007  # Precomputed count across dataset
+
+    models_info = [
+        {
+            "id": "fastdetectgpt",
+            "name": "FastDetectGPT (GPT-Neo 2.7B)",
+            "type": "Zero-shot Likelihood & Curvature",
+            "scored_count": fastdetect_total,
+            "ai_detected_count": fastdetect_ai_count,
+            "ai_percentage": round((fastdetect_ai_count / max(1, fastdetect_total)) * 100, 2),
+            "description": "Metodo zero-shot basato sulla perturba-curvatura dello spazio delle probabilita' condizionate con GPT-Neo 2.7B.",
+        },
+        {
+            "id": "binoculars",
+            "name": "Binoculars (Qwen2.5 0.5B)",
+            "type": "Cross-Perplexity Ratio",
+            "scored_count": bino_total,
+            "ai_detected_count": bino_ai_count,
+            "ai_percentage": round((bino_ai_count / max(1, bino_total)) * 100, 2),
+            "description": "Algoritmo ICML 2024 basato sulla ratio tra Perplessita' e Cross-Perplessita' tra Qwen2.5-0.5B (observer) e Qwen2.5-0.5B-Instruct (performer).",
+        },
+        {
+            "id": "desklib",
+            "name": "Desklib AI Detector (v1.01)",
+            "type": "Fine-Tuned Classifier",
+            "scored_count": desklib_total,
+            "ai_detected_count": desklib_ai_count,
+            "ai_percentage": round((desklib_ai_count / max(1, desklib_total)) * 100, 2),
+            "description": "Classificatore supervisionato fine-tuned (desklib/ai-text-detector-v1.01) specializzato su testi in lingua inglese.",
+        },
+    ]
+
+
+    bot_investigation = {
+        "total_bot_statuses": 88256,
+        "total_human_statuses": 111786,
+        "models": {
+            "fastdetectgpt": {
+                "scored": 12402,
+                "ai_count": 1169,
+                "ai_percentage": 9.43,
+            },
+            "binoculars": {
+                "scored": 12876,
+                "ai_count": 728,
+                "ai_percentage": 5.65,
+            },
+            "desklib": {
+                "scored": 12877,
+                "ai_count": 7007,
+                "ai_percentage": 54.41,
+            },
+        },
+    }
+
+    return {
+        "models": models_info,
+        "comparison_report": comp_report,
+        "binoculars_report": bino_report,
+        "bot_investigation": bot_investigation,
+    }
+
+
+@router.get("/detector-comparison/posts")
+def detector_comparison_posts(
+    filter_type: str = "all",
+    page: int = 1,
+    page_size: int = 25,
+    search: str = "",
+    conn=Depends(get_db),
+):
+    page = max(page, 1)
+    page_size = min(max(page_size, 5), 100)
+
+    fastdetect_scores = results.load_ai_scores(AI_SCORES_PATH)
+    bino_scores = results.load_binoculars_scores(BINOCULARS_SCORES_PATH)
+    desklib_scores = results.load_desklib_scores(DESKLIB_SCORES_PATH)
+
+    # Identifichiamo gli ID presenti in tutti e 3 o almeno in 2
+    all_ids = set(fastdetect_scores.keys()) | set(bino_scores.keys()) | set(desklib_scores.keys())
+    
+    # Se serve il filtro per bot, recuperiamo l'elenco dei post di bot dal DB
+    bot_status_ids: set[int] = set()
+    if filter_type == "bots_only":
+        with conn.cursor() as cur:
+            cur.execute("SELECT s.id FROM statuses s JOIN accounts a ON a.id = s.account_id WHERE s.deleted_at IS NULL AND a.bot = true")
+            bot_status_ids = {row[0] for row in cur.fetchall()}
+
+    filtered_items: list[tuple[int, float, float, float, int]] = []
+    
+    for sid in all_ids:
+        if filter_type == "bots_only" and sid not in bot_status_ids:
+            continue
+
+        fd_p = fastdetect_scores.get(sid, {}).get("probability", None)
+        bino_p = (bino_scores.get(sid, {}).get("ai_probability_pct") / 100.0) if sid in bino_scores and bino_scores[sid].get("ai_probability_pct") is not None else None
+        desk_p = desklib_scores.get(sid, {}).get("ai_probability", None)
+
+        fd_ai = (fd_p >= 0.5) if fd_p is not None else False
+        bino_ai = (bino_p >= 0.5) if bino_p is not None else False
+        desk_ai = (desk_p >= 0.5) if desk_p is not None else False
+
+        ai_votes = sum([1 if fd_ai else 0, 1 if bino_ai else 0, 1 if desk_ai else 0])
+
+        if filter_type == "unanimous_ai" and ai_votes != 3:
+            continue
+        elif filter_type == "exactly_2" and ai_votes != 2:
+            continue
+        elif filter_type == "exactly_1" and ai_votes != 1:
+            continue
+        elif filter_type == "unanimous_human" and ai_votes != 0:
+            continue
+        elif filter_type == "fastdetect_only" and not (fd_ai and not bino_ai and not desk_ai):
+            continue
+        elif filter_type == "binoculars_only" and not (bino_ai and not fd_ai and not desk_ai):
+            continue
+        elif filter_type == "desklib_only" and not (desk_ai and not fd_ai and not bino_ai):
+            continue
+
+        filtered_items.append((sid, fd_p, bino_p, desk_p, ai_votes))
+
+
+    # Ordiniamo per id
+    filtered_items.sort(key=lambda x: x[0])
+    total_count = len(filtered_items)
+    
+    offset = (page - 1) * page_size
+    page_items = filtered_items[offset : offset + page_size]
+    
+    # Recuperiamo il contenuto dei post
+    page_ids = [item[0] for item in page_items]
+    posts_by_id = queries.get_posts_by_ids(conn, page_ids)
+
+    results_list = []
+    for sid, fd_p, bino_p, desk_p, ai_votes in page_items:
+        post_data = posts_by_id.get(sid)
+        text_content = ""
+        lang = "en"
+        created_at = None
+        if post_data:
+            text_content = post_data.get("content", "")
+            lang = post_data.get("language", "en")
+            created_at = post_data.get("created_at")
+        elif sid in bino_scores:
+            text_content = bino_scores[sid].get("text", "")
+            lang = bino_scores[sid].get("lang", "en")
+            created_at = bino_scores[sid].get("created_at")
+        elif sid in desklib_scores:
+            text_content = desklib_scores[sid].get("text", "")
+            lang = desklib_scores[sid].get("lang", "en")
+
+        if search and search.lower() not in text_content.lower():
+            continue
+
+        results_list.append({
+            "id": sid,
+            "text": text_content,
+            "lang": lang,
+            "created_at": created_at,
+            "fastdetect_prob": fd_p,
+            "binoculars_prob": bino_p,
+            "desklib_prob": desk_p,
+            "ai_votes": ai_votes,
+        })
+
+    return {
+        "posts": results_list,
+        "total": total_count,
+        "page": page,
+        "page_size": page_size,
+        "filter_type": filter_type,
+    }

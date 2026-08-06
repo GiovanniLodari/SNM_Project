@@ -20,10 +20,27 @@ export interface AiScore {
 export interface FactCheck {
   id: number;
   verdict: string;
+  veracity?: number;
   confidence: number | null;
   reasoning: string;
+  evidence_urls?: string;
   evidence?: any;
+  model?: string;
 }
+
+
+export interface FactCheckResponse {
+  done: number;
+  eligible: number;
+  verdicts: Record<string, number>;
+  page_rows: { post: Post; row: FactCheck }[];
+  page: number;
+  page_size: number;
+  has_next: boolean;
+  verdict_options: string[];
+  selected_verdicts: string[];
+}
+
 
 export interface DashboardStats {
   posts_total: number;
@@ -237,6 +254,84 @@ async function postJson<T>(url: string, body: URLSearchParams | FormData): Promi
   return (await res.json()) as T;
 }
 
+export interface DetectorModelInfo {
+  id: string;
+  name: string;
+  type: string;
+  scored_count: number;
+  ai_detected_count: number;
+  ai_percentage: number;
+  description: string;
+}
+
+export interface DetectorComparisonSummaryResponse {
+  models: DetectorModelInfo[];
+  comparison_report: {
+    soglia_ai: number;
+    id_totali: number;
+    id_presenti_in_tutti_e_3: number;
+    conteggio_ai: {
+      ai_per_tutti_e_3: number;
+      ai_per_esattamente_2: number;
+      ai_per_esattamente_1: number;
+      ai_per_nessuno: number;
+    };
+    accordo: {
+      tutti_e_3_stessa_etichetta: number;
+      coppie: {
+        "bino-gpt": number;
+        "bino-desk": number;
+        "desk-gpt": number;
+      };
+    };
+    copertura: {
+      binoculars: number;
+      desklib: number;
+      "gpt-neo": number;
+    };
+  };
+  binoculars_report: {
+    counts?: {
+      total_in_file: number;
+      scored: number;
+      short_unreliable: number;
+      ai_generated: number;
+      human: number;
+    };
+    histogram_pct?: Record<string, number>;
+    by_lang?: Record<string, { n: number; ai: number }>;
+  };
+  bot_investigation?: {
+    total_bot_statuses: number;
+    total_human_statuses: number;
+    models: {
+      fastdetectgpt: { scored: number; ai_count: number; ai_percentage: number };
+      binoculars: { scored: number; ai_count: number; ai_percentage: number };
+      desklib: { scored: number; ai_count: number; ai_percentage: number };
+    };
+  };
+}
+
+
+export interface ComparisonPostRow {
+  id: number;
+  text: string;
+  lang: string;
+  created_at: string | null;
+  fastdetect_prob: number | null;
+  binoculars_prob: number | null;
+  desklib_prob: number | null;
+  ai_votes: number;
+}
+
+export interface DetectorComparisonPostsResponse {
+  posts: ComparisonPostRow[];
+  total: number;
+  page: number;
+  page_size: number;
+  filter_type: string;
+}
+
 export const api = {
   dashboard: () => getJson<DashboardStats>("/api/dashboard"),
   graph: (limit?: number, mode?: string) => getJson<GraphData>(`/api/graph${buildQuery({ limit, mode })}`),
@@ -250,11 +345,18 @@ export const api = {
     getJson<PostsResponse>(`/api/posts${buildQuery({ lang, page })}`),
   postDetail: (id: number) => getJson<PostDetailResponse>(`/api/posts/${id}`),
   accounts: () => getJson<AccountsStats>("/api/accounts"),
-  aiDetection: (probBucket: string[], page: number, sortBy: string = "id") =>
-    getJson<AiDetectionResponse>(`/api/ai-detection${buildQuery({ prob_bucket: probBucket, page, sort_by: sortBy })}`),
+  aiDetection: (probBucket: string[], page: number, sortBy: string = "id", detector: string = "fastdetect") =>
+    getJson<AiDetectionResponse>(`/api/ai-detection${buildQuery({ detector, prob_bucket: probBucket, page, sort_by: sortBy })}`),
 
-  factCheck: (verdict: string[], page: number) =>
-    getJson<FactCheckResponse>(`/api/fact-check${buildQuery({ verdict, page })}`),
+
+  detectorComparisonSummary: () =>
+    getJson<DetectorComparisonSummaryResponse>("/api/detector-comparison/summary"),
+  detectorComparisonPosts: (filterType: string, page: number, pageSize: number = 25, search: string = "") =>
+    getJson<DetectorComparisonPostsResponse>(`/api/detector-comparison/posts${buildQuery({ filter_type: filterType, page, page_size: pageSize, search })}`),
+
+  factCheck: (verdict: string[], page: number, search: string = "") =>
+    getJson<FactCheckResponse>(`/api/fact-check${buildQuery({ verdict, page, search })}`),
+
   pipelines: () => getJson<PipelinesResponse>("/api/pipelines"),
   dbSync: () => getJson<DbSyncResponse>("/api/db-sync"),
   pipelineStart: (name: string, param: string) =>
@@ -267,5 +369,6 @@ export const api = {
     return postJson<JobActionResponse>("/api/db-sync/import", form);
   },
 };
+
 
 

@@ -100,31 +100,33 @@ export default function AiDetection() {
     <Box>
       <Box sx={{ mb: 6 }}>
         <Chip
-          label="SYNTHETIC CONTENT CLASSIFICATION"
+          label="DETECTOR 1/3 • GPT-NEO 2.7B ZERO-SHOT"
           sx={{
             fontFamily: "ui-monospace, monospace",
             fontSize: "11px",
-            color: "#75758a",
-            backgroundColor: "#eeece7",
+            color: "#1863dc",
+            backgroundColor: "#f1f5ff",
             mb: 2,
             px: 1,
+            fontWeight: 600,
           }}
         />
         <Typography
           variant="h2"
           sx={{
             fontFamily: "Space Grotesk, Inter, sans-serif",
-            fontWeight: 400,
+            fontWeight: 700,
             fontSize: { xs: "32px", md: "48px" },
             color: "#17171c",
             mb: 1,
           }}
         >
-          Fast-DetectGPT Probability Spectrum.
+          Rilevamento IA (FastDetectGPT)
         </Typography>
         <Typography variant="body1" sx={{ color: "#75758a" }}>
-          Estimated likelihood distribution of machine-generated synthetic text in English language statuses.
+          Analisi della probabilità di testo generato da IA basata su <strong>FastDetectGPT (GPT-Neo 2.7B)</strong> tramite perturbazioni della curvatura probabilistica.
         </Typography>
+
       </Box>
 
       {data && (

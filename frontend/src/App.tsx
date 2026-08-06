@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { HashRouter, Routes, Route, Link, useLocation } from "react-router-dom";
 import {
   ThemeProvider,
@@ -18,6 +18,7 @@ import {
   Container,
   Chip,
   Grid,
+  CircularProgress,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
@@ -28,17 +29,21 @@ import {
   People as AccountsIcon,
   PlayCircle as PipelineIcon,
   Sync as SyncIcon,
+  CompareArrows as CompareIcon,
 } from "@mui/icons-material";
 
-// Pagine
-import Dashboard from "./pages/Dashboard.tsx";
-import Posts from "./pages/Posts.tsx";
-import PostDetail from "./pages/PostDetail.tsx";
-import AiDetection from "./pages/AiDetection.tsx";
-import FactChecking from "./pages/FactChecking.tsx";
-import Accounts from "./pages/Accounts.tsx";
-import Pipelines from "./pages/Pipelines.tsx";
-import DbSync from "./pages/DbSync.tsx";
+// Pagine in caricamento Lazy (Code-Splitting per prestazioni elevate)
+const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
+const Posts = lazy(() => import("./pages/Posts.tsx"));
+const PostDetail = lazy(() => import("./pages/PostDetail.tsx"));
+const AiDetection = lazy(() => import("./pages/AiDetection.tsx"));
+const AiDetectionBinoculars = lazy(() => import("./pages/AiDetectionBinoculars.tsx"));
+const AiDetectionDesklib = lazy(() => import("./pages/AiDetectionDesklib.tsx"));
+const FactChecking = lazy(() => import("./pages/FactChecking.tsx"));
+const Accounts = lazy(() => import("./pages/Accounts.tsx"));
+const Pipelines = lazy(() => import("./pages/Pipelines.tsx"));
+const DbSync = lazy(() => import("./pages/DbSync.tsx"));
+const DetectorComparison = lazy(() => import("./pages/DetectorComparison.tsx"));
 import { NotificationProvider } from "./context/NotificationContext.tsx";
 import ErrorBoundary from "./components/ErrorBoundary.tsx";
 
@@ -50,7 +55,10 @@ function NavigationContent() {
   const menuItems = [
     { text: "Dashboard", path: "/", icon: <DashboardIcon sx={{ fontSize: 20 }} /> },
     { text: "Tutti i Post", path: "/posts", icon: <PostsIcon sx={{ fontSize: 20 }} /> },
-    { text: "Rilevamento IA", path: "/ai-detection", icon: <AiIcon sx={{ fontSize: 20 }} /> },
+    { text: "IA: FastDetectGPT", path: "/ai-detection", icon: <AiIcon sx={{ fontSize: 20 }} /> },
+    { text: "IA: Binoculars", path: "/ai-detection-binoculars", icon: <AiIcon sx={{ fontSize: 20 }} /> },
+    { text: "IA: Desklib Detector", path: "/ai-detection-desklib", icon: <AiIcon sx={{ fontSize: 20 }} /> },
+    { text: "Confronto Detector", path: "/detector-comparison", icon: <CompareIcon sx={{ fontSize: 20 }} /> },
     { text: "Fact Checking", path: "/fact-check", icon: <FactCheckIcon sx={{ fontSize: 20 }} /> },
     { text: "Accounts & Bot", path: "/accounts", icon: <AccountsIcon sx={{ fontSize: 20 }} /> },
     { text: "Pipeline System", path: "/pipelines", icon: <PipelineIcon sx={{ fontSize: 20 }} /> },
@@ -418,16 +426,27 @@ export default function App() {
           >
             <Toolbar sx={{ height: "64px" }} />
             <Container maxWidth="xl" sx={{ py: 5, px: { xs: 3, md: 5 } }}>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/posts" element={<Posts />} />
-                <Route path="/posts/:id" element={<PostDetail />} />
-                <Route path="/ai-detection" element={<AiDetection />} />
-                <Route path="/fact-check" element={<FactChecking />} />
-                <Route path="/accounts" element={<Accounts />} />
-                <Route path="/pipelines" element={<Pipelines />} />
-                <Route path="/db-sync" element={<DbSync />} />
-              </Routes>
+              <Suspense
+                fallback={
+                  <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
+                    <CircularProgress sx={{ color: "#17171c" }} />
+                  </Box>
+                }
+              >
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/posts" element={<Posts />} />
+                  <Route path="/posts/:id" element={<PostDetail />} />
+                  <Route path="/ai-detection" element={<AiDetection />} />
+                  <Route path="/ai-detection-binoculars" element={<AiDetectionBinoculars />} />
+                  <Route path="/ai-detection-desklib" element={<AiDetectionDesklib />} />
+                  <Route path="/detector-comparison" element={<DetectorComparison />} />
+                  <Route path="/fact-check" element={<FactChecking />} />
+                  <Route path="/accounts" element={<Accounts />} />
+                  <Route path="/pipelines" element={<Pipelines />} />
+                  <Route path="/db-sync" element={<DbSync />} />
+                </Routes>
+              </Suspense>
             </Container>
 
             {/* Dark Enterprise Footer */}

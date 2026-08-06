@@ -49,6 +49,15 @@ def load_ai_scores(path: Path) -> dict[int, dict]:
     return _cached_load(path, None, _load) if path.exists() else {}
 
 
+def normalize_verdict(verdict: str) -> str:
+    v = (verdict or "").strip().lower()
+    if v in ("vero", "vera", "veri"):
+        return "vero"
+    if v in ("falso", "falsa", "falsi"):
+        return "falso"
+    return v
+
+
 def load_fact_checks(path: Path) -> dict[int, dict]:
     """Legge fact_check_report.csv (prodotto da snm.analysis.fact_check),
     indicizzato per id status. File assente = dict vuoto. Righe troncate/malformate
@@ -58,8 +67,9 @@ def load_fact_checks(path: Path) -> dict[int, dict]:
         with path.open("r", encoding="utf-8", newline="") as f:
             for row in csv.DictReader(f):
                 try:
-                    row["veracity"] = int(row["veracity"])
-                    row["confidence"] = float(row["confidence"]) if row["confidence"] else None
+                    row["verdict"] = normalize_verdict(row.get("verdict", ""))
+                    row["veracity"] = int(row["veracity"]) if row.get("veracity") is not None else 5
+                    row["confidence"] = float(row["confidence"]) if row.get("confidence") else None
                     checks[int(row["id"])] = row
                 except (KeyError, TypeError, ValueError):
                     # Righe troncate/malformate da un crash/interruzione vengono ignorate
@@ -67,6 +77,7 @@ def load_fact_checks(path: Path) -> dict[int, dict]:
         return checks
 
     return _cached_load(path, None, _load) if path.exists() else {}
+
 
 
 def count_eligible_posts(post_texts_path: Path, lang: str = "en") -> int:
@@ -401,3 +412,62 @@ def status_ids_above_probability(ai_scores: dict[int, dict], threshold: float) -
         status_id for status_id, row in ai_scores.items()
         if row["probability"] == row["probability"] and row["probability"] >= threshold
     }
+
+
+def load_comparison_report(base_dir: Path) -> dict:
+    report_file = base_dir / "comparison_report.json"
+    if not report_file.exists():
+        return {}
+    def _load():
+        with report_file.open("r", encoding="utf-8") as f:
+            return json.load(f)
+    return _cached_load(report_file, "comparison_report", _load)
+
+
+def load_binoculars_report(base_dir: Path) -> dict:
+    report_file = base_dir / "ai_detection_report.json"
+    if not report_file.exists():
+        return {}
+    def _load():
+        with report_file.open("r", encoding="utf-8") as f:
+            return json.load(f)
+    return _cached_load(report_file, "binoculars_report", _load)
+
+
+def load_binoculars_scores(path: Path) -> dict[int, dict]:
+    if not path.exists():
+        return {}
+    def _load():
+        scores = {}
+        with path.open("r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                    scores[row["id"]] = row
+                except (json.JSONDecodeError, KeyError):
+                    continue
+        return scores
+    return _cached_load(path, "binoculars_scores", _load)
+
+
+def load_desklib_scores(path: Path) -> dict[int, dict]:
+    if not path.exists():
+        return {}
+    def _load():
+        scores = {}
+        with path.open("r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                    scores[row["id"]] = row
+                except (json.JSONDecodeError, KeyError):
+                    continue
+        return scores
+    return _cached_load(path, "desklib_scores", _load)
+
