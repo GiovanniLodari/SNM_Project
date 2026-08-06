@@ -79,8 +79,33 @@ def posts_list(
     available_langs = queries.distinct_languages(conn)
     has_next = len(posts) == PAGE_SIZE
 
+    fd_scores = results.load_ai_scores(AI_SCORES_PATH)
+    bino_scores = results.load_binoculars_scores(BINOCULARS_SCORES_PATH)
+    desk_scores = results.load_desklib_scores(DESKLIB_SCORES_PATH)
+
+    enriched_posts = []
+    for p in posts:
+        pid = p["id"]
+        fd_entry = fd_scores.get(pid)
+        bino_entry = bino_scores.get(pid)
+        desk_entry = desk_scores.get(pid)
+
+        fd_prob = fd_entry["probability"] if (fd_entry and fd_entry.get("probability") is not None and fd_entry["probability"] == fd_entry["probability"]) else None
+
+        bino_pct = bino_entry.get("ai_probability_pct") if bino_entry else None
+        bino_prob = (bino_pct / 100.0) if bino_pct is not None else None
+
+        desk_p = desk_entry.get("ai_probability") if desk_entry else None
+        desk_prob = desk_p if (desk_p is not None and desk_p == desk_p) else None
+
+        p_copy = dict(p)
+        p_copy["fastdetect_prob"] = fd_prob
+        p_copy["binoculars_prob"] = bino_prob
+        p_copy["desklib_prob"] = desk_prob
+        enriched_posts.append(p_copy)
+
     return {
-        "posts": posts,
+        "posts": enriched_posts,
         "available_langs": available_langs,
         "selected_langs": lang,
         "page": page,
@@ -93,13 +118,46 @@ def posts_list(
 def post_detail(post_id: int, conn=Depends(get_db)):
     post = queries.get_post(conn, post_id)
     if post is None:
-        return {"post": None, "ai_score": None, "fact_check": None}
+        return {
+            "post": None,
+            "ai_score": None,
+            "binoculars_score": None,
+            "desklib_score": None,
+            "fact_check": None,
+        }
 
     ai_scores = results.load_ai_scores(AI_SCORES_PATH)
+    bino_scores = results.load_binoculars_scores(BINOCULARS_SCORES_PATH)
+    desk_scores = results.load_desklib_scores(DESKLIB_SCORES_PATH)
     fact_checks = results.load_fact_checks(FACT_CHECK_PATH)
+
+    bino_entry = bino_scores.get(post_id)
+    bino_score = None
+    if bino_entry:
+        bpct = bino_entry.get("ai_probability_pct")
+        if bpct is not None:
+            bino_score = {
+                "id": post_id,
+                "probability": bpct / 100.0,
+                "model": "Binoculars (Qwen2.5 0.5B)",
+            }
+
+    desk_entry = desk_scores.get(post_id)
+    desk_score = None
+    if desk_entry:
+        dp = desk_entry.get("ai_probability")
+        if dp is not None:
+            desk_score = {
+                "id": post_id,
+                "probability": float(dp),
+                "model": "Desklib AI Detector v1.01",
+            }
+
     return {
         "post": post,
         "ai_score": results.ai_score_for(ai_scores, post_id),
+        "binoculars_score": bino_score,
+        "desklib_score": desk_score,
         "fact_check": results.fact_check_for(fact_checks, post_id),
     }
 

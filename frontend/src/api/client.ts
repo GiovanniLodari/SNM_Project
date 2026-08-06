@@ -6,6 +6,9 @@ export interface Post {
   acct: string;
   bot: boolean;
   domain: string;
+  fastdetect_prob?: number | null;
+  binoculars_prob?: number | null;
+  desklib_prob?: number | null;
 }
 
 export interface AiScore {
@@ -65,6 +68,8 @@ export interface PostsResponse {
 export interface PostDetailResponse {
   post: Post | null;
   ai_score: AiScore | null;
+  binoculars_score?: AiScore | null;
+  desklib_score?: AiScore | null;
   fact_check: FactCheck | null;
 }
 

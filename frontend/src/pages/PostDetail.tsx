@@ -11,7 +11,7 @@ import {
   Grid,
   Paper,
   Divider,
-  LinearProgress,
+  Stack,
 } from "@mui/material";
 import {
   ArrowBack as BackIcon,
@@ -64,7 +64,7 @@ export default function PostDetail() {
     );
   }
 
-  const { post, ai_score, fact_check } = data;
+  const { post, ai_score, binoculars_score, desklib_score, fact_check } = data;
 
   const getVerdictColor = (verdict: string) => {
     const v = verdict.toLowerCase();
@@ -151,73 +151,87 @@ export default function PostDetail() {
 
         {/* AI & Fact Check analysis */}
         <Grid item xs={12} md={5}>
-          {/* AI Score */}
+          {/* AI Scores Card */}
           <Paper
             sx={{
-              p: 4,
+              p: 3.5,
               borderRadius: "22px",
               border: "1px solid #e5e7eb",
               mb: 4,
-              backgroundColor: "#edfce9", // Pale Green Wash
+              backgroundColor: "#ffffff",
             }}
           >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-              <AiIcon sx={{ color: "#003c33" }} />
-              <Typography variant="h6" sx={{ fontWeight: 600, color: "#003c33" }}>
-                Fast-DetectGPT Probability
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2.5 }}>
+              <AiIcon sx={{ color: "#ff7759" }} />
+              <Typography variant="h6" sx={{ fontWeight: 600, color: "#17171c" }}>
+                Rilevamento Testo Sintetico IA (3 Detector)
               </Typography>
             </Box>
-            
-            {ai_score ? (
-              <Box>
-                <Typography variant="body2" sx={{ mb: 1, color: "#75758a" }}>
-                  Synthetic Generation Estimate:
+
+            <Stack spacing={2}>
+              {/* FastDetectGPT */}
+              <Box sx={{ p: 2, borderRadius: "14px", backgroundColor: "#fff0ec", border: "1px solid #ffad9b" }}>
+                <Typography variant="caption" sx={{ fontFamily: "ui-monospace, monospace", color: "#ff7759", fontWeight: 700, display: "block", mb: 0.5 }}>
+                  DETECTOR 1 • FASTDETECTGPT (GPT-NEO 2.7B)
                 </Typography>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
-                  <LinearProgress
-                    variant="determinate"
-                    value={ai_score.probability * 100}
-                    sx={{
-                      flexGrow: 1,
-                      height: 10,
-                      borderRadius: 5,
-                      backgroundColor: "rgba(0,0,0,0.05)",
-                      "& .MuiLinearProgress-bar": { backgroundColor: "#003c33" },
-                    }}
-                  />
-                  <Typography variant="h5" sx={{ fontFamily: "Space Grotesk, sans-serif", fontWeight: 600, color: "#003c33" }}>
-                    {(ai_score.probability * 100).toFixed(1)}%
-                  </Typography>
-                </Box>
-                <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 0.5 }}>
-                  <Typography variant="caption" sx={{ color: "#75758a" }}>
-                    Model: <strong>{ai_score.model || "N/A"}</strong>
-                  </Typography>
-                  {ai_score.criterion !== undefined && ai_score.criterion !== null && (
-                    <Typography variant="caption" sx={{ color: "#75758a" }}>
-                      Log Likelihood Criterion: <strong>{typeof ai_score.criterion === "number" ? ai_score.criterion.toFixed(4) : String(ai_score.criterion)}</strong>
+                {ai_score ? (
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <Typography variant="h5" sx={{ fontFamily: "Space Grotesk", fontWeight: 700, color: ai_score.probability >= 0.5 ? "#ff7759" : "#17171c" }}>
+                      {(ai_score.probability * 100).toFixed(1)}%
                     </Typography>
-                  )}
-                  {ai_score.ntokens !== undefined && ai_score.ntokens !== null && (
-                    <Typography variant="caption" sx={{ color: "#75758a" }}>
-                      Tokens Evaluated: <strong>{ai_score.ntokens}</strong>
-                    </Typography>
-                  )}
-                </Box>
-                <Box sx={{ mt: 2 }}>
-                  {ai_score.probability >= 0.5 ? (
-                    <Chip label="PROBABLE AI SYNTHETIC" sx={{ backgroundColor: "#ff7759", color: "#ffffff", fontWeight: 600 }} />
-                  ) : (
-                    <Chip label="PROBABLE HUMAN AUTHOR" sx={{ backgroundColor: "#003c33", color: "#ffffff" }} />
-                  )}
-                </Box>
+                    <Chip
+                      size="small"
+                      label={ai_score.probability >= 0.5 ? "IA SINTETICO" : "UMANO"}
+                      sx={{ backgroundColor: ai_score.probability >= 0.5 ? "#ff7759" : "#17171c", color: "#ffffff", fontWeight: 700, fontSize: "10px" }}
+                    />
+                  </Box>
+                ) : (
+                  <Typography variant="caption" sx={{ color: "#75758a" }}>Non valutato da FastDetectGPT</Typography>
+                )}
               </Box>
 
-            ) : (
-              <Typography variant="body2" sx={{ color: "#75758a" }}>
-                No AI detection scores available for this status record.
-              </Typography>
-            )}
+              {/* Binoculars */}
+              <Box sx={{ p: 2, borderRadius: "14px", backgroundColor: "#edfce9", border: "1px solid #a8eb99" }}>
+                <Typography variant="caption" sx={{ fontFamily: "ui-monospace, monospace", color: "#003c33", fontWeight: 700, display: "block", mb: 0.5 }}>
+                  DETECTOR 2 • BINOCULARS (QWEN2.5 0.5B ICML 2024)
+                </Typography>
+                {binoculars_score ? (
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <Typography variant="h5" sx={{ fontFamily: "Space Grotesk", fontWeight: 700, color: binoculars_score.probability >= 0.5 ? "#003c33" : "#17171c" }}>
+                      {(binoculars_score.probability * 100).toFixed(1)}%
+                    </Typography>
+                    <Chip
+                      size="small"
+                      label={binoculars_score.probability >= 0.5 ? "IA SINTETICO" : "UMANO"}
+                      sx={{ backgroundColor: binoculars_score.probability >= 0.5 ? "#003c33" : "#17171c", color: "#ffffff", fontWeight: 700, fontSize: "10px" }}
+                    />
+                  </Box>
+                ) : (
+                  <Typography variant="caption" sx={{ color: "#75758a" }}>Non valutato da Binoculars</Typography>
+                )}
+              </Box>
+
+              {/* Desklib */}
+              <Box sx={{ p: 2, borderRadius: "14px", backgroundColor: "#f1f5ff", border: "1px solid #c6d7ff" }}>
+                <Typography variant="caption" sx={{ fontFamily: "ui-monospace, monospace", color: "#1863dc", fontWeight: 700, display: "block", mb: 0.5 }}>
+                  DETECTOR 3 • DESKLIB SUPERVISED CLASSIFIER (v1.01)
+                </Typography>
+                {desklib_score ? (
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <Typography variant="h5" sx={{ fontFamily: "Space Grotesk", fontWeight: 700, color: desklib_score.probability >= 0.5 ? "#1863dc" : "#17171c" }}>
+                      {(desklib_score.probability * 100).toFixed(1)}%
+                    </Typography>
+                    <Chip
+                      size="small"
+                      label={desklib_score.probability >= 0.5 ? "IA SINTETICO" : "UMANO"}
+                      sx={{ backgroundColor: desklib_score.probability >= 0.5 ? "#1863dc" : "#17171c", color: "#ffffff", fontWeight: 700, fontSize: "10px" }}
+                    />
+                  </Box>
+                ) : (
+                  <Typography variant="caption" sx={{ color: "#75758a" }}>Non valutato da Desklib</Typography>
+                )}
+              </Box>
+            </Stack>
           </Paper>
 
           {/* Fact-Checking */}

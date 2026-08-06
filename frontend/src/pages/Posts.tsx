@@ -204,51 +204,96 @@ export default function Posts() {
                       >
                         <ListItemText
                           primary={
-                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.5 }}>
-                              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#17171c" }}>
-                                  {post.acct}
+                            <Box>
+                              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.5 }}>
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                  <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#17171c" }}>
+                                    {post.acct}
+                                  </Typography>
+                                  <Chip
+                                    label={post.domain}
+                                    size="small"
+                                    sx={{
+                                      borderRadius: "12px",
+                                      fontSize: "11px",
+                                      backgroundColor: "#eeece7",
+                                      color: "#212121",
+                                    }}
+                                  />
+                                  {post.language && (
+                                    <Chip
+                                      label={post.language.toUpperCase()}
+                                      size="small"
+                                      sx={{
+                                        borderRadius: "12px",
+                                        fontSize: "11px",
+                                        backgroundColor: "#ff7759", // Coral Chip
+                                        color: "#ffffff",
+                                        fontFamily: "ui-monospace, monospace",
+                                      }}
+                                    />
+                                  )}
+                                  {post.bot && (
+                                    <Chip
+                                      icon={<BotIcon style={{ fontSize: 14, color: "#ffffff" }} />}
+                                      label="BOT"
+                                      size="small"
+                                      sx={{
+                                        borderRadius: "12px",
+                                        fontSize: "11px",
+                                        backgroundColor: "#17171c",
+                                        color: "#ffffff",
+                                      }}
+                                    />
+                                  )}
+                                </Box>
+                                <Typography variant="caption" sx={{ color: "#93939f" }}>
+                                  {formatTime(post.created_at)}
                                 </Typography>
+                              </Box>
+
+                              {/* 3 AI Detectors Scores Row */}
+                              <Box sx={{ display: "flex", gap: 1, mb: 1.5, flexWrap: "wrap" }}>
                                 <Chip
-                                  label={post.domain}
                                   size="small"
+                                  label={`FastDetectGPT: ${post.fastdetect_prob != null ? (post.fastdetect_prob * 100).toFixed(1) + "%" : "N/D"}`}
                                   sx={{
-                                    borderRadius: "12px",
-                                    fontSize: "11px",
-                                    backgroundColor: "#eeece7",
-                                    color: "#212121",
+                                    fontFamily: "ui-monospace, monospace",
+                                    fontSize: "10px",
+                                    fontWeight: 600,
+                                    backgroundColor: post.fastdetect_prob != null && post.fastdetect_prob >= 0.5 ? "#fff0ec" : "#f1f5ff",
+                                    color: post.fastdetect_prob != null && post.fastdetect_prob >= 0.5 ? "#ff7759" : "#1863dc",
+                                    border: "1px solid",
+                                    borderColor: post.fastdetect_prob != null && post.fastdetect_prob >= 0.5 ? "#ffad9b" : "#c6d7ff",
                                   }}
                                 />
-                                {post.language && (
-                                  <Chip
-                                    label={post.language.toUpperCase()}
-                                    size="small"
-                                    sx={{
-                                      borderRadius: "12px",
-                                      fontSize: "11px",
-                                      backgroundColor: "#ff7759", // Coral Chip
-                                      color: "#ffffff",
-                                      fontFamily: "ui-monospace, monospace",
-                                    }}
-                                  />
-                                )}
-                                {post.bot && (
-                                  <Chip
-                                    icon={<BotIcon style={{ fontSize: 14, color: "#ffffff" }} />}
-                                    label="BOT"
-                                    size="small"
-                                    sx={{
-                                      borderRadius: "12px",
-                                      fontSize: "11px",
-                                      backgroundColor: "#17171c",
-                                      color: "#ffffff",
-                                    }}
-                                  />
-                                )}
+                                <Chip
+                                  size="small"
+                                  label={`Binoculars: ${post.binoculars_prob != null ? (post.binoculars_prob * 100).toFixed(1) + "%" : "N/D"}`}
+                                  sx={{
+                                    fontFamily: "ui-monospace, monospace",
+                                    fontSize: "10px",
+                                    fontWeight: 600,
+                                    backgroundColor: post.binoculars_prob != null && post.binoculars_prob >= 0.5 ? "#edfce9" : "#f1f5ff",
+                                    color: post.binoculars_prob != null && post.binoculars_prob >= 0.5 ? "#003c33" : "#1863dc",
+                                    border: "1px solid",
+                                    borderColor: post.binoculars_prob != null && post.binoculars_prob >= 0.5 ? "#a8eb99" : "#c6d7ff",
+                                  }}
+                                />
+                                <Chip
+                                  size="small"
+                                  label={`Desklib: ${post.desklib_prob != null ? (post.desklib_prob * 100).toFixed(1) + "%" : "N/D"}`}
+                                  sx={{
+                                    fontFamily: "ui-monospace, monospace",
+                                    fontSize: "10px",
+                                    fontWeight: 600,
+                                    backgroundColor: post.desklib_prob != null && post.desklib_prob >= 0.5 ? "#fff0ec" : "#f1f5ff",
+                                    color: post.desklib_prob != null && post.desklib_prob >= 0.5 ? "#ff7759" : "#1863dc",
+                                    border: "1px solid",
+                                    borderColor: post.desklib_prob != null && post.desklib_prob >= 0.5 ? "#ffad9b" : "#c6d7ff",
+                                  }}
+                                />
                               </Box>
-                              <Typography variant="caption" sx={{ color: "#93939f" }}>
-                                {formatTime(post.created_at)}
-                              </Typography>
                             </Box>
                           }
                           secondary={
