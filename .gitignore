@@ -79,3 +79,8 @@ post_texts_remaining.jsonl
 # Frontend React (frontend/) - node_modules e build locale, non tracciati
 frontend/node_modules/
 frontend/dist/
+
+# Risultati Binoculars detector (>50MB, non accettati da GitHub senza LFS)
+# I file .csv e .jsonl vanno condivisi via drive/canale alternativo
+desklib_detector/risultati_binocular_all/*.jsonl
+desklib_detector/risultati_binocular_all/*.csv

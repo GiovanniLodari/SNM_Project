@@ -481,7 +481,12 @@ export default function AiDetectionBinoculars() {
 
       {/* Stats Modal */}
       {data?.stats && (
-        <StatsModal open={statsModalOpen} onClose={() => setStatsModalOpen(false)} stats={data.stats} />
+        <StatsModal
+          open={statsModalOpen}
+          onClose={() => setStatsModalOpen(false)}
+          stats={data.stats}
+          detectorLabel="Binoculars (Qwen2.5 0.5B)"
+        />
       )}
     </Box>
   );

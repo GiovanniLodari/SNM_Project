@@ -656,6 +656,7 @@ export default function AiDetection() {
         open={statsModalOpen}
         onClose={() => setStatsModalOpen(false)}
         stats={data?.stats}
+        detectorLabel="FastDetectGPT (GPT-Neo 2.7B)"
       />
     </Box>
   );

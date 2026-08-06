@@ -481,7 +481,12 @@ export default function AiDetectionDesklib() {
 
       {/* Stats Modal */}
       {data?.stats && (
-        <StatsModal open={statsModalOpen} onClose={() => setStatsModalOpen(false)} stats={data.stats} />
+        <StatsModal
+          open={statsModalOpen}
+          onClose={() => setStatsModalOpen(false)}
+          stats={data.stats}
+          detectorLabel="Desklib AI Detector (v1.01)"
+        />
       )}
     </Box>
   );
