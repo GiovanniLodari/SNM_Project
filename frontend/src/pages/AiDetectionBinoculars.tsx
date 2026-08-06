@@ -41,7 +41,7 @@ export default function AiDetectionBinoculars() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const ITEMS_PER_BUCKET_PAGE = 5;
+  const ITEMS_PER_BUCKET_PAGE = 2;
 
   const fetchAiData = (buckets: string[], pg: number, sort: string) => {
     setLoading(true);

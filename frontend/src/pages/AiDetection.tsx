@@ -42,7 +42,7 @@ export default function AiDetection() {
   const [error, setError] = useState<string | null>(null);
 
 
-  const ITEMS_PER_BUCKET_PAGE = 5;
+  const ITEMS_PER_BUCKET_PAGE = 2;
 
   const fetchAiData = (buckets: string[], pg: number, sort: string) => {
     setLoading(true);
@@ -375,12 +375,12 @@ export default function AiDetection() {
                                   variant="body2"
                                   sx={{
                                     display: "-webkit-box",
-                                    WebkitLineClamp: 3,
+                                    WebkitLineClamp: 4,
                                     WebkitBoxOrient: "vertical",
                                     overflow: "hidden",
                                     color: "#212121",
-                                    fontSize: "12px",
-                                    lineHeight: 1.4,
+                                    fontSize: "13px",
+                                    lineHeight: 1.5,
                                     mb: 1.5,
                                   }}
                                 >
