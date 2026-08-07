@@ -63,6 +63,12 @@ DESKLIB_SCORES_PATH = resolve_file_path("DESKLIB_SCORES_PATH", [
     PROJECT_ROOT / "data" / "desklib_scores.jsonl",
 ])
 
+ADA_SCORES_PATH = resolve_file_path("ADA_SCORES_PATH", [
+    PROJECT_ROOT / "data" / "ai_scores_ada_local.jsonl",
+    PROJECT_ROOT / "ai_scores_ada_local.jsonl",
+])
+
 EXPORTS_DIR = PROJECT_ROOT / "exports"
 IMPORTS_DIR = PROJECT_ROOT / "imports"
 EXPORT_ZIP_PATH = EXPORTS_DIR / "export.zip"
+

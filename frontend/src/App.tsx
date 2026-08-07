@@ -39,6 +39,7 @@ const PostDetail = lazy(() => import("./pages/PostDetail.tsx"));
 const AiDetection = lazy(() => import("./pages/AiDetection.tsx"));
 const AiDetectionBinoculars = lazy(() => import("./pages/AiDetectionBinoculars.tsx"));
 const AiDetectionDesklib = lazy(() => import("./pages/AiDetectionDesklib.tsx"));
+const AiDetectionAda = lazy(() => import("./pages/AiDetectionAda.tsx"));
 const FactChecking = lazy(() => import("./pages/FactChecking.tsx"));
 const Accounts = lazy(() => import("./pages/Accounts.tsx"));
 const Pipelines = lazy(() => import("./pages/Pipelines.tsx"));
@@ -58,6 +59,7 @@ function NavigationContent() {
     { text: "IA: FastDetectGPT", path: "/ai-detection", icon: <AiIcon sx={{ fontSize: 20 }} /> },
     { text: "IA: Binoculars", path: "/ai-detection-binoculars", icon: <AiIcon sx={{ fontSize: 20 }} /> },
     { text: "IA: Desklib Detector", path: "/ai-detection-desklib", icon: <AiIcon sx={{ fontSize: 20 }} /> },
+    { text: "IA: AdaDetectGPT", path: "/ai-detection-ada", icon: <AiIcon sx={{ fontSize: 20 }} /> },
     { text: "Confronto Detector", path: "/detector-comparison", icon: <CompareIcon sx={{ fontSize: 20 }} /> },
     { text: "Fact Checking", path: "/fact-check", icon: <FactCheckIcon sx={{ fontSize: 20 }} /> },
     { text: "Accounts & Bot", path: "/accounts", icon: <AccountsIcon sx={{ fontSize: 20 }} /> },
@@ -145,19 +147,6 @@ function NavigationContent() {
           );
         })}
       </List>
-
-      {/* System Status Chip */}
-      <Box sx={{ mt: 6, p: 2, borderRadius: "16px", backgroundColor: "#edfce9", border: "1px solid #d9d9dd" }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-          <Box sx={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#003c33" }} />
-          <Typography variant="caption" sx={{ fontFamily: "ui-monospace, monospace", fontWeight: 600, color: "#003c33" }}>
-            NODE ONLINE
-          </Typography>
-        </Box>
-        <Typography variant="caption" sx={{ color: "#75758a", fontSize: "12px", display: "block" }}>
-          Fediverse Crawler & LLM Pipeline ACTIVE
-        </Typography>
-      </Box>
     </Box>
   );
 }
@@ -417,6 +406,7 @@ export default function App() {
                   <Route path="/ai-detection" element={<AiDetection />} />
                   <Route path="/ai-detection-binoculars" element={<AiDetectionBinoculars />} />
                   <Route path="/ai-detection-desklib" element={<AiDetectionDesklib />} />
+                  <Route path="/ai-detection-ada" element={<AiDetectionAda />} />
                   <Route path="/detector-comparison" element={<DetectorComparison />} />
                   <Route path="/fact-check" element={<FactChecking />} />
                   <Route path="/pipelines" element={<Pipelines />} />

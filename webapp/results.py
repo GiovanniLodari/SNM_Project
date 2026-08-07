@@ -422,6 +422,98 @@ def status_ids_above_probability(ai_scores: dict[int, dict], threshold: float) -
     }
 
 
+def compute_four_detector_comparison(
+    fastdetect_scores: dict[int, dict],
+    bino_scores: dict[int, dict],
+    desklib_scores: dict[int, dict],
+    ada_scores: dict[int, dict],
+) -> dict:
+    """Calcola in modo dinamico e completo il confronto tra tutti e 4 i modelli
+    (FastDetectGPT, Binoculars, Desklib, AdaDetectGPT): consenso a 4 vie, accordi per coppia e copertura."""
+    thr = 0.5
+    all_ids = set(fastdetect_scores.keys()) | set(bino_scores.keys()) | set(desklib_scores.keys()) | set(ada_scores.keys())
+
+    ai_hist = {4: 0, 3: 0, 2: 0, 1: 0, 0: 0}
+    pair_agreement = {
+        "bino-gpt": 0,
+        "bino-desk": 0,
+        "bino-ada": 0,
+        "desk-gpt": 0,
+        "desk-ada": 0,
+        "gpt-ada": 0,
+    }
+    considered_full = 0
+    full_agree = 0
+
+    for _id in all_ids:
+        fd_row = fastdetect_scores.get(_id)
+        fd_p = fd_row["probability"] if (fd_row and fd_row.get("probability") is not None and fd_row["probability"] == fd_row["probability"]) else None
+
+        bino_row = bino_scores.get(_id)
+        bpct = bino_row.get("ai_probability_pct") if bino_row else None
+        bino_p = (bpct / 100.0) if bpct is not None else None
+
+        desk_row = desklib_scores.get(_id)
+        dp = desk_row.get("ai_probability") if desk_row else None
+        desk_p = float(dp) if (dp is not None and dp == dp) else None
+
+        ada_row = ada_scores.get(_id)
+        ap = ada_row.get("probability") if ada_row else None
+        ada_p = float(ap) if (ap is not None and ap == ap) else None
+
+        lab = {
+            "gpt": (fd_p >= thr) if fd_p is not None else None,
+            "bino": (bino_p >= thr) if bino_p is not None else None,
+            "desk": (desk_p >= thr) if desk_p is not None else None,
+            "ada": (ada_p >= thr) if ada_p is not None else None,
+        }
+
+        present = {k: v for k, v in lab.items() if v is not None}
+        if present:
+            ai_votes = sum(1 for v in present.values() if v)
+            ai_hist[ai_votes] += 1
+
+        pairs = [
+            ("bino", "gpt", "bino-gpt"),
+            ("bino", "desk", "bino-desk"),
+            ("bino", "ada", "bino-ada"),
+            ("desk", "gpt", "desk-gpt"),
+            ("desk", "ada", "desk-ada"),
+            ("gpt", "ada", "gpt-ada"),
+        ]
+        for m1, m2, key in pairs:
+            if lab[m1] is not None and lab[m2] is not None and lab[m1] == lab[m2]:
+                pair_agreement[key] += 1
+
+        if len(present) == 4:
+            considered_full += 1
+            if len(set(present.values())) == 1:
+                full_agree += 1
+
+    return {
+        "soglia_ai": thr,
+        "id_totali": len(all_ids),
+        "id_presenti_in_tutti_e_4": considered_full,
+        "conteggio_ai": {
+            "ai_per_tutti_e_4": ai_hist.get(4, 0),
+            "ai_per_esattamente_3": ai_hist.get(3, 0),
+            "ai_per_esattamente_2": ai_hist.get(2, 0),
+            "ai_per_esattamente_1": ai_hist.get(1, 0),
+            "ai_per_nessuno": ai_hist.get(0, 0),
+        },
+        "accordo": {
+            "tutti_e_4_stessa_etichetta": full_agree,
+            "coppie": pair_agreement,
+        },
+        "copertura": {
+            "fastdetectgpt": len(fastdetect_scores),
+            "binoculars": len(bino_scores),
+            "desklib": len(desklib_scores),
+            "adadetectgpt": len(ada_scores),
+        },
+    }
+
+
 def load_comparison_report(base_dir: Path) -> dict:
     report_file = base_dir / "comparison_report.json"
     if not report_file.exists():
@@ -430,6 +522,7 @@ def load_comparison_report(base_dir: Path) -> dict:
         with report_file.open("r", encoding="utf-8") as f:
             return json.load(f)
     return _cached_load(report_file, "comparison_report", _load)
+
 
 
 def load_binoculars_report(base_dir: Path) -> dict:
@@ -478,4 +571,26 @@ def load_desklib_scores(path: Path) -> dict[int, dict]:
                     continue
         return scores
     return _cached_load(path, "desklib_scores", _load)
+
+
+def load_ada_scores(path: Path) -> dict[int, dict]:
+    """Legge ai_scores_ada_local.jsonl (AdaDetectGPT Local), indicizzato per id status.
+    Gestisce NaN e righe malformate senza sollevare errori."""
+    if not path.exists():
+        return {}
+    def _load():
+        scores = {}
+        with path.open("r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                    scores[row["id"]] = row
+                except (json.JSONDecodeError, KeyError):
+                    continue
+        return scores
+    return _cached_load(path, "ada_scores", _load)
+
 

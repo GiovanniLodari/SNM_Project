@@ -64,7 +64,7 @@ export default function PostDetail() {
     );
   }
 
-  const { post, ai_score, binoculars_score, desklib_score, fact_check } = data;
+  const { post, ai_score, binoculars_score, desklib_score, ada_score, fact_check } = data;
 
   const getVerdictColor = (verdict: string) => {
     const v = verdict.toLowerCase();
@@ -153,7 +153,7 @@ export default function PostDetail() {
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2.5 }}>
               <AiIcon sx={{ color: "#ff7759" }} />
               <Typography variant="h6" sx={{ fontWeight: 600, color: "#17171c" }}>
-                Rilevamento Testo Sintetico IA (3 Detector)
+                Rilevamento Testo Sintetico IA (4 Detector)
               </Typography>
             </Box>
 
@@ -218,6 +218,27 @@ export default function PostDetail() {
                   </Box>
                 ) : (
                   <Typography variant="caption" sx={{ color: "#75758a" }}>Non valutato da Desklib</Typography>
+                )}
+              </Box>
+
+              {/* AdaDetectGPT */}
+              <Box sx={{ p: 2, borderRadius: "14px", backgroundColor: "#f5f3ff", border: "1px solid #ddd6fe" }}>
+                <Typography variant="caption" sx={{ fontFamily: "ui-monospace, monospace", color: "#7c3aed", fontWeight: 700, display: "block", mb: 0.5 }}>
+                  DETECTOR 4 • ADADETECTGPT (GPT-NEO 2.7B)
+                </Typography>
+                {ada_score ? (
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <Typography variant="h5" sx={{ fontFamily: "Space Grotesk", fontWeight: 700, color: ada_score.probability >= 0.5 ? "#7c3aed" : "#17171c" }}>
+                      {(ada_score.probability * 100).toFixed(1)}%
+                    </Typography>
+                    <Chip
+                      size="small"
+                      label={ada_score.probability >= 0.5 ? "IA SINTETICO" : "UMANO"}
+                      sx={{ backgroundColor: ada_score.probability >= 0.5 ? "#7c3aed" : "#17171c", color: "#ffffff", fontWeight: 700, fontSize: "10px" }}
+                    />
+                  </Box>
+                ) : (
+                  <Typography variant="caption" sx={{ color: "#75758a" }}>Non valutato da AdaDetectGPT</Typography>
                 )}
               </Box>
             </Stack>

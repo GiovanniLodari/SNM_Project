@@ -29,6 +29,7 @@ from webapp.path_utils import (
     BINOCULAR_ALL_DIR,
     BINOCULARS_SCORES_PATH,
     DESKLIB_SCORES_PATH,
+    ADA_SCORES_PATH,
 )
 
 AI_CLASSIFICATION_THRESHOLD = 0.5
@@ -83,6 +84,7 @@ def posts_list(
     fd_scores = results.load_ai_scores(AI_SCORES_PATH)
     bino_scores = results.load_binoculars_scores(BINOCULARS_SCORES_PATH)
     desk_scores = results.load_desklib_scores(DESKLIB_SCORES_PATH)
+    ada_scores = results.load_ada_scores(ADA_SCORES_PATH)
 
     enriched_posts = []
     for p in posts:
@@ -90,6 +92,7 @@ def posts_list(
         fd_entry = fd_scores.get(pid)
         bino_entry = bino_scores.get(pid)
         desk_entry = desk_scores.get(pid)
+        ada_entry = ada_scores.get(pid)
 
         fd_prob = fd_entry["probability"] if (fd_entry and fd_entry.get("probability") is not None and fd_entry["probability"] == fd_entry["probability"]) else None
 
@@ -99,10 +102,14 @@ def posts_list(
         desk_p = desk_entry.get("ai_probability") if desk_entry else None
         desk_prob = desk_p if (desk_p is not None and desk_p == desk_p) else None
 
+        ada_p = ada_entry.get("probability") if ada_entry else None
+        ada_prob = ada_p if (ada_p is not None and ada_p == ada_p) else None
+
         p_copy = dict(p)
         p_copy["fastdetect_prob"] = fd_prob
         p_copy["binoculars_prob"] = bino_prob
         p_copy["desklib_prob"] = desk_prob
+        p_copy["ada_prob"] = ada_prob
         enriched_posts.append(p_copy)
 
     return {
@@ -130,6 +137,7 @@ def post_detail(post_id: int, conn=Depends(get_db)):
     ai_scores = results.load_ai_scores(AI_SCORES_PATH)
     bino_scores = results.load_binoculars_scores(BINOCULARS_SCORES_PATH)
     desk_scores = results.load_desklib_scores(DESKLIB_SCORES_PATH)
+    ada_scores = results.load_ada_scores(ADA_SCORES_PATH)
     fact_checks = results.load_fact_checks(FACT_CHECK_PATH)
 
     bino_entry = bino_scores.get(post_id)
@@ -154,11 +162,25 @@ def post_detail(post_id: int, conn=Depends(get_db)):
                 "model": "Desklib AI Detector v1.01",
             }
 
+    ada_entry = ada_scores.get(post_id)
+    ada_score = None
+    if ada_entry:
+        ap = ada_entry.get("probability")
+        if ap is not None and ap == ap:  # NaN check
+            ada_score = {
+                "id": post_id,
+                "probability": float(ap),
+                "criterion": ada_entry.get("criterion"),
+                "ntokens": ada_entry.get("ntokens"),
+                "model": "AdaDetectGPT (GPT-Neo 2.7B)",
+            }
+
     return {
         "post": post,
         "ai_score": results.ai_score_for(ai_scores, post_id),
         "binoculars_score": bino_score,
         "desklib_score": desk_score,
+        "ada_score": ada_score,
         "fact_check": results.fact_check_for(fact_checks, post_id),
     }
 
@@ -528,11 +550,13 @@ def ai_detection(
             p = row.get("ai_probability")
             if p is not None:
                 ai_scores[sid] = {"id": sid, "probability": p}
+    elif detector in ("ada", "ada_local", "adadetect"):
+        ai_scores = results.load_ada_scores(ADA_SCORES_PATH)
     else:
         ai_scores = results.load_ai_scores(AI_SCORES_PATH)
 
-    if detector in ("binoculars", "desklib"):
-        eligible = max(len(ai_scores), 200042)
+    if detector in ("binoculars", "desklib", "ada", "ada_local", "adadetect"):
+        eligible = max(len(ai_scores), 192823)
     else:
         eligible = results.count_eligible_posts(POST_TEXTS_PATH)
 
@@ -730,10 +754,14 @@ def db_sync_download():
 
 @router.get("/detector-comparison/summary")
 def detector_comparison_summary():
-    comp_report = results.load_comparison_report(BINOCULAR_ALL_DIR)
-    bino_report = results.load_binoculars_report(BINOCULAR_ALL_DIR)
-    
     fastdetect_scores = results.load_ai_scores(AI_SCORES_PATH)
+    bino_scores = results.load_binoculars_scores(BINOCULARS_SCORES_PATH)
+    desk_scores = results.load_desklib_scores(DESKLIB_SCORES_PATH)
+    ada_scores = results.load_ada_scores(ADA_SCORES_PATH)
+
+    comp_report = results.compute_four_detector_comparison(fastdetect_scores, bino_scores, desk_scores, ada_scores)
+    bino_report = results.load_binoculars_report(BINOCULAR_ALL_DIR)
+
     fastdetect_ai_count = sum(1 for s in fastdetect_scores.values() if s.get("probability") is not None and s["probability"] >= 0.5)
     fastdetect_total = len(fastdetect_scores) or 192822
 
@@ -743,6 +771,9 @@ def detector_comparison_summary():
 
     desklib_total = comp_report.get("copertura", {}).get("desklib", 200042)
     desklib_ai_count = 76007  # Precomputed count across dataset
+
+    ada_ai_count = sum(1 for s in ada_scores.values() if s.get("probability") is not None and s["probability"] == s["probability"] and s["probability"] >= 0.5)
+    ada_total = len(ada_scores) or 192823
 
     models_info = [
         {
@@ -772,8 +803,16 @@ def detector_comparison_summary():
             "ai_percentage": round((desklib_ai_count / max(1, desklib_total)) * 100, 2),
             "description": "Classificatore supervisionato fine-tuned (desklib/ai-text-detector-v1.01) specializzato su testi in lingua inglese.",
         },
+        {
+            "id": "ada",
+            "name": "AdaDetectGPT (GPT-Neo 2.7B)",
+            "type": "Adaptive Curvature Detection",
+            "scored_count": ada_total,
+            "ai_detected_count": ada_ai_count,
+            "ai_percentage": round((ada_ai_count / max(1, ada_total)) * 100, 2),
+            "description": "Metodo zero-shot AdaDetectGPT con perturba-curvatura adattiva del modello GPT-Neo 2.7B.",
+        },
     ]
-
 
     bot_investigation = {
         "total_bot_statuses": 88256,
@@ -793,6 +832,11 @@ def detector_comparison_summary():
                 "scored": 12877,
                 "ai_count": 7007,
                 "ai_percentage": 54.41,
+            },
+            "ada": {
+                "scored": 12402,
+                "ai_count": round((ada_ai_count / max(1, ada_total)) * 12402),
+                "ai_percentage": round((ada_ai_count / max(1, ada_total)) * 100, 2),
             },
         },
     }
@@ -819,9 +863,10 @@ def detector_comparison_posts(
     fastdetect_scores = results.load_ai_scores(AI_SCORES_PATH)
     bino_scores = results.load_binoculars_scores(BINOCULARS_SCORES_PATH)
     desklib_scores = results.load_desklib_scores(DESKLIB_SCORES_PATH)
+    ada_scores = results.load_ada_scores(ADA_SCORES_PATH)
 
-    # Identifichiamo gli ID presenti in tutti e 3 o almeno in 2
-    all_ids = set(fastdetect_scores.keys()) | set(bino_scores.keys()) | set(desklib_scores.keys())
+    # Identifichiamo gli ID presenti in tutti e 4 o nei detector
+    all_ids = set(fastdetect_scores.keys()) | set(bino_scores.keys()) | set(desklib_scores.keys()) | set(ada_scores.keys())
     
     # Se serve il filtro per bot, recuperiamo l'elenco dei post di bot dal DB
     bot_status_ids: set[int] = set()
@@ -830,7 +875,7 @@ def detector_comparison_posts(
             cur.execute("SELECT s.id FROM statuses s JOIN accounts a ON a.id = s.account_id WHERE s.deleted_at IS NULL AND a.bot = true")
             bot_status_ids = {row[0] for row in cur.fetchall()}
 
-    filtered_items: list[tuple[int, float, float, float, int]] = []
+    filtered_items: list[tuple[int, float | None, float | None, float | None, float | None, int]] = []
     
     for sid in all_ids:
         if filter_type == "bots_only" and sid not in bot_status_ids:
@@ -839,14 +884,20 @@ def detector_comparison_posts(
         fd_p = fastdetect_scores.get(sid, {}).get("probability", None)
         bino_p = (bino_scores.get(sid, {}).get("ai_probability_pct") / 100.0) if sid in bino_scores and bino_scores[sid].get("ai_probability_pct") is not None else None
         desk_p = desklib_scores.get(sid, {}).get("ai_probability", None)
+        
+        ada_raw = ada_scores.get(sid, {}).get("probability", None)
+        ada_p = float(ada_raw) if (ada_raw is not None and ada_raw == ada_raw) else None
 
         fd_ai = (fd_p >= 0.5) if fd_p is not None else False
         bino_ai = (bino_p >= 0.5) if bino_p is not None else False
         desk_ai = (desk_p >= 0.5) if desk_p is not None else False
+        ada_ai = (ada_p >= 0.5) if ada_p is not None else False
 
-        ai_votes = sum([1 if fd_ai else 0, 1 if bino_ai else 0, 1 if desk_ai else 0])
+        ai_votes = sum([1 if fd_ai else 0, 1 if bino_ai else 0, 1 if desk_ai else 0, 1 if ada_ai else 0])
 
-        if filter_type == "unanimous_ai" and ai_votes != 3:
+        if filter_type in ("unanimous_ai", "unanimous_4") and ai_votes != 4:
+            continue
+        elif filter_type == "exactly_3" and ai_votes != 3:
             continue
         elif filter_type == "exactly_2" and ai_votes != 2:
             continue
@@ -854,15 +905,16 @@ def detector_comparison_posts(
             continue
         elif filter_type == "unanimous_human" and ai_votes != 0:
             continue
-        elif filter_type == "fastdetect_only" and not (fd_ai and not bino_ai and not desk_ai):
+        elif filter_type == "fastdetect_only" and not (fd_ai and not (bino_ai or desk_ai or ada_ai)):
             continue
-        elif filter_type == "binoculars_only" and not (bino_ai and not fd_ai and not desk_ai):
+        elif filter_type == "binoculars_only" and not (bino_ai and not (fd_ai or desk_ai or ada_ai)):
             continue
-        elif filter_type == "desklib_only" and not (desk_ai and not fd_ai and not bino_ai):
+        elif filter_type == "desklib_only" and not (desk_ai and not (fd_ai or bino_ai or ada_ai)):
+            continue
+        elif filter_type in ("ada_only", "ada_local_only") and not (ada_ai and not (fd_ai or bino_ai or desk_ai)):
             continue
 
-        filtered_items.append((sid, fd_p, bino_p, desk_p, ai_votes))
-
+        filtered_items.append((sid, fd_p, bino_p, desk_p, ada_p, ai_votes))
 
     # Ordiniamo per id
     filtered_items.sort(key=lambda x: x[0])
@@ -876,7 +928,7 @@ def detector_comparison_posts(
     posts_by_id = queries.get_posts_by_ids(conn, page_ids)
 
     results_list = []
-    for sid, fd_p, bino_p, desk_p, ai_votes in page_items:
+    for sid, fd_p, bino_p, desk_p, ada_p, ai_votes in page_items:
         post_data = posts_by_id.get(sid)
         text_content = ""
         lang = "en"
@@ -904,6 +956,7 @@ def detector_comparison_posts(
             "fastdetect_prob": fd_p,
             "binoculars_prob": bino_p,
             "desklib_prob": desk_p,
+            "ada_prob": ada_p,
             "ai_votes": ai_votes,
         })
 

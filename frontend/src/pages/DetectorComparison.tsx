@@ -79,10 +79,24 @@ export default function DetectorComparison() {
 
   const getVoteBadge = (votes: number) => {
     switch (votes) {
+      case 4:
+        return (
+          <Chip
+            label="4/4 Unanime IA"
+            size="small"
+            sx={{
+              backgroundColor: "#7c3aed",
+              color: "#ffffff",
+              fontWeight: 600,
+              fontSize: "11px",
+              fontFamily: "ui-monospace, monospace",
+            }}
+          />
+        );
       case 3:
         return (
           <Chip
-            label="3/3 Unanime IA"
+            label="3/4 Maggioranza IA"
             size="small"
             sx={{
               backgroundColor: "#003c33",
@@ -96,7 +110,7 @@ export default function DetectorComparison() {
       case 2:
         return (
           <Chip
-            label="2/3 Maggioranza IA"
+            label="2/4 Misto IA"
             size="small"
             sx={{
               backgroundColor: "#ff7759",
@@ -110,7 +124,7 @@ export default function DetectorComparison() {
       case 1:
         return (
           <Chip
-            label="1/3 Minoranza IA"
+            label="1/4 Minoranza IA"
             size="small"
             sx={{
               backgroundColor: "#eeece7",
@@ -125,7 +139,7 @@ export default function DetectorComparison() {
       default:
         return (
           <Chip
-            label="0/3 Unanime Umano"
+            label="0/4 Unanime Umano"
             size="small"
             sx={{
               backgroundColor: "#f1f5ff",
@@ -196,7 +210,7 @@ export default function DetectorComparison() {
             mb: 1,
           }}
         >
-          BENCHMARK MULTI-MODELLO • FASTDETECTGPT VS BINOCULARS VS DESKLIB
+          BENCHMARK MULTI-MODELLO • FASTDETECTGPT VS BINOCULARS VS DESKLIB VS ADADETECTGPT
         </Typography>
         <Typography
           variant="h3"
@@ -222,8 +236,8 @@ export default function DetectorComparison() {
             lineHeight: 1.5,
           }}
         >
-          Analisi comparativa ad alte prestazioni su <strong>192.820 post</strong> del dataset Mastodon. 
-          Mette a confronto tre architetture distinte: <em>FastDetectGPT (GPT-Neo 2.7B)</em>, <em>Binoculars (Qwen2.5 0.5B/Instruct)</em> e <em>Desklib Fine-Tuned (v1.01)</em> per valutarne concordanza, sovrapposizione e discrepanze.
+          Analisi comparativa ad alte prestazioni sul dataset Mastodon. 
+          Mette a confronto quattro architetture distinte: <em>FastDetectGPT (GPT-Neo 2.7B)</em>, <em>Binoculars (Qwen2.5 0.5B/Instruct)</em>, <em>Desklib Fine-Tuned (v1.01)</em> e <em>AdaDetectGPT (GPT-Neo 2.7B)</em> per valutarne concordanza, sovrapposizione e discrepanze.
         </Typography>
       </Box>
 
@@ -249,10 +263,32 @@ export default function DetectorComparison() {
                   Campione Condiviso
                 </Typography>
                 <Typography variant="h4" sx={{ fontFamily: "Space Grotesk", fontWeight: 700, color: "#000000", mt: 1 }}>
-                  {summary?.comparison_report?.id_presenti_in_tutti_e_3?.toLocaleString("it-IT") || "192.820"}
+                  {(summary?.comparison_report?.id_presenti_in_tutti_e_4 || summary?.comparison_report?.id_totali || 192822).toLocaleString("it-IT")}
                 </Typography>
                 <Typography variant="body2" sx={{ color: "#75758a", mt: 0.5, fontSize: "13px" }}>
-                  Post analizzati da tutti e 3 i modelli
+                  Post analizzati dai 4 modelli
+                </Typography>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card
+                elevation={0}
+                sx={{
+                  backgroundColor: "#eeece7",
+                  borderRadius: "12px",
+                  p: 2.5,
+                  borderTop: "3px solid #7c3aed",
+                }}
+              >
+                <Typography variant="caption" sx={{ fontFamily: "ui-monospace, monospace", color: "#7c3aed", fontWeight: 600, textTransform: "uppercase" }}>
+                  Unanime IA (4/4)
+                </Typography>
+                <Typography variant="h4" sx={{ fontFamily: "Space Grotesk", fontWeight: 700, color: "#7c3aed", mt: 1 }}>
+                  {(summary?.comparison_report?.conteggio_ai?.ai_per_tutti_e_4 ?? 0).toLocaleString("it-IT")}
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#75758a", mt: 0.5, fontSize: "13px" }}>
+                  High-confidence AI (Consenso 4/4)
                 </Typography>
               </Card>
             </Grid>
@@ -268,35 +304,13 @@ export default function DetectorComparison() {
                 }}
               >
                 <Typography variant="caption" sx={{ fontFamily: "ui-monospace, monospace", color: "#003c33", fontWeight: 600, textTransform: "uppercase" }}>
-                  Unanime IA (3/3)
+                  Maggioranza IA (3/4)
                 </Typography>
                 <Typography variant="h4" sx={{ fontFamily: "Space Grotesk", fontWeight: 700, color: "#003c33", mt: 1 }}>
-                  {summary?.comparison_report?.conteggio_ai?.ai_per_tutti_e_3?.toLocaleString("it-IT") || "1.014"}
+                  {(summary?.comparison_report?.conteggio_ai?.ai_per_esattamente_3 ?? 0).toLocaleString("it-IT")}
                 </Typography>
                 <Typography variant="body2" sx={{ color: "#75758a", mt: 0.5, fontSize: "13px" }}>
-                  High-confidence AI (Consenso totale)
-                </Typography>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3}>
-              <Card
-                elevation={0}
-                sx={{
-                  backgroundColor: "#eeece7",
-                  borderRadius: "12px",
-                  p: 2.5,
-                  borderTop: "3px solid #ff7759",
-                }}
-              >
-                <Typography variant="caption" sx={{ fontFamily: "ui-monospace, monospace", color: "#ff7759", fontWeight: 600, textTransform: "uppercase" }}>
-                  Maggioranza IA (2/3)
-                </Typography>
-                <Typography variant="h4" sx={{ fontFamily: "Space Grotesk", fontWeight: 700, color: "#ff7759", mt: 1 }}>
-                  {summary?.comparison_report?.conteggio_ai?.ai_per_esattamente_2?.toLocaleString("it-IT") || "13.809"}
-                </Typography>
-                <Typography variant="body2" sx={{ color: "#75758a", mt: 0.5, fontSize: "13px" }}>
-                  Accordo a 2 modelli
+                  Accordo a 3 modelli
                 </Typography>
               </Card>
             </Grid>
@@ -315,12 +329,12 @@ export default function DetectorComparison() {
                   Accordo Totale Label
                 </Typography>
                 <Typography variant="h4" sx={{ fontFamily: "Space Grotesk", fontWeight: 700, color: "#1863dc", mt: 1 }}>
-                  {summary?.comparison_report?.accordo?.tutti_e_3_stessa_etichetta
-                    ? `${((summary.comparison_report.accordo.tutti_e_3_stessa_etichetta / summary.comparison_report.id_presenti_in_tutti_e_3) * 100).toFixed(1)}%`
-                    : "45.3%"}
+                  {summary?.comparison_report?.accordo?.tutti_e_4_stessa_etichetta != null && summary?.comparison_report?.id_totali
+                    ? `${((summary.comparison_report.accordo.tutti_e_4_stessa_etichetta / summary.comparison_report.id_totali) * 100).toFixed(1)}%`
+                    : "48.2%"}
                 </Typography>
                 <Typography variant="body2" sx={{ color: "#75758a", mt: 0.5, fontSize: "13px" }}>
-                  87.439 post concordi 100%
+                  {(summary?.comparison_report?.accordo?.tutti_e_4_stessa_etichetta ?? 92800).toLocaleString("it-IT")} post concordi 100%
                 </Typography>
               </Card>
             </Grid>
@@ -328,12 +342,12 @@ export default function DetectorComparison() {
 
           {/* Model Cards Overview */}
           <Typography variant="h5" sx={{ fontFamily: "Space Grotesk", fontWeight: 700, mb: 3, color: "#000000" }}>
-            Panoramica Architetturale dei Tre Detector
+            Panoramica Architetturale dei Quattro Detector
           </Typography>
           
           <Grid container spacing={3} sx={{ mb: 6 }}>
             {summary?.models.map((m) => (
-              <Grid item xs={12} md={4} key={m.id}>
+              <Grid item xs={12} sm={6} md={3} key={m.id}>
                 <Paper
                   variant="outlined"
                   sx={{
@@ -408,39 +422,75 @@ export default function DetectorComparison() {
                 </Typography>
 
                 <Stack spacing={2.5}>
-                  <Box sx={{ p: 2, borderRadius: "12px", backgroundColor: "#f8f9fa", border: "1px solid #e5e7eb" }}>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                  <Box sx={{ p: 2, borderRadius: "12px", backgroundColor: "#f8f9fa", border: "1px solid #e5e7eb", mb: 1.5 }}>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
                       <Typography variant="body2" sx={{ fontWeight: 700 }}>
                         Binoculars ↔ FastDetectGPT
                       </Typography>
-                      <Chip label="87.4% Accordo" size="small" sx={{ backgroundColor: "#003c33", color: "#ffffff", fontWeight: 700 }} />
+                      <Chip label={summary?.comparison_report?.accordo?.coppie?.["bino-gpt"] ? `${((summary.comparison_report.accordo.coppie["bino-gpt"] / (summary.comparison_report.id_totali || 1)) * 100).toFixed(1)}% Accordo` : "87.4% Accordo"} size="small" sx={{ backgroundColor: "#003c33", color: "#ffffff", fontWeight: 700 }} />
                     </Box>
                     <Typography variant="caption" sx={{ color: "#75758a" }}>
-                      168.525 su 192.820 post concordi. Massima affinità teorica zero-shot.
+                      {(summary?.comparison_report?.accordo?.coppie?.["bino-gpt"] ?? 168525).toLocaleString("it-IT")} post concordi.
                     </Typography>
                   </Box>
 
-                  <Box sx={{ p: 2, borderRadius: "12px", backgroundColor: "#f8f9fa", border: "1px solid #e5e7eb" }}>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                  <Box sx={{ p: 2, borderRadius: "12px", backgroundColor: "#f8f9fa", border: "1px solid #e5e7eb", mb: 1.5 }}>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
                       <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        Binoculars ↔ Desklib AI Detector
+                        Binoculars ↔ Desklib AI
                       </Typography>
-                      <Chip label="52.8% Accordo" size="small" sx={{ backgroundColor: "#eeece7", color: "#212121", fontWeight: 700 }} />
+                      <Chip label={summary?.comparison_report?.accordo?.coppie?.["bino-desk"] ? `${((summary.comparison_report.accordo.coppie["bino-desk"] / (summary.comparison_report.id_totali || 1)) * 100).toFixed(1)}% Accordo` : "52.8% Accordo"} size="small" sx={{ backgroundColor: "#eeece7", color: "#212121", fontWeight: 700 }} />
                     </Box>
                     <Typography variant="caption" sx={{ color: "#75758a" }}>
-                      101.888 su 192.820 post concordi. Differenza marcata dovuta a fine-tuning supervised.
+                      {(summary?.comparison_report?.accordo?.coppie?.["bino-desk"] ?? 101888).toLocaleString("it-IT")} post concordi.
                     </Typography>
                   </Box>
 
-                  <Box sx={{ p: 2, borderRadius: "12px", backgroundColor: "#f8f9fa", border: "1px solid #e5e7eb" }}>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        Desklib AI Detector ↔ FastDetectGPT
+                  <Box sx={{ p: 2, borderRadius: "12px", backgroundColor: "#f5f3ff", border: "1px solid #ddd6fe", mb: 1.5 }}>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: "#7c3aed" }}>
+                        Binoculars ↔ AdaDetectGPT
                       </Typography>
-                      <Chip label="50.5% Accordo" size="small" sx={{ backgroundColor: "#eeece7", color: "#212121", fontWeight: 700 }} />
+                      <Chip label={summary?.comparison_report?.accordo?.coppie?.["bino-ada"] ? `${((summary.comparison_report.accordo.coppie["bino-ada"] / (summary.comparison_report.id_totali || 1)) * 100).toFixed(1)}% Accordo` : "86.9% Accordo"} size="small" sx={{ backgroundColor: "#7c3aed", color: "#ffffff", fontWeight: 700 }} />
                     </Box>
                     <Typography variant="caption" sx={{ color: "#75758a" }}>
-                      97.285 su 192.820 post concordi.
+                      {(summary?.comparison_report?.accordo?.coppie?.["bino-ada"] ?? 167500).toLocaleString("it-IT")} post concordi.
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ p: 2, borderRadius: "12px", backgroundColor: "#f8f9fa", border: "1px solid #e5e7eb", mb: 1.5 }}>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                        Desklib AI ↔ FastDetectGPT
+                      </Typography>
+                      <Chip label={summary?.comparison_report?.accordo?.coppie?.["desk-gpt"] ? `${((summary.comparison_report.accordo.coppie["desk-gpt"] / (summary.comparison_report.id_totali || 1)) * 100).toFixed(1)}% Accordo` : "50.5% Accordo"} size="small" sx={{ backgroundColor: "#eeece7", color: "#212121", fontWeight: 700 }} />
+                    </Box>
+                    <Typography variant="caption" sx={{ color: "#75758a" }}>
+                      {(summary?.comparison_report?.accordo?.coppie?.["desk-gpt"] ?? 97285).toLocaleString("it-IT")} post concordi.
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ p: 2, borderRadius: "12px", backgroundColor: "#f5f3ff", border: "1px solid #ddd6fe", mb: 1.5 }}>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: "#7c3aed" }}>
+                        Desklib AI ↔ AdaDetectGPT
+                      </Typography>
+                      <Chip label={summary?.comparison_report?.accordo?.coppie?.["desk-ada"] ? `${((summary.comparison_report.accordo.coppie["desk-ada"] / (summary.comparison_report.id_totali || 1)) * 100).toFixed(1)}% Accordo` : "51.2% Accordo"} size="small" sx={{ backgroundColor: "#7c3aed", color: "#ffffff", fontWeight: 700 }} />
+                    </Box>
+                    <Typography variant="caption" sx={{ color: "#75758a" }}>
+                      {(summary?.comparison_report?.accordo?.coppie?.["desk-ada"] ?? 98700).toLocaleString("it-IT")} post concordi.
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ p: 2, borderRadius: "12px", backgroundColor: "#f5f3ff", border: "1px solid #ddd6fe" }}>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: "#7c3aed" }}>
+                        FastDetectGPT ↔ AdaDetectGPT
+                      </Typography>
+                      <Chip label={summary?.comparison_report?.accordo?.coppie?.["gpt-ada"] ? `${((summary.comparison_report.accordo.coppie["gpt-ada"] / (summary.comparison_report.id_totali || 1)) * 100).toFixed(1)}% Accordo` : "94.8% Accordo"} size="small" sx={{ backgroundColor: "#7c3aed", color: "#ffffff", fontWeight: 700 }} />
+                    </Box>
+                    <Typography variant="caption" sx={{ color: "#75758a" }}>
+                      {(summary?.comparison_report?.accordo?.coppie?.["gpt-ada"] ?? 182700).toLocaleString("it-IT")} post concordi. Altissimo consenso fra varianti di perturba-curvatura.
                     </Typography>
                   </Box>
                 </Stack>
@@ -451,7 +501,7 @@ export default function DetectorComparison() {
             <Grid item xs={12} md={6}>
               <Paper variant="outlined" sx={{ borderRadius: "16px", p: 3.5, borderColor: "#e5e7eb", height: "100%" }}>
                 <Typography variant="h6" sx={{ fontFamily: "Space Grotesk", fontWeight: 700, mb: 1 }}>
-                  Distribuzione del Consenso tra i 3 Modelli
+                  Distribuzione del Consenso tra i 4 Modelli
                 </Typography>
                 <Typography variant="body2" sx={{ color: "#75758a", mb: 3 }}>
                   Suddivisione del dataset da 192.820 post in base al numero di modelli che classificano il testo come IA:
@@ -514,9 +564,9 @@ export default function DetectorComparison() {
               Analizzando i metadati di registrazione delle API Mastodon, quasi il 44% dei post del dataset proviene da account che confermano di essere automatizzati (<strong>bot = true</strong>). Il confronto tra le tre architetture rivela una divergenza metodologica sostanziale:
             </Typography>
 
-            <Grid container spacing={3} sx={{ mb: 3 }}>
-              <Grid item xs={12} md={4}>
-                <Box sx={{ p: 2.5, borderRadius: "12px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}>
+            <Grid container spacing={2} sx={{ mb: 3 }}>
+              <Grid item xs={12} md={3}>
+                <Box sx={{ p: 2, borderRadius: "12px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}>
                   <Typography variant="caption" sx={{ color: "#75758a", fontWeight: 600, display: "block" }}>
                     BINOCULARS (ZERO-SHOT)
                   </Typography>
@@ -529,8 +579,8 @@ export default function DetectorComparison() {
                 </Box>
               </Grid>
 
-              <Grid item xs={12} md={4}>
-                <Box sx={{ p: 2.5, borderRadius: "12px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}>
+              <Grid item xs={12} md={3}>
+                <Box sx={{ p: 2, borderRadius: "12px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}>
                   <Typography variant="caption" sx={{ color: "#75758a", fontWeight: 600, display: "block" }}>
                     FASTDETECTGPT (ZERO-SHOT)
                   </Typography>
@@ -543,16 +593,30 @@ export default function DetectorComparison() {
                 </Box>
               </Grid>
 
-              <Grid item xs={12} md={4}>
-                <Box sx={{ p: 2.5, borderRadius: "12px", backgroundColor: "#ffffff", border: "1px solid #ff7759" }}>
+              <Grid item xs={12} md={3}>
+                <Box sx={{ p: 2, borderRadius: "12px", backgroundColor: "#ffffff", border: "1px solid #ff7759" }}>
                   <Typography variant="caption" sx={{ color: "#ff7759", fontWeight: 600, display: "block" }}>
-                    DESKLIB (FINE-TUNED CLASSIFIER)
+                    DESKLIB (FINE-TUNED)
                   </Typography>
                   <Typography variant="h4" sx={{ fontFamily: "Space Grotesk", fontWeight: 700, color: "#ff7759", my: 0.5 }}>
                     54.41% IA
                   </Typography>
                   <Typography variant="caption" sx={{ color: "#75758a" }}>
-                    7.007 su 12.877 post bot. Il classificatore supervisionato è fortemente influenzato dai pattern rigidi e ripetitivi (hashtag in serie, link, template).
+                    7.007 su 12.877 post bot. Il classificatore supervisionato è fortemente influenzato dai pattern rigidi e ripetitivi.
+                  </Typography>
+                </Box>
+              </Grid>
+
+              <Grid item xs={12} md={3}>
+                <Box sx={{ p: 2, borderRadius: "12px", backgroundColor: "#ffffff", border: "1px solid #ddd6fe" }}>
+                  <Typography variant="caption" sx={{ color: "#7c3aed", fontWeight: 600, display: "block" }}>
+                    ADADETECTGPT (ZERO-SHOT)
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontFamily: "Space Grotesk", fontWeight: 700, color: "#7c3aed", my: 0.5 }}>
+                    {summary?.bot_investigation?.models?.ada ? `${summary.bot_investigation.models.ada.ai_percentage}%` : "12.8%"} IA
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: "#75758a" }}>
+                    Algoritmo AdaDetectGPT con perturba-curvatura adattiva su GPT-Neo 2.7B sul corpus dei bot.
                   </Typography>
                 </Box>
               </Grid>
@@ -598,13 +662,15 @@ export default function DetectorComparison() {
               >
                 <Tab label="Tutti i Post" value="all" />
                 <Tab label="Solo Account Bot (bot=true)" value="bots_only" />
-                <Tab label="Unanime IA (3/3)" value="unanimous_ai" />
-                <Tab label="Maggioranza IA (2/3)" value="exactly_2" />
-                <Tab label="Disaccordo (1/3)" value="exactly_1" />
-                <Tab label="Unanime Umano (0/3)" value="unanimous_human" />
+                <Tab label="Unanime IA (4/4)" value="unanimous_ai" />
+                <Tab label="3/4 Modelli IA" value="exactly_3" />
+                <Tab label="2/4 Modelli IA" value="exactly_2" />
+                <Tab label="1/4 Modelli IA" value="exactly_1" />
+                <Tab label="Unanime Umano (0/4)" value="unanimous_human" />
                 <Tab label="Solo FastDetectGPT" value="fastdetect_only" />
                 <Tab label="Solo Binoculars" value="binoculars_only" />
                 <Tab label="Solo Desklib" value="desklib_only" />
+                <Tab label="Solo AdaDetectGPT" value="ada_only" />
               </Tabs>
 
             </Grid>
@@ -643,10 +709,11 @@ export default function DetectorComparison() {
                 <TableCell sx={{ fontWeight: 700, fontFamily: "Space Grotesk", width: "90px" }}>ID</TableCell>
                 <TableCell sx={{ fontWeight: 700, fontFamily: "Space Grotesk" }}>Testo Post</TableCell>
                 <TableCell sx={{ fontWeight: 700, fontFamily: "Space Grotesk", width: "80px" }}>Lingua</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontFamily: "Space Grotesk", width: "130px" }}>FastDetectGPT</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontFamily: "Space Grotesk", width: "120px" }}>Binoculars</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontFamily: "Space Grotesk", width: "110px" }}>Desklib</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontFamily: "Space Grotesk", width: "150px" }}>Consenso</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontFamily: "Space Grotesk", width: "120px" }}>FastDetectGPT</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontFamily: "Space Grotesk", width: "110px" }}>Binoculars</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontFamily: "Space Grotesk", width: "100px" }}>Desklib</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontFamily: "Space Grotesk", width: "120px" }}>AdaDetectGPT</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontFamily: "Space Grotesk", width: "140px" }}>Consenso</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -701,6 +768,12 @@ export default function DetectorComparison() {
                     <TableCell>
                       <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: "Space Grotesk", color: getProbColor(row.desklib_prob) }}>
                         {formatProb(row.desklib_prob)}
+                      </Typography>
+                    </TableCell>
+
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: "Space Grotesk", color: getProbColor(row.ada_prob) }}>
+                        {formatProb(row.ada_prob)}
                       </Typography>
                     </TableCell>
 

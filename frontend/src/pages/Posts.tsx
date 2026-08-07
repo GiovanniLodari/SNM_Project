@@ -255,7 +255,7 @@ export default function Posts() {
                                 </Typography>
                               </Box>
 
-                              {/* 3 AI Detectors Scores Row */}
+                              {/* 4 AI Detectors Scores Row */}
                               <Box sx={{ display: "flex", gap: 1, mb: 1.5, flexWrap: "wrap" }}>
                                 <Chip
                                   size="small"
@@ -294,6 +294,19 @@ export default function Posts() {
                                     color: post.desklib_prob != null && post.desklib_prob >= 0.5 ? "#ff7759" : "#1863dc",
                                     border: "1px solid",
                                     borderColor: post.desklib_prob != null && post.desklib_prob >= 0.5 ? "#ffad9b" : "#c6d7ff",
+                                  }}
+                                />
+                                <Chip
+                                  size="small"
+                                  label={`AdaDetect: ${post.ada_prob != null ? (post.ada_prob * 100).toFixed(1) + "%" : "N/D"}`}
+                                  sx={{
+                                    fontFamily: "ui-monospace, monospace",
+                                    fontSize: "10px",
+                                    fontWeight: 600,
+                                    backgroundColor: post.ada_prob != null && post.ada_prob >= 0.5 ? "#f5f3ff" : "#f1f5ff",
+                                    color: post.ada_prob != null && post.ada_prob >= 0.5 ? "#7c3aed" : "#1863dc",
+                                    border: "1px solid",
+                                    borderColor: post.ada_prob != null && post.ada_prob >= 0.5 ? "#ddd6fe" : "#c6d7ff",
                                   }}
                                 />
                               </Box>

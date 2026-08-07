@@ -9,6 +9,7 @@ export interface Post {
   fastdetect_prob?: number | null;
   binoculars_prob?: number | null;
   desklib_prob?: number | null;
+  ada_prob?: number | null;
 }
 
 export interface AiScore {
@@ -70,6 +71,7 @@ export interface PostDetailResponse {
   ai_score: AiScore | null;
   binoculars_score?: AiScore | null;
   desklib_score?: AiScore | null;
+  ada_score?: AiScore | null;
   fact_check: FactCheck | null;
 }
 
@@ -274,25 +276,34 @@ export interface DetectorComparisonSummaryResponse {
   comparison_report: {
     soglia_ai: number;
     id_totali: number;
-    id_presenti_in_tutti_e_3: number;
+    id_presenti_in_tutti_e_4?: number;
+    id_presenti_in_tutti_e_3?: number;
     conteggio_ai: {
-      ai_per_tutti_e_3: number;
+      ai_per_tutti_e_4?: number;
+      ai_per_tutti_e_3?: number;
+      ai_per_esattamente_3?: number;
       ai_per_esattamente_2: number;
       ai_per_esattamente_1: number;
       ai_per_nessuno: number;
     };
     accordo: {
-      tutti_e_3_stessa_etichetta: number;
+      tutti_e_4_stessa_etichetta?: number;
+      tutti_e_3_stessa_etichetta?: number;
       coppie: {
-        "bino-gpt": number;
-        "bino-desk": number;
-        "desk-gpt": number;
+        "bino-gpt"?: number;
+        "bino-desk"?: number;
+        "bino-ada"?: number;
+        "desk-gpt"?: number;
+        "desk-ada"?: number;
+        "gpt-ada"?: number;
       };
     };
     copertura: {
+      fastdetectgpt?: number;
       binoculars: number;
       desklib: number;
-      "gpt-neo": number;
+      "gpt-neo"?: number;
+      adadetectgpt?: number;
     };
   };
   binoculars_report: {
@@ -313,6 +324,7 @@ export interface DetectorComparisonSummaryResponse {
       fastdetectgpt: { scored: number; ai_count: number; ai_percentage: number };
       binoculars: { scored: number; ai_count: number; ai_percentage: number };
       desklib: { scored: number; ai_count: number; ai_percentage: number };
+      ada?: { scored: number; ai_count: number; ai_percentage: number };
     };
   };
 }
@@ -326,6 +338,7 @@ export interface ComparisonPostRow {
   fastdetect_prob: number | null;
   binoculars_prob: number | null;
   desklib_prob: number | null;
+  ada_prob: number | null;
   ai_votes: number;
 }
 
