@@ -350,6 +350,97 @@ export interface DetectorComparisonPostsResponse {
   filter_type: string;
 }
 
+export interface InfluenceMeta {
+  nodes: number;
+  edges: number;
+  seeds: number;
+  reached_nodes: number;
+  reached_pct: number;
+  num_steps: number;
+  note: string;
+}
+
+export interface InfluenceDemographics {
+  activated_total: number;
+  activated_ai: number;
+  activated_human: number;
+  seeds_ai: number;
+  seeds_human: number;
+}
+
+export interface InfluenceStepStat {
+  step: number;
+  new_nodes: number;
+  new_ai: number;
+  new_human: number;
+  cumulative_nodes: number;
+  cumulative_pct: number;
+  fired_edges: number;
+}
+
+export interface InfluenceSeed {
+  id: string;
+  acct: string;
+  followers: number;
+  is_ia: boolean;
+  direct_reached: number;
+  efficiency: number;
+  step: number;
+}
+
+export interface InfluenceTarget {
+  id: string;
+  acct: string;
+  followers: number;
+  is_ia: boolean;
+  activation_step: number;
+}
+
+export interface InfluenceSummaryResponse {
+  meta: InfluenceMeta;
+  demographics: InfluenceDemographics;
+  step_stats: InfluenceStepStat[];
+  top_seeds: InfluenceSeed[];
+  top_targets: InfluenceTarget[];
+}
+
+export interface InfluenceGraphNode {
+  id: string;
+  acct: string;
+  followers: number;
+  is_ia: boolean;
+  is_seed: boolean;
+  activation_step: number;
+}
+
+export interface InfluenceGraphLink {
+  source: string;
+  target: string;
+  p_ic: number;
+  step: number;
+}
+
+export interface InfluenceGraphResponse {
+  nodes: InfluenceGraphNode[];
+  links: InfluenceGraphLink[];
+}
+
+export interface InfluenceSeedsResponse {
+  seeds: InfluenceSeed[];
+  total: number;
+  page: number;
+  page_size: number;
+  has_next: boolean;
+}
+
+export interface InfluenceNodesResponse {
+  nodes: InfluenceGraphNode[];
+  total: number;
+  page: number;
+  page_size: number;
+  has_next: boolean;
+}
+
 export const api = {
   dashboard: () => getJson<DashboardStats>("/api/dashboard"),
   graph: (limit?: number, mode?: string) => getJson<GraphData>(`/api/graph${buildQuery({ limit, mode })}`),
@@ -365,7 +456,6 @@ export const api = {
   accounts: () => getJson<AccountsStats>("/api/accounts"),
   aiDetection: (probBucket: string[], page: number, sortBy: string = "id", detector: string = "fastdetect") =>
     getJson<AiDetectionResponse>(`/api/ai-detection${buildQuery({ detector, prob_bucket: probBucket, page, sort_by: sortBy })}`),
-
 
   detectorComparisonSummary: () =>
     getJson<DetectorComparisonSummaryResponse>("/api/detector-comparison/summary"),
@@ -386,7 +476,17 @@ export const api = {
     form.append("file", file);
     return postJson<JobActionResponse>("/api/db-sync/import", form);
   },
+
+  influenceSummary: () => getJson<InfluenceSummaryResponse>("/api/influence-maximization/summary"),
+  influenceGraph: (seedId?: string) =>
+    getJson<InfluenceGraphResponse>(`/api/influence-maximization/graph${buildQuery({ seed_id: seedId })}`),
+  influenceSeeds: (page: number, pageSize: number = 25, search: string = "") =>
+
+    getJson<InfluenceSeedsResponse>(`/api/influence-maximization/seeds${buildQuery({ page, page_size: pageSize, search })}`),
+  influenceNodes: (page: number, pageSize: number = 25, search: string = "", step?: number, type: string = "all") =>
+    getJson<InfluenceNodesResponse>(`/api/influence-maximization/nodes${buildQuery({ page, page_size: pageSize, search, step, type })}`),
 };
+
 
 
 

@@ -769,8 +769,8 @@ def detector_comparison_summary():
     bino_ai_count = bino_counts.get("ai_generated", 6834)
     bino_total = bino_counts.get("scored", 200042)
 
-    desklib_total = comp_report.get("copertura", {}).get("desklib", 200042)
-    desklib_ai_count = 76007  # Precomputed count across dataset
+    desklib_total = len(desk_scores) or 200042
+    desklib_ai_count = sum(1 for s in desk_scores.values() if s.get("ai_probability") is not None and s["ai_probability"] >= 0.5)
 
     ada_ai_count = sum(1 for s in ada_scores.values() if s.get("probability") is not None and s["probability"] == s["probability"] and s["probability"] >= 0.5)
     ada_total = len(ada_scores) or 192823
@@ -966,4 +966,44 @@ def detector_comparison_posts(
         "page": page,
         "page_size": page_size,
         "filter_type": filter_type,
-    }
+    }
+
+
+# ------------------------------------------------------------------
+# Endpoints per Influence Maximization (Independent Cascade Model)
+# ------------------------------------------------------------------
+from webapp import influence as influence_service  # noqa: E402
+
+
+@router.get("/influence-maximization/summary")
+def influence_summary():
+    return influence_service.get_influence_summary()
+
+
+@router.get("/influence-maximization/graph")
+def influence_graph(seed_id: str | None = Query(default=None)):
+    return influence_service.get_influence_graph(seed_id=seed_id)
+
+
+
+@router.get("/influence-maximization/seeds")
+def influence_seeds(
+    page: int = 1,
+    page_size: int = Query(default=25, ge=5, le=100),
+    search: str = "",
+):
+    return influence_service.get_influence_seeds(page=page, page_size=page_size, search=search)
+
+
+@router.get("/influence-maximization/nodes")
+def influence_nodes(
+    page: int = 1,
+    page_size: int = Query(default=25, ge=5, le=100),
+    search: str = "",
+    step: int | None = None,
+    type: str = "all",
+):
+    return influence_service.get_influence_nodes(
+        page=page, page_size=page_size, search=search, step_filter=step, type_filter=type
+    )
+

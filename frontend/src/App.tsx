@@ -30,6 +30,7 @@ import {
   PlayCircle as PipelineIcon,
   Sync as SyncIcon,
   CompareArrows as CompareIcon,
+  TrendingUp as InfluenceIcon,
 } from "@mui/icons-material";
 
 // Pagine in caricamento Lazy (Code-Splitting per prestazioni elevate)
@@ -45,6 +46,7 @@ const Accounts = lazy(() => import("./pages/Accounts.tsx"));
 const Pipelines = lazy(() => import("./pages/Pipelines.tsx"));
 const DbSync = lazy(() => import("./pages/DbSync.tsx"));
 const DetectorComparison = lazy(() => import("./pages/DetectorComparison.tsx"));
+const InfluenceMaximization = lazy(() => import("./pages/InfluenceMaximization.tsx"));
 import { NotificationProvider } from "./context/NotificationContext.tsx";
 import ErrorBoundary from "./components/ErrorBoundary.tsx";
 
@@ -63,6 +65,7 @@ function NavigationContent() {
     { text: "Confronto Detector", path: "/detector-comparison", icon: <CompareIcon sx={{ fontSize: 20 }} /> },
     { text: "Fact Checking", path: "/fact-check", icon: <FactCheckIcon sx={{ fontSize: 20 }} /> },
     { text: "Accounts & Bot", path: "/accounts", icon: <AccountsIcon sx={{ fontSize: 20 }} /> },
+    { text: "Influence Maximization", path: "/influence-maximization", icon: <InfluenceIcon sx={{ fontSize: 20 }} /> },
     { text: "Pipelines", path: "/pipelines", icon: <PipelineIcon sx={{ fontSize: 20 }} /> },
     { text: "Database Sync", path: "/db-sync", icon: <SyncIcon sx={{ fontSize: 20 }} /> },
   ];
@@ -408,6 +411,7 @@ export default function App() {
                   <Route path="/ai-detection-desklib" element={<AiDetectionDesklib />} />
                   <Route path="/ai-detection-ada" element={<AiDetectionAda />} />
                   <Route path="/detector-comparison" element={<DetectorComparison />} />
+                  <Route path="/influence-maximization" element={<InfluenceMaximization />} />
                   <Route path="/fact-check" element={<FactChecking />} />
                   <Route path="/pipelines" element={<Pipelines />} />
                   <Route path="/db-sync" element={<DbSync />} />

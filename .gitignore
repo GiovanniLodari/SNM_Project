@@ -83,4 +83,7 @@ frontend/dist/
 # Risultati Binoculars detector (>50MB, non accettati da GitHub senza LFS)
 # I file .csv e .jsonl vanno condivisi via drive/canale alternativo
 desklib_detector/risultati_binocular_all/*.jsonl
-desklib_detector/risultati_binocular_all/*.csv
+desklib_detector/risultati_binocular_all/*.csv
+
+# Dataset Influence Maximization (>200MB, non tracciato su Git per limite GitHub 100MB)
+influence_maximization/*.json

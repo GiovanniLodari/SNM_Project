@@ -168,26 +168,31 @@ export default function DetectorComparison() {
     return "#003c33";
   };
 
-  // Data for Consensus Chart
+  // Data for Consensus Chart (4 detectors)
   const consensusData = [
     {
-      name: "Unanime IA (3/3)",
-      count: summary?.comparison_report?.conteggio_ai?.ai_per_tutti_e_3 ?? 1014,
+      name: "Unanime IA (4/4)",
+      count: summary?.comparison_report?.conteggio_ai?.ai_per_tutti_e_4 ?? 1011,
       color: "#003c33",
     },
     {
-      name: "Maggioranza IA (2/3)",
-      count: summary?.comparison_report?.conteggio_ai?.ai_per_esattamente_2 ?? 13809,
+      name: "Maggioranza IA (3/4)",
+      count: summary?.comparison_report?.conteggio_ai?.ai_per_esattamente_3 ?? 4211,
+      color: "#7c3aed",
+    },
+    {
+      name: "Misto IA (2/4)",
+      count: summary?.comparison_report?.conteggio_ai?.ai_per_esattamente_2 ?? 20486,
       color: "#ff7759",
     },
     {
-      name: "1 Detector Solo (1/3)",
-      count: summary?.comparison_report?.conteggio_ai?.ai_per_esattamente_1 ?? 91776,
+      name: "1 Detector Solo (1/4)",
+      count: summary?.comparison_report?.conteggio_ai?.ai_per_esattamente_1 ?? 87642,
       color: "#1863dc",
     },
     {
-      name: "Unanime Umano (0/3)",
-      count: summary?.comparison_report?.conteggio_ai?.ai_per_nessuno ?? 93443,
+      name: "Unanime Umano (0/4)",
+      count: summary?.comparison_report?.conteggio_ai?.ai_per_nessuno ?? 86692,
       color: "#75758a",
     },
   ];
@@ -490,7 +495,7 @@ export default function DetectorComparison() {
                       <Chip label={summary?.comparison_report?.accordo?.coppie?.["gpt-ada"] ? `${((summary.comparison_report.accordo.coppie["gpt-ada"] / (summary.comparison_report.id_totali || 1)) * 100).toFixed(1)}% Accordo` : "94.8% Accordo"} size="small" sx={{ backgroundColor: "#7c3aed", color: "#ffffff", fontWeight: 700 }} />
                     </Box>
                     <Typography variant="caption" sx={{ color: "#75758a" }}>
-                      {(summary?.comparison_report?.accordo?.coppie?.["gpt-ada"] ?? 182700).toLocaleString("it-IT")} post concordi. Altissimo consenso fra varianti di perturba-curvatura.
+                      {(summary?.comparison_report?.accordo?.coppie?.["gpt-ada"] ?? 156016).toLocaleString("it-IT")} post concordi. Alta affinità fra varianti di perturba-curvatura.
                     </Typography>
                   </Box>
                 </Stack>
@@ -504,10 +509,10 @@ export default function DetectorComparison() {
                   Distribuzione del Consenso tra i 4 Modelli
                 </Typography>
                 <Typography variant="body2" sx={{ color: "#75758a", mb: 3 }}>
-                  Suddivisione del dataset da 192.820 post in base al numero di modelli che classificano il testo come IA:
+                  Suddivisione del dataset da 200.042 post in base al numero di modelli (su 4) che classificano il testo come IA:
                 </Typography>
 
-                <Box sx={{ width: "100%", height: 260, minHeight: 260 }}>
+                <Box sx={{ width: "100%", height: 320, minHeight: 320 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={consensusData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
                       <XAxis type="number" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />

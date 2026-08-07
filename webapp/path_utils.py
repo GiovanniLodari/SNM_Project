@@ -72,3 +72,10 @@ EXPORTS_DIR = PROJECT_ROOT / "exports"
 IMPORTS_DIR = PROJECT_ROOT / "imports"
 EXPORT_ZIP_PATH = EXPORTS_DIR / "export.zip"
 
+INFLUENCE_MAXIMIZATION_PATH = resolve_file_path("INFLUENCE_MAXIMIZATION_PATH", [
+    PROJECT_ROOT / "influence_maximization" / "grafo_finale_animazione_3.json",
+    PROJECT_ROOT / "grafo_finale_animazione_3.json",
+    PROJECT_ROOT / "data" / "grafo_finale_animazione_3.json",
+])
+
+
