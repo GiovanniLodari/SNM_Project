@@ -97,7 +97,7 @@ export default function AiDetectionBinoculars() {
     <Box>
       <Box sx={{ mb: 6 }}>
         <Chip
-          label="DETECTOR 2/3 • QWEN2.5 CROSS-PERPLEXITY RATIO (ICML 2024)"
+          label="Binoculars"
           sx={{
             fontFamily: "ui-monospace, monospace",
             fontSize: "11px",

@@ -52,7 +52,7 @@ export default function DescriptiveStatsBlock() {
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", mb: 3 }}>
         <Box>
           <Chip
-            label="QUANTITATIVE AUDIT SPECTRUM"
+            label="Statistiche Corpus"
             sx={{
               fontFamily: "CohereMono, ui-monospace, monospace",
               fontSize: "11px",

@@ -95,7 +95,7 @@ export default function AiDetectionAda() {
     <Box>
       <Box sx={{ mb: 6 }}>
         <Chip
-          label="DETECTOR 4/4 • ADADETECTGPT (GPT-NEO 2.7B)"
+          label="AdaDetectGPT"
           sx={{
             fontFamily: "ui-monospace, monospace",
             fontSize: "11px",

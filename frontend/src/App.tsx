@@ -15,8 +15,6 @@ import {
   ListItemIcon,
   ListItemText,
   Container,
-  Chip,
-  Grid,
   CircularProgress,
 } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -300,75 +298,24 @@ export default function App() {
               </Suspense>
             </Container>
 
-            {/* Sleek Enterprise Footer */}
+            {/* Footer */}
             <Box
+              component="footer"
               sx={{
-                mt: 10,
-                py: 6,
-                px: { xs: 3, md: 6 },
-                backgroundColor: "#17171c",
-                color: "#ffffff",
+                py: 4,
+                px: 3,
+                mt: "auto",
+                borderTop: "1px solid #e5e7eb",
+                backgroundColor: "#ffffff",
               }}
             >
-              <Container maxWidth="xl">
-                <Grid container spacing={4} sx={{ mb: 4, alignItems: "center" }}>
-                  <Grid item xs={12} md={7}>
-                    <Typography
-                      variant="h5"
-                      sx={{
-                        fontFamily: "Space Grotesk, Inter, sans-serif",
-                        fontWeight: 600,
-                        color: "#ffffff",
-                        letterSpacing: "-0.5px",
-                        mb: 1,
-                      }}
-                    >
-                      SNM.Intelligence
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: "#93939f", maxWidth: 520, fontSize: "14px", lineHeight: 1.6 }}>
-                      Piattaforma di analisi avanzata per il tracciamento della topologia social, rilevamento di testo sintetico (LLM) ed audit della veridicità nel Fediverso.
-                    </Typography>
-                  </Grid>
-
-                  <Grid item xs={12} md={5} sx={{ display: "flex", justifyContent: { xs: "flex-start", md: "flex-end" }, gap: 1.5, flexWrap: "wrap" }}>
-                    <Chip
-                      label="SNM.INTELLIGENCE v2.4"
-                      size="small"
-                      sx={{
-                        backgroundColor: "#003c33",
-                        color: "#ffffff",
-                        fontFamily: "ui-monospace, monospace",
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        px: 1,
-                      }}
-                    />
-                    <Chip
-                      label="MASTODON FEDIVERSE AUDIT"
-                      size="small"
-                      sx={{
-                        backgroundColor: "rgba(255,119,89,0.15)",
-                        color: "#ff7759",
-                        border: "1px solid rgba(255,119,89,0.3)",
-                        fontFamily: "ui-monospace, monospace",
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        px: 1,
-                      }}
-                    />
-                  </Grid>
-                </Grid>
-
-                <Box sx={{ borderTop: "1px solid rgba(255, 255, 255, 0.1)", pt: 3, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 2, alignItems: "center" }}>
-                  <Typography variant="caption" sx={{ color: "#75758a", fontFamily: "ui-monospace, monospace" }}>
-                    &copy; {new Date().getFullYear()} SNM.Intelligence • Social Network & LLM Auditing Infrastructure
-                  </Typography>
-                  <Box sx={{ display: "flex", gap: 3 }}>
-                    <Typography variant="caption" sx={{ color: "#93939f" }}>Corpus Hashtag ~200k</Typography>
-                    <Typography variant="caption" sx={{ color: "#93939f" }}>Multi-Model AI Detection</Typography>
-                    <Typography variant="caption" sx={{ color: "#93939f" }}>Fact-Check Audit</Typography>
-                  </Box>
-                </Box>
+              <Container maxWidth="xl" sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
+                <Typography variant="body2" sx={{ color: "#75758a", fontWeight: 500 }}>
+                  SNM Project — Fediverse Social Network & AI Analysis
+                </Typography>
+                <Typography variant="caption" sx={{ color: "#93939f", fontFamily: "ui-monospace, monospace" }}>
+                  © {new Date().getFullYear()}
+                </Typography>
               </Container>
             </Box>
           </Box>

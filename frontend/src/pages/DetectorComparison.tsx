@@ -216,7 +216,7 @@ export default function DetectorComparison() {
             mb: 1,
           }}
         >
-          BENCHMARK MULTI-MODELLO • FASTDETECTGPT VS BINOCULARS VS DESKLIB VS ADADETECTGPT
+          Rilevatori IA
         </Typography>
         <Typography
           variant="h3"

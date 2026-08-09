@@ -100,7 +100,7 @@ export default function AiDetection() {
     <Box>
       <Box sx={{ mb: 6 }}>
         <Chip
-          label="DETECTOR 1/3 • GPT-NEO 2.7B ZERO-SHOT"
+          label="FastDetectGPT"
           sx={{
             fontFamily: "ui-monospace, monospace",
             fontSize: "11px",

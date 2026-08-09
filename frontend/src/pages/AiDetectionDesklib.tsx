@@ -97,7 +97,7 @@ export default function AiDetectionDesklib() {
     <Box>
       <Box sx={{ mb: 6 }}>
         <Chip
-          label="DETECTOR 3/3 • DESKLIB SUPERVISED CLASSIFIER (v1.01)"
+          label="Desklib AI"
           sx={{
             fontFamily: "ui-monospace, monospace",
             fontSize: "11px",

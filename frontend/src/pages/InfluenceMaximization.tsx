@@ -129,7 +129,7 @@ export default function InfluenceMaximization() {
       {/* Brand Section Header */}
       <Box sx={{ mb: 5 }}>
         <Chip
-          label="INFLUENCE MAXIMIZATION AUDIT • INDEPENDENT CASCADE MODEL"
+          label="Influence Maximization"
           sx={{
             fontFamily: "ui-monospace, monospace",
             fontSize: "11px",

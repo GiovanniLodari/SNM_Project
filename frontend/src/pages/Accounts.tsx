@@ -59,7 +59,7 @@ export default function Accounts() {
     <Box>
       <Box sx={{ mb: 6 }}>
         <Chip
-          label="ACCOUNT & BOT CLASSIFICATION"
+          label="Account Stats"
           sx={{
             fontFamily: "ui-monospace, monospace",
             fontSize: "11px",
