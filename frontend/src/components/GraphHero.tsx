@@ -652,52 +652,7 @@ export default function GraphHero() {
         }}
       >
         <Box sx={{ flex: 1 }}>
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-            <Chip
-              icon={<HubIcon sx={{ fontSize: "14px !important", color: "#00e5ff !important" }} />}
-              label="COMMUNITY TOPOLOGY DYNAMICS"
-              sx={{
-                fontFamily: "ui-monospace, monospace",
-                fontSize: "10px",
-                fontWeight: 700,
-                letterSpacing: "0.8px",
-                backgroundColor: "rgba(0, 229, 255, 0.12)",
-                color: "#00e5ff",
-                border: "1px solid rgba(0, 229, 255, 0.3)",
-              }}
-            />
-            {isPlaying && (
-              <Chip
-                label="LIVE STREAMING"
-                sx={{
-                  fontFamily: "ui-monospace, monospace",
-                  fontSize: "10px",
-                  fontWeight: 700,
-                  backgroundColor: "rgba(255, 119, 89, 0.15)",
-                  color: "#ff7759",
-                  border: "1px solid rgba(255, 119, 89, 0.3)",
-                  "& .MuiChip-label": {
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    "&::before": {
-                      content: '""',
-                      width: 6,
-                      height: 6,
-                      borderRadius: "50%",
-                      backgroundColor: "#ff7759",
-                      animation: "pulse 1.2s infinite ease-in-out",
-                    },
-                  },
-                  "@keyframes pulse": {
-                    "0%": { opacity: 0.3, transform: "scale(0.8)" },
-                    "50%": { opacity: 1, transform: "scale(1.2)" },
-                    "100%": { opacity: 0.3, transform: "scale(0.8)" },
-                  },
-                }}
-              />
-            )}
-          </Stack>
+
 
           <Typography
             variant="h3"

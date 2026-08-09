@@ -80,17 +80,7 @@ export default function Posts() {
   return (
     <Box>
       <Box sx={{ mb: 6 }}>
-        <Chip
-          label="STATUS CORPUS"
-          sx={{
-            fontFamily: "ui-monospace, monospace",
-            fontSize: "11px",
-            color: "#75758a",
-            backgroundColor: "#eeece7",
-            mb: 2,
-            px: 1,
-          }}
-        />
+
         <Typography
           variant="h2"
           sx={{

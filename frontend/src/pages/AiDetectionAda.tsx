@@ -94,18 +94,7 @@ export default function AiDetectionAda() {
   return (
     <Box>
       <Box sx={{ mb: 6 }}>
-        <Chip
-          label="AdaDetectGPT"
-          sx={{
-            fontFamily: "ui-monospace, monospace",
-            fontSize: "11px",
-            color: "#8b5cf6",
-            backgroundColor: "#f5f3ff",
-            mb: 2,
-            px: 1,
-            fontWeight: 600,
-          }}
-        />
+
         <Typography
           variant="h2"
           sx={{

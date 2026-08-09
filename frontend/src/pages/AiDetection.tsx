@@ -99,18 +99,7 @@ export default function AiDetection() {
   return (
     <Box>
       <Box sx={{ mb: 6 }}>
-        <Chip
-          label="FastDetectGPT"
-          sx={{
-            fontFamily: "ui-monospace, monospace",
-            fontSize: "11px",
-            color: "#1863dc",
-            backgroundColor: "#f1f5ff",
-            mb: 2,
-            px: 1,
-            fontWeight: 600,
-          }}
-        />
+
         <Typography
           variant="h2"
           sx={{

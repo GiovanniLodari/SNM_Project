@@ -8,7 +8,6 @@ import {
   Divider,
   Alert,
   Grid,
-  Chip,
 } from "@mui/material";
 import {
   Download as DownloadIcon,
@@ -120,17 +119,7 @@ export default function DbSync() {
     <Box>
       <Box sx={{ mb: 6, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2 }}>
         <Box>
-          <Chip
-            label="PORTABLE DATA STORAGE & MERGE"
-            sx={{
-              fontFamily: "ui-monospace, monospace",
-              fontSize: "11px",
-              color: "#75758a",
-              backgroundColor: "#eeece7",
-              mb: 2,
-              px: 1,
-            }}
-          />
+
           <Typography
             variant="h2"
             sx={{

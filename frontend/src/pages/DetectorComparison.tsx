@@ -203,21 +203,7 @@ export default function DetectorComparison() {
     <Box sx={{ pb: 8, backgroundColor: "#ffffff" }}>
       {/* Hero Header */}
       <Box sx={{ mb: 5, pt: 1, borderBottom: "1px solid #e5e7eb", pb: 4 }}>
-        <Typography
-          variant="caption"
-          sx={{
-            fontFamily: "ui-monospace, monospace",
-            fontSize: "12px",
-            color: "#ff7759",
-            fontWeight: 600,
-            letterSpacing: "0.28px",
-            textTransform: "uppercase",
-            display: "block",
-            mb: 1,
-          }}
-        >
-          Rilevatori IA
-        </Typography>
+
         <Typography
           variant="h3"
           sx={{

@@ -128,19 +128,7 @@ export default function InfluenceMaximization() {
     <Box sx={{ pb: 8 }}>
       {/* Brand Section Header */}
       <Box sx={{ mb: 5 }}>
-        <Chip
-          label="Influence Maximization"
-          sx={{
-            fontFamily: "ui-monospace, monospace",
-            fontSize: "11px",
-            color: "#ff7759",
-            backgroundColor: "rgba(255, 119, 89, 0.1)",
-            border: "1px solid rgba(255, 119, 89, 0.25)",
-            mb: 2,
-            px: 1,
-            fontWeight: 600,
-          }}
-        />
+
         <Typography
           variant="h2"
           sx={{

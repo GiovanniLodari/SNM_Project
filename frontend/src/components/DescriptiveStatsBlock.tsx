@@ -51,19 +51,7 @@ export default function DescriptiveStatsBlock() {
       {/* Intestazione Sezione conforme a DESIGN.md */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", mb: 3 }}>
         <Box>
-          <Chip
-            label="Statistiche Corpus"
-            sx={{
-              fontFamily: "CohereMono, ui-monospace, monospace",
-              fontSize: "11px",
-              color: "#ff7759",
-              backgroundColor: "#fff0ec",
-              border: "1px solid #ffad9b",
-              fontWeight: 600,
-              mb: 1.5,
-              px: 1,
-            }}
-          />
+
           <Typography
             variant="h4"
             sx={{

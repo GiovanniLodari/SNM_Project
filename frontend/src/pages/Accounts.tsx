@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Typography, Box, Grid, Skeleton, Paper, LinearProgress, Chip, Tooltip, Stack } from "@mui/material";
+import { Typography, Box, Grid, Skeleton, Paper, LinearProgress, Tooltip, Stack } from "@mui/material";
 import { api, AccountsStats } from "../api/client.ts";
 import { SmartToy as BotIcon, People as HumanIcon, Psychology as AiIcon, HelpOutline as HelpIcon } from "@mui/icons-material";
 
@@ -58,17 +58,7 @@ export default function Accounts() {
   return (
     <Box>
       <Box sx={{ mb: 6 }}>
-        <Chip
-          label="Account Stats"
-          sx={{
-            fontFamily: "ui-monospace, monospace",
-            fontSize: "11px",
-            color: "#75758a",
-            backgroundColor: "#eeece7",
-            mb: 2,
-            px: 1,
-          }}
-        />
+
         <Typography
           variant="h2"
           sx={{

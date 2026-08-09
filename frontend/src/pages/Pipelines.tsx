@@ -276,17 +276,7 @@ export default function Pipelines() {
     <Box>
       <Box sx={{ mb: 6, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2 }}>
         <Box>
-          <Chip
-            label="AGENT & PIPELINE ORCHESTRATION"
-            sx={{
-              fontFamily: "ui-monospace, monospace",
-              fontSize: "11px",
-              color: "#75758a",
-              backgroundColor: "#eeece7",
-              mb: 2,
-              px: 1,
-            }}
-          />
+
           <Typography
             variant="h2"
             sx={{

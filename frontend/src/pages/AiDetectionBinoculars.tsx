@@ -96,18 +96,7 @@ export default function AiDetectionBinoculars() {
   return (
     <Box>
       <Box sx={{ mb: 6 }}>
-        <Chip
-          label="Binoculars"
-          sx={{
-            fontFamily: "ui-monospace, monospace",
-            fontSize: "11px",
-            color: "#003c33",
-            backgroundColor: "#edfce9",
-            mb: 2,
-            px: 1,
-            fontWeight: 600,
-          }}
-        />
+
         <Typography
           variant="h2"
           sx={{

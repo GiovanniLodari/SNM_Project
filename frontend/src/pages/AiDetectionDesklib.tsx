@@ -96,18 +96,7 @@ export default function AiDetectionDesklib() {
   return (
     <Box>
       <Box sx={{ mb: 6 }}>
-        <Chip
-          label="Desklib AI"
-          sx={{
-            fontFamily: "ui-monospace, monospace",
-            fontSize: "11px",
-            color: "#ff7759",
-            backgroundColor: "#fff0ec",
-            mb: 2,
-            px: 1,
-            fontWeight: 600,
-          }}
-        />
+
         <Typography
           variant="h2"
           sx={{
