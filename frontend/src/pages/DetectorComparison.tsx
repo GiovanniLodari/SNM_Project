@@ -35,6 +35,7 @@ import {
   DetectorComparisonSummaryResponse,
   ComparisonPostRow,
 } from "../api/client.ts";
+import { DetectorSankeyChart } from "../components/DetectorSankeyChart.tsx";
 import { useDebounce } from "../hooks/useDebounce.ts";
 
 export default function DetectorComparison() {
@@ -66,7 +67,7 @@ export default function DetectorComparison() {
     api.detectorComparisonPosts(filterType, page, pageSize, debouncedSearch)
       .then((data) => {
         setPosts(data.posts);
-        setTotalPosts(data.total);
+        setTotalPosts(data.total)
       })
       .catch((err) => console.error("Error fetching comparison posts:", err))
       .finally(() => setLoadingPosts(false));
@@ -416,7 +417,11 @@ export default function DetectorComparison() {
 
           {/* Matrix & Charts Section */}
           <Grid container spacing={4} sx={{ mb: 6 }}>
-            {/* Pairwise Agreement Cards */}
+            {/* Nivo Sankey Diagram Flow (Sprint 5) */}
+            <Grid item xs={12}>
+              <DetectorSankeyChart />
+            </Grid>
+
             <Grid item xs={12} md={6}>
               <Paper variant="outlined" sx={{ borderRadius: "16px", p: 3.5, borderColor: "#e5e7eb", height: "100%" }}>
                 <Typography variant="h6" sx={{ fontFamily: "Space Grotesk", fontWeight: 700, mb: 1 }}>
