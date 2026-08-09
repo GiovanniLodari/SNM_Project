@@ -22,7 +22,7 @@ export default function EmptyState({
         textAlign: "center",
         borderRadius: "20px",
         backgroundColor: "#ffffff",
-        border: "1px border-solid #e5e7eb",
+        border: "1px solid #e5e7eb",
         my: 3,
         display: "flex",
         flexDirection: "column",

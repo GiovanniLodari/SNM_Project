@@ -2,7 +2,6 @@ import { useState, lazy, Suspense } from "react";
 import { HashRouter, Routes, Route, Link, useLocation } from "react-router-dom";
 import {
   ThemeProvider,
-  createTheme,
   CssBaseline,
   Box,
   Drawer,
@@ -20,6 +19,20 @@ import {
   Grid,
   CircularProgress,
 } from "@mui/material";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { theme } from "./theme.ts";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
+
 import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
@@ -157,152 +170,20 @@ function NavigationContent() {
 export default function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const theme = createTheme({
-    palette: {
-      mode: "light",
-      primary: {
-        main: "#17171c",
-        contrastText: "#ffffff",
-      },
-      secondary: {
-        main: "#1863dc",
-      },
-      background: {
-        default: "#ffffff",
-        paper: "#ffffff",
-      },
-      text: {
-        primary: "#212121",
-        secondary: "#75758a",
-      },
-      divider: "#e5e7eb",
-    },
-    shape: {
-      borderRadius: 16,
-    },
-    typography: {
-      fontFamily: "Inter, sans-serif",
-      h1: {
-        fontFamily: "Space Grotesk, Inter, sans-serif",
-        fontWeight: 400,
-        fontSize: "72px",
-        lineHeight: 1.0,
-        letterSpacing: "-1.44px",
-      },
-      h2: {
-        fontFamily: "Space Grotesk, Inter, sans-serif",
-        fontWeight: 400,
-        fontSize: "48px",
-        lineHeight: 1.2,
-        letterSpacing: "-0.48px",
-      },
-      h4: {
-        fontFamily: "Space Grotesk, Inter, sans-serif",
-        fontWeight: 400,
-        fontSize: "32px",
-        lineHeight: 1.2,
-        letterSpacing: "-0.32px",
-      },
-      h5: {
-        fontFamily: "Inter, sans-serif",
-        fontWeight: 500,
-        fontSize: "20px",
-      },
-      h6: {
-        fontFamily: "Inter, sans-serif",
-        fontWeight: 600,
-        fontSize: "16px",
-      },
-      body1: {
-        fontFamily: "Inter, sans-serif",
-        fontSize: "16px",
-        lineHeight: 1.5,
-      },
-      body2: {
-        fontFamily: "Inter, sans-serif",
-        fontSize: "14px",
-        lineHeight: 1.4,
-      },
-      button: {
-        fontFamily: "Inter, sans-serif",
-        fontWeight: 500,
-        fontSize: "14px",
-        textTransform: "none",
-      },
-      caption: {
-        fontFamily: "ui-monospace, monospace",
-        fontSize: "13px",
-      },
-    },
-    components: {
-      MuiCard: {
-        styleOverrides: {
-          root: {
-            borderRadius: "16px",
-            boxShadow: "none",
-            border: "1px solid #e5e7eb",
-            backgroundColor: "#ffffff",
-          },
-        },
-      },
-      MuiPaper: {
-        styleOverrides: {
-          root: {
-            borderRadius: "16px",
-            boxShadow: "none",
-          },
-        },
-      },
-      MuiButton: {
-        styleOverrides: {
-          root: {
-            borderRadius: "32px",
-            padding: "10px 24px",
-            boxShadow: "none",
-            "&:hover": {
-              boxShadow: "none",
-            },
-          },
-          containedPrimary: {
-            backgroundColor: "#17171c",
-            color: "#ffffff",
-            "&:hover": {
-              backgroundColor: "#000000",
-            },
-          },
-          outlined: {
-            borderColor: "#d9d9dd",
-            color: "#212121",
-            "&:hover": {
-              backgroundColor: "#eeece7",
-              borderColor: "#17171c",
-            },
-          },
-        },
-      },
-      MuiChip: {
-        styleOverrides: {
-          root: {
-            borderRadius: "30px",
-            fontSize: "13px",
-            fontWeight: 500,
-          },
-        },
-      },
-    },
-  });
-
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
+
   return (
     <ErrorBoundary>
-      <ThemeProvider theme={theme}>
-        <NotificationProvider>
-          <CssBaseline />
-        <HashRouter>
-          <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "#ffffff" }}>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={theme}>
+          <NotificationProvider>
+            <CssBaseline />
+          <HashRouter>
+            <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "#ffffff" }}>
+
           {/* Top Bar */}
           <AppBar
             position="fixed"
@@ -495,6 +376,8 @@ export default function App() {
         </HashRouter>
       </NotificationProvider>
     </ThemeProvider>
+    </QueryClientProvider>
   </ErrorBoundary>
   );
 }
+

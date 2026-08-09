@@ -78,4 +78,11 @@ INFLUENCE_MAXIMIZATION_PATH = resolve_file_path("INFLUENCE_MAXIMIZATION_PATH", [
     PROJECT_ROOT / "data" / "grafo_finale_animazione_3.json",
 ])
 
+CONFRONTO_ALGORITMI_PATH = resolve_file_path("CONFRONTO_ALGORITMI_PATH", [
+    PROJECT_ROOT / "Max_Influence" / "confronto_algoritmi.json",
+    PROJECT_ROOT / "data" / "confronto_algoritmi.json",
+    PROJECT_ROOT / "confronto_algoritmi.json",
+])
+
+
 

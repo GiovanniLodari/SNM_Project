@@ -441,6 +441,27 @@ export interface InfluenceNodesResponse {
   has_next: boolean;
 }
 
+export interface InfluenceAlgorithmInfo {
+  n_seeds: number;
+  est_spread: number | null;
+  mc_spread: number;
+  time_s: number;
+  seeds_sample: string[];
+}
+
+export interface InfluenceComparisonResponse {
+  subgraph: {
+    nodes: number;
+    edges: number;
+    candidates: number;
+  };
+  k: number;
+  eval_runs: number;
+  algorithms: Record<string, InfluenceAlgorithmInfo>;
+  seed_overlap_jaccard: Record<string, number>;
+  winner_by_mc_spread: string;
+}
+
 export const api = {
   dashboard: () => getJson<DashboardStats>("/api/dashboard"),
   graph: (limit?: number, mode?: string) => getJson<GraphData>(`/api/graph${buildQuery({ limit, mode })}`),
@@ -485,7 +506,10 @@ export const api = {
     getJson<InfluenceSeedsResponse>(`/api/influence-maximization/seeds${buildQuery({ page, page_size: pageSize, search })}`),
   influenceNodes: (page: number, pageSize: number = 25, search: string = "", step?: number, type: string = "all") =>
     getJson<InfluenceNodesResponse>(`/api/influence-maximization/nodes${buildQuery({ page, page_size: pageSize, search, step, type })}`),
+  influenceComparison: () =>
+    getJson<InfluenceComparisonResponse>("/api/influence-maximization/comparison"),
 };
+
 
 
 

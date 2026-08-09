@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Box,
   Grid,
@@ -14,10 +14,14 @@ import {
   TableRow,
   TextField,
   Pagination,
+  Tabs,
+  Tab,
 } from "@mui/material";
 import {
   Search as SearchIcon,
   InfoOutlined as InfoIcon,
+  CompareArrows as CompareIcon,
+  BubbleChart as CascataIcon,
 } from "@mui/icons-material";
 import {
   ResponsiveContainer,
@@ -33,75 +37,45 @@ import {
 } from "recharts";
 import {
   api,
-  InfluenceSummaryResponse,
-  InfluenceGraphResponse,
-  InfluenceSeed,
   AccountDetail,
 } from "../api/client.ts";
+import {
+  useInfluenceSummaryQuery,
+  useInfluenceGraphQuery,
+  useInfluenceComparisonQuery,
+  useInfluenceSeedsQuery,
+} from "../api/queries.ts";
+import { useAppStore } from "../store/useAppStore.ts";
+import { AnimatePresence } from "framer-motion";
+import PageTransition from "../components/PageTransition.tsx";
 import InfluenceGraphCanvas from "../components/InfluenceGraphCanvas.tsx";
 import AccountDetailModal from "../components/AccountDetailModal.tsx";
+import InfluenceAlgorithmComparison from "../components/InfluenceAlgorithmComparison.tsx";
+
+
 
 export default function InfluenceMaximization() {
-  const [summary, setSummary] = useState<InfluenceSummaryResponse | null>(null);
-  const [graphData, setGraphData] = useState<InfluenceGraphResponse | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const { activeInfluenceTab: activeTab, setActiveInfluenceTab: setActiveTab, selectedSeedId, setSelectedSeedId } = useAppStore();
+
+  const { data: summary, isLoading: loadingSummary, isError: errorSummary } = useInfluenceSummaryQuery();
+  const { data: graphData } = useInfluenceGraphQuery(selectedSeedId);
+  const { data: comparisonData } = useInfluenceComparisonQuery();
 
   // Leaderboard seeds pagination and search
   const [seedsPage, setSeedsPage] = useState<number>(1);
   const [seedsSearch, setSeedsSearch] = useState<string>("");
-  const [seedsData, setSeedsData] = useState<{ seeds: InfluenceSeed[]; total: number } | null>(null);
-  const [seedsLoading, setSeedsLoading] = useState<boolean>(false);
+  const { data: seedsRes, isLoading: seedsLoading } = useInfluenceSeedsQuery(seedsPage, 10, seedsSearch);
+  const seedsData = seedsRes ? { seeds: seedsRes.seeds, total: seedsRes.total } : null;
 
   // Modal detail state
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [modalAccount, setModalAccount] = useState<AccountDetail | null>(null);
   const [modalLoading, setModalLoading] = useState<boolean>(false);
 
-  // Selected Seed Focus State
-  const [selectedSeedId, setSelectedSeedId] = useState<string>("66109");
-
-  useEffect(() => {
-    Promise.all([api.influenceSummary(), api.influenceGraph(selectedSeedId)])
-      .then(([summaryRes, graphRes]) => {
-        setSummary(summaryRes);
-        setGraphData(graphRes);
-        if (summaryRes.top_seeds && summaryRes.top_seeds.length > 0 && !selectedSeedId) {
-          setSelectedSeedId(summaryRes.top_seeds[0].id);
-        }
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Errore caricamento dati Influence Maximization:", err);
-        setError("Impossibile caricare i dati di simulazione Influence Maximization.");
-        setLoading(false);
-      });
-  }, []);
-
-  // Fetch updated seed graph when selectedSeedId changes
   const handleSelectSeedFocus = (seedId: string) => {
     setSelectedSeedId(seedId);
-    api.influenceGraph(seedId)
-      .then((res) => {
-        setGraphData(res);
-      })
-      .catch((err) => console.error("Errore aggiornamento grafo per seed:", err));
   };
 
-
-  // Fetch paginated seeds leaderboard
-  useEffect(() => {
-    setSeedsLoading(true);
-    api.influenceSeeds(seedsPage, 10, seedsSearch)
-      .then((res) => {
-        setSeedsData({ seeds: res.seeds, total: res.total });
-        setSeedsLoading(false);
-      })
-      .catch((err) => {
-        console.error("Errore caricamento seeds leaderboard:", err);
-        setSeedsLoading(false);
-      });
-  }, [seedsPage, seedsSearch]);
 
   const handleSelectAccount = (idString: string) => {
     const parsedId = parseInt(idString, 10);
@@ -120,7 +94,7 @@ export default function InfluenceMaximization() {
       });
   };
 
-  if (loading) {
+  if (loadingSummary) {
     return (
       <Box sx={{ p: 2 }}>
         <Skeleton variant="text" width={300} height={40} sx={{ mb: 2, borderRadius: "12px" }} />
@@ -137,15 +111,16 @@ export default function InfluenceMaximization() {
     );
   }
 
-  if (error || !summary) {
+  if (errorSummary || !summary) {
     return (
       <Box sx={{ mt: 6, textAlign: "center" }}>
         <Typography color="error" variant="h6">
-          {error || "Dati Influence Maximization non disponibili."}
+          Dati Influence Maximization non disponibili.
         </Typography>
       </Box>
     );
   }
+
 
   const { meta, demographics, step_stats, top_targets } = summary;
 
@@ -196,8 +171,45 @@ export default function InfluenceMaximization() {
         </Typography>
       </Box>
 
-      {/* KPI Highlight Cards Grid */}
-      <Grid container spacing={3} sx={{ mb: 6 }}>
+      {/* Navigation Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: "#e5e7eb", mb: 4 }}>
+        <Tabs
+          value={activeTab}
+          onChange={(_e, val) => setActiveTab(val)}
+          sx={{
+            "& .MuiTab-root": {
+              fontFamily: "Space Grotesk, Inter, sans-serif",
+              fontWeight: 600,
+              fontSize: "15px",
+              textTransform: "none",
+              py: 1.5,
+              px: 3,
+              borderRadius: "12px 12px 0 0",
+              transition: "all 0.2s ease-in-out",
+            },
+            "& .Mui-selected": {
+              color: "#ff7759",
+              backgroundColor: "rgba(255, 119, 89, 0.05)",
+            },
+            "& .MuiTabs-indicator": {
+              backgroundColor: "#ff7759",
+              height: 3,
+              borderRadius: "3px 3px 0 0",
+            },
+          }}
+        >
+          <Tab icon={<CascataIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Simulazione Cascata IC" />
+          <Tab icon={<CompareIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Comparazione Algoritmi IM" />
+        </Tabs>
+      </Box>
+
+      <AnimatePresence mode="wait">
+        {activeTab === 0 ? (
+          <PageTransition keyName="tab-cascata">
+            {/* KPI Highlight Cards Grid */}
+            <Grid container spacing={3} sx={{ mb: 6 }}>
+
+
         {/* Dimensione Rete Totale */}
         <Grid item xs={12} sm={6} md={2.4}>
           <Paper
@@ -845,6 +857,16 @@ export default function InfluenceMaximization() {
           </Grid>
         </Grid>
       </Paper>
+          </PageTransition>
+        ) : (
+          comparisonData && (
+            <PageTransition keyName="tab-comparazione">
+              <InfluenceAlgorithmComparison data={comparisonData} />
+            </PageTransition>
+          )
+        )}
+      </AnimatePresence>
+
 
       {/* Account Detail Modal */}
       <AccountDetailModal
@@ -859,3 +881,4 @@ export default function InfluenceMaximization() {
     </Box>
   );
 }
+

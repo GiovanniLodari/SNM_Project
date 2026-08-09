@@ -1006,4 +1006,10 @@ def influence_nodes(
     return influence_service.get_influence_nodes(
         page=page, page_size=page_size, search=search, step_filter=step, type_filter=type
     )
+
+
+@router.get("/influence-maximization/comparison")
+def influence_comparison():
+    return influence_service.get_algo_comparison()
+
 

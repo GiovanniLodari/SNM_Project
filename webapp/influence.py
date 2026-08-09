@@ -1,10 +1,12 @@
 import json
 import threading
 from typing import Any, Dict, List, Optional
-from webapp.path_utils import INFLUENCE_MAXIMIZATION_PATH
+from webapp.path_utils import INFLUENCE_MAXIMIZATION_PATH, CONFRONTO_ALGORITMI_PATH
 
 _CACHE_LOCK = threading.Lock()
 _INFLUENCE_DATA_CACHE: Optional[Dict[str, Any]] = None
+_ALGO_COMPARISON_CACHE: Optional[Dict[str, Any]] = None
+
 
 
 def load_influence_data() -> Dict[str, Any]:
@@ -446,3 +448,43 @@ def get_influence_nodes(page: int = 1, page_size: int = 25, search: str = "", st
         "page_size": limit,
         "has_next": end < total,
     }
+
+
+def get_algo_comparison() -> Dict[str, Any]:
+    """Carica e memorizza in cache il confronto benchmark degli algoritmi IM."""
+    global _ALGO_COMPARISON_CACHE
+    if _ALGO_COMPARISON_CACHE is not None:
+        return _ALGO_COMPARISON_CACHE
+
+    with _CACHE_LOCK:
+        if _ALGO_COMPARISON_CACHE is not None:
+            return _ALGO_COMPARISON_CACHE
+
+        path = CONFRONTO_ALGORITMI_PATH
+        if not path.exists():
+            raise FileNotFoundError(f"File confronto algoritmi non trovato: {path}")
+
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        clean_algos = {}
+        for algo_name, algo_info in data.get("algorithms", {}).items():
+            seeds_list = algo_info.get("seeds", [])
+            clean_algos[algo_name] = {
+                "n_seeds": algo_info.get("n_seeds", len(seeds_list)),
+                "est_spread": algo_info.get("est_spread"),
+                "mc_spread": algo_info.get("mc_spread"),
+                "time_s": algo_info.get("time_s"),
+                "seeds_sample": seeds_list[:15],
+            }
+
+        _ALGO_COMPARISON_CACHE = {
+            "subgraph": data.get("subgraph", {}),
+            "k": data.get("k", 1000),
+            "eval_runs": data.get("eval_runs", 500),
+            "algorithms": clean_algos,
+            "seed_overlap_jaccard": data.get("seed_overlap_jaccard", {}),
+            "winner_by_mc_spread": data.get("winner_by_mc_spread", "CELF++"),
+        }
+        return _ALGO_COMPARISON_CACHE
+

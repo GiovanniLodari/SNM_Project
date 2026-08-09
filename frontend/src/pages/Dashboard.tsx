@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
 import { Grid, Typography, Box, CircularProgress, LinearProgress, Button } from "@mui/material";
 import { Link } from "react-router-dom";
-import { api, DashboardStats } from "../api/client.ts";
+import { useDashboardQuery } from "../api/queries.ts";
 import GraphHero from "../components/GraphHero.tsx";
 import DescriptiveStatsBlock from "../components/DescriptiveStatsBlock.tsx";
 import {
@@ -13,22 +12,7 @@ import {
 } from "@mui/icons-material";
 
 export default function Dashboard() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    api.dashboard()
-      .then((data) => {
-        setStats(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setError("Impossibile caricare le statistiche del server.");
-        setLoading(false);
-      });
-  }, []);
+  const { data: stats, isLoading: loading, isError } = useDashboardQuery();
 
   if (loading) {
     return (
@@ -38,10 +22,10 @@ export default function Dashboard() {
     );
   }
 
-  if (error || !stats) {
+  if (isError || !stats) {
     return (
       <Box sx={{ mt: 4, textAlign: "center" }}>
-        <Typography color="error" variant="h6">{error || "Dati non disponibili."}</Typography>
+        <Typography color="error" variant="h6">Impossibile caricare le statistiche del server.</Typography>
       </Box>
     );
   }
@@ -82,19 +66,18 @@ export default function Dashboard() {
                 <PostsIcon sx={{ color: "#17171c" }} />
               </Box>
               <Typography
-          variant="h3"
-          sx={{
-            fontFamily: "Space Grotesk, Inter, sans-serif",
-            fontWeight: 400,
-            fontSize: { xs: "32px", md: "48px" },
-            color: "#17171c",
-            letterSpacing: "-1.2px",
-            lineHeight: 1.05,
-            mb: 2,
-          }}
-        >
-          Statistiche Descrittive del Corpus
-        </Typography>
+                variant="h1"
+                sx={{
+                  fontFamily: "Space Grotesk, Inter, sans-serif",
+                  fontWeight: 400,
+                  fontSize: "64px",
+                  color: "#17171c",
+                  lineHeight: 1.0,
+                  mb: 1,
+                }}
+              >
+                {stats.posts_total.toLocaleString()}
+              </Typography>
               <Typography variant="body2" sx={{ color: "#75758a" }}>
                 Total post records collected from monitored instance nodes.
               </Typography>
