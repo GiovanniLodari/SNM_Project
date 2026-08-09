@@ -28,6 +28,7 @@ import {
   Fullscreen,
   FullscreenExit,
   Search as SearchIcon,
+  Public as PublicIcon,
 } from "@mui/icons-material";
 import { api, GraphNode, GraphLink, AccountSearchResult, AccountDetail } from "../api/client.ts";
 import AccountDetailModal from "./AccountDetailModal.tsx";
@@ -654,7 +655,7 @@ export default function GraphHero() {
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
             <Chip
               icon={<HubIcon sx={{ fontSize: "14px !important", color: "#00e5ff !important" }} />}
-              label="PROGRESSIVE TOPOLOGY STREAM"
+              label="COMMUNITY TOPOLOGY DYNAMICS"
               sx={{
                 fontFamily: "ui-monospace, monospace",
                 fontSize: "10px",
@@ -709,7 +710,7 @@ export default function GraphHero() {
               color: "#ffffff",
             }}
           >
-            Fediverse Intelligence Command Center.
+            Fediverse Intelligence Command Center
           </Typography>
         </Box>
 
@@ -752,9 +753,21 @@ export default function GraphHero() {
             },
           }}
         >
-          <MenuItem value="all">🌐 Tutti gli account</MenuItem>
-          <MenuItem value="bot">🤖 Solo Bot</MenuItem>
-          <MenuItem value="human">👤 Solo Utenti</MenuItem>
+          <MenuItem value="all">
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <PublicIcon sx={{ fontSize: 16 }} /> Tutti gli account
+            </Box>
+          </MenuItem>
+          <MenuItem value="bot">
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <BotIcon sx={{ fontSize: 16 }} /> Solo Bot
+            </Box>
+          </MenuItem>
+          <MenuItem value="human">
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <HumanIcon sx={{ fontSize: 16 }} /> Solo Utenti
+            </Box>
+          </MenuItem>
         </Select>
 
         {/* Account Search Autocomplete Bar */}

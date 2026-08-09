@@ -6,21 +6,45 @@ export interface Post {
   acct: string;
   bot: boolean;
   domain: string;
+  fastdetect_prob?: number | null;
+  binoculars_prob?: number | null;
+  desklib_prob?: number | null;
+  ada_prob?: number | null;
 }
 
 export interface AiScore {
   id: number;
   probability: number;
+  criterion?: number | null;
+  ntokens?: number | null;
   model?: string;
 }
+
 
 export interface FactCheck {
   id: number;
   verdict: string;
+  veracity?: number;
   confidence: number | null;
   reasoning: string;
+  evidence_urls?: string;
   evidence?: any;
+  model?: string;
 }
+
+
+export interface FactCheckResponse {
+  done: number;
+  eligible: number;
+  verdicts: Record<string, number>;
+  page_rows: { post: Post; row: FactCheck }[];
+  page: number;
+  page_size: number;
+  has_next: boolean;
+  verdict_options: string[];
+  selected_verdicts: string[];
+}
+
 
 export interface DashboardStats {
   posts_total: number;
@@ -45,6 +69,9 @@ export interface PostsResponse {
 export interface PostDetailResponse {
   post: Post | null;
   ai_score: AiScore | null;
+  binoculars_score?: AiScore | null;
+  desklib_score?: AiScore | null;
+  ada_score?: AiScore | null;
   fact_check: FactCheck | null;
 }
 
@@ -56,6 +83,35 @@ export interface AccountsStats {
   ai_and_not_bot: number;
 }
 
+export interface DescriptiveStats {
+  total_analyzed: number;
+  probability: {
+    mean: number;
+    median: number;
+    std: number;
+    min: number;
+    max: number;
+  };
+  criteria?: {
+    mean: number;
+    median: number;
+    min: number;
+    max: number;
+  };
+  distribution_curve: { bucket: string; count: number; percentage: number }[];
+  text_length: {
+    avg_chars: number;
+    median_chars: number;
+    avg_tokens: number;
+  };
+  bot_breakdown: {
+    bots: number;
+    humans: number;
+    bot_percentage: number;
+  };
+  top_domains: { domain: string; count: number }[];
+}
+
 export interface AiDetectionResponse {
   done: number;
   eligible: number;
@@ -63,13 +119,17 @@ export interface AiDetectionResponse {
   ai_threshold: number;
   histogram: Record<string, number>;
   bucket_samples?: Record<string, { post: Post; probability: number }[]>;
+  stats?: DescriptiveStats;
   page_rows: { post: Post; probability: number }[];
   page: number;
   page_size: number;
   has_next: boolean;
   prob_buckets: string[];
   selected_buckets: string[];
+  sort_by?: string;
 }
+
+
 
 
 export interface FactCheckResponse {
@@ -201,6 +261,186 @@ async function postJson<T>(url: string, body: URLSearchParams | FormData): Promi
   return (await res.json()) as T;
 }
 
+export interface DetectorModelInfo {
+  id: string;
+  name: string;
+  type: string;
+  scored_count: number;
+  ai_detected_count: number;
+  ai_percentage: number;
+  description: string;
+}
+
+export interface DetectorComparisonSummaryResponse {
+  models: DetectorModelInfo[];
+  comparison_report: {
+    soglia_ai: number;
+    id_totali: number;
+    id_presenti_in_tutti_e_4?: number;
+    id_presenti_in_tutti_e_3?: number;
+    conteggio_ai: {
+      ai_per_tutti_e_4?: number;
+      ai_per_tutti_e_3?: number;
+      ai_per_esattamente_3?: number;
+      ai_per_esattamente_2: number;
+      ai_per_esattamente_1: number;
+      ai_per_nessuno: number;
+    };
+    accordo: {
+      tutti_e_4_stessa_etichetta?: number;
+      tutti_e_3_stessa_etichetta?: number;
+      coppie: {
+        "bino-gpt"?: number;
+        "bino-desk"?: number;
+        "bino-ada"?: number;
+        "desk-gpt"?: number;
+        "desk-ada"?: number;
+        "gpt-ada"?: number;
+      };
+    };
+    copertura: {
+      fastdetectgpt?: number;
+      binoculars: number;
+      desklib: number;
+      "gpt-neo"?: number;
+      adadetectgpt?: number;
+    };
+  };
+  binoculars_report: {
+    counts?: {
+      total_in_file: number;
+      scored: number;
+      short_unreliable: number;
+      ai_generated: number;
+      human: number;
+    };
+    histogram_pct?: Record<string, number>;
+    by_lang?: Record<string, { n: number; ai: number }>;
+  };
+  bot_investigation?: {
+    total_bot_statuses: number;
+    total_human_statuses: number;
+    models: {
+      fastdetectgpt: { scored: number; ai_count: number; ai_percentage: number };
+      binoculars: { scored: number; ai_count: number; ai_percentage: number };
+      desklib: { scored: number; ai_count: number; ai_percentage: number };
+      ada?: { scored: number; ai_count: number; ai_percentage: number };
+    };
+  };
+}
+
+
+export interface ComparisonPostRow {
+  id: number;
+  text: string;
+  lang: string;
+  created_at: string | null;
+  fastdetect_prob: number | null;
+  binoculars_prob: number | null;
+  desklib_prob: number | null;
+  ada_prob: number | null;
+  ai_votes: number;
+}
+
+export interface DetectorComparisonPostsResponse {
+  posts: ComparisonPostRow[];
+  total: number;
+  page: number;
+  page_size: number;
+  filter_type: string;
+}
+
+export interface InfluenceMeta {
+  nodes: number;
+  edges: number;
+  seeds: number;
+  reached_nodes: number;
+  reached_pct: number;
+  num_steps: number;
+  note: string;
+}
+
+export interface InfluenceDemographics {
+  activated_total: number;
+  activated_ai: number;
+  activated_human: number;
+  seeds_ai: number;
+  seeds_human: number;
+}
+
+export interface InfluenceStepStat {
+  step: number;
+  new_nodes: number;
+  new_ai: number;
+  new_human: number;
+  cumulative_nodes: number;
+  cumulative_pct: number;
+  fired_edges: number;
+}
+
+export interface InfluenceSeed {
+  id: string;
+  acct: string;
+  followers: number;
+  is_ia: boolean;
+  direct_reached: number;
+  efficiency: number;
+  step: number;
+}
+
+export interface InfluenceTarget {
+  id: string;
+  acct: string;
+  followers: number;
+  is_ia: boolean;
+  activation_step: number;
+}
+
+export interface InfluenceSummaryResponse {
+  meta: InfluenceMeta;
+  demographics: InfluenceDemographics;
+  step_stats: InfluenceStepStat[];
+  top_seeds: InfluenceSeed[];
+  top_targets: InfluenceTarget[];
+}
+
+export interface InfluenceGraphNode {
+  id: string;
+  acct: string;
+  followers: number;
+  is_ia: boolean;
+  is_seed: boolean;
+  activation_step: number;
+}
+
+export interface InfluenceGraphLink {
+  source: string;
+  target: string;
+  p_ic: number;
+  step: number;
+}
+
+export interface InfluenceGraphResponse {
+  nodes: InfluenceGraphNode[];
+  links: InfluenceGraphLink[];
+}
+
+export interface InfluenceSeedsResponse {
+  seeds: InfluenceSeed[];
+  total: number;
+  page: number;
+  page_size: number;
+  has_next: boolean;
+}
+
+export interface InfluenceNodesResponse {
+  nodes: InfluenceGraphNode[];
+  total: number;
+  page: number;
+  page_size: number;
+  has_next: boolean;
+}
+
 export const api = {
   dashboard: () => getJson<DashboardStats>("/api/dashboard"),
   graph: (limit?: number, mode?: string) => getJson<GraphData>(`/api/graph${buildQuery({ limit, mode })}`),
@@ -210,14 +450,21 @@ export const api = {
     getJson<{ accounts: AccountSearchResult[] }>(`/api/accounts/search${buildQuery({ q })}`),
   accountDetail: (id: number) =>
     getJson<AccountDetailResponse>(`/api/accounts/${id}/detail`),
-  posts: (lang: string[], page: number) =>
-    getJson<PostsResponse>(`/api/posts${buildQuery({ lang, page })}`),
+  posts: (lang: string[], page: number, pageSize: number = 25) =>
+    getJson<PostsResponse>(`/api/posts${buildQuery({ lang, page, page_size: pageSize })}`),
   postDetail: (id: number) => getJson<PostDetailResponse>(`/api/posts/${id}`),
   accounts: () => getJson<AccountsStats>("/api/accounts"),
-  aiDetection: (probBucket: string[], page: number) =>
-    getJson<AiDetectionResponse>(`/api/ai-detection${buildQuery({ prob_bucket: probBucket, page })}`),
-  factCheck: (verdict: string[], page: number) =>
-    getJson<FactCheckResponse>(`/api/fact-check${buildQuery({ verdict, page })}`),
+  aiDetection: (probBucket: string[], page: number, sortBy: string = "id", detector: string = "fastdetect") =>
+    getJson<AiDetectionResponse>(`/api/ai-detection${buildQuery({ detector, prob_bucket: probBucket, page, sort_by: sortBy })}`),
+
+  detectorComparisonSummary: () =>
+    getJson<DetectorComparisonSummaryResponse>("/api/detector-comparison/summary"),
+  detectorComparisonPosts: (filterType: string, page: number, pageSize: number = 25, search: string = "") =>
+    getJson<DetectorComparisonPostsResponse>(`/api/detector-comparison/posts${buildQuery({ filter_type: filterType, page, page_size: pageSize, search })}`),
+
+  factCheck: (verdict: string[], page: number, search: string = "") =>
+    getJson<FactCheckResponse>(`/api/fact-check${buildQuery({ verdict, page, search })}`),
+
   pipelines: () => getJson<PipelinesResponse>("/api/pipelines"),
   dbSync: () => getJson<DbSyncResponse>("/api/db-sync"),
   pipelineStart: (name: string, param: string) =>
@@ -229,6 +476,17 @@ export const api = {
     form.append("file", file);
     return postJson<JobActionResponse>("/api/db-sync/import", form);
   },
+
+  influenceSummary: () => getJson<InfluenceSummaryResponse>("/api/influence-maximization/summary"),
+  influenceGraph: (seedId?: string) =>
+    getJson<InfluenceGraphResponse>(`/api/influence-maximization/graph${buildQuery({ seed_id: seedId })}`),
+  influenceSeeds: (page: number, pageSize: number = 25, search: string = "") =>
+
+    getJson<InfluenceSeedsResponse>(`/api/influence-maximization/seeds${buildQuery({ page, page_size: pageSize, search })}`),
+  influenceNodes: (page: number, pageSize: number = 25, search: string = "", step?: number, type: string = "all") =>
+    getJson<InfluenceNodesResponse>(`/api/influence-maximization/nodes${buildQuery({ page, page_size: pageSize, search, step, type })}`),
 };
+
+
 
 

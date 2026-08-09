@@ -15,21 +15,38 @@ import {
   Chip,
   LinearProgress,
   Grid,
+  ToggleButtonGroup,
+  ToggleButton,
 } from "@mui/material";
 import { Link } from "react-router-dom";
 import { api, AiDetectionResponse } from "../api/client.ts";
-import { ArrowBack as PrevIcon, ArrowForward as NextIcon, SmartToy as BotIcon } from "@mui/icons-material";
+import {
+  ArrowBack as PrevIcon,
+  ArrowForward as NextIcon,
+  SmartToy as BotIcon,
+  ArrowUpward as TopIcon,
+  ArrowDownward as BottomIcon,
+  FormatListNumbered as IdIcon,
+  Analytics as AnalyticsIcon,
+} from "@mui/icons-material";
+import StatsModal from "../components/StatsModal.tsx";
 
 export default function AiDetection() {
   const [data, setData] = useState<AiDetectionResponse | null>(null);
   const [selectedBuckets, setSelectedBuckets] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<string>("id");
   const [page, setPage] = useState(1);
+  const [bucketPages, setBucketPages] = useState<Record<string, number>>({});
+  const [statsModalOpen, setStatsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchAiData = (buckets: string[], pg: number) => {
+
+  const ITEMS_PER_BUCKET_PAGE = 2;
+
+  const fetchAiData = (buckets: string[], pg: number, sort: string) => {
     setLoading(true);
-    api.aiDetection(buckets, pg)
+    api.aiDetection(buckets, pg, sort)
       .then((res) => {
         setData(res);
         setLoading(false);
@@ -42,8 +59,8 @@ export default function AiDetection() {
   };
 
   useEffect(() => {
-    fetchAiData(selectedBuckets, page);
-  }, [page]);
+    fetchAiData(selectedBuckets, page, sortBy);
+  }, [page, selectedBuckets, sortBy]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleBucketChange = (bucket: string) => {
     const nextBuckets = selectedBuckets.includes(bucket)
@@ -51,8 +68,23 @@ export default function AiDetection() {
       : [...selectedBuckets, bucket];
     setSelectedBuckets(nextBuckets);
     setPage(1);
-    fetchAiData(nextBuckets, 1);
+    // fetchAiData verrà chiamato dall'useEffect al cambio di selectedBuckets
   };
+
+  const handleSortChange = (_: any, newSort: string | null) => {
+    if (!newSort) return;
+    setSortBy(newSort);
+    setPage(1);
+    // fetchAiData verrà chiamato dall'useEffect al cambio di sortBy
+  };
+
+  const getBucketPage = (bName: string) => bucketPages[bName] || 1;
+
+  const setBucketPage = (bName: string, newPg: number) => {
+    setBucketPages((prev) => ({ ...prev, [bName]: newPg }));
+  };
+
+
 
   if (loading && !data) {
     return (
@@ -68,14 +100,15 @@ export default function AiDetection() {
     <Box>
       <Box sx={{ mb: 6 }}>
         <Chip
-          label="SYNTHETIC CONTENT CLASSIFICATION"
+          label="DETECTOR 1/3 • GPT-NEO 2.7B ZERO-SHOT"
           sx={{
             fontFamily: "ui-monospace, monospace",
             fontSize: "11px",
-            color: "#75758a",
-            backgroundColor: "#eeece7",
+            color: "#1863dc",
+            backgroundColor: "#f1f5ff",
             mb: 2,
             px: 1,
+            fontWeight: 600,
           }}
         />
         <Typography
@@ -85,14 +118,17 @@ export default function AiDetection() {
             fontWeight: 400,
             fontSize: { xs: "32px", md: "48px" },
             color: "#17171c",
+            letterSpacing: "-0.48px",
+            lineHeight: 1.2,
             mb: 1,
           }}
         >
-          Fast-DetectGPT Probability Spectrum.
+          Rilevamento IA (FastDetectGPT)
         </Typography>
         <Typography variant="body1" sx={{ color: "#75758a" }}>
-          Estimated likelihood distribution of machine-generated synthetic text in English language statuses.
+          Analisi della probabilità di testo generato da IA basata su <strong>FastDetectGPT (GPT-Neo 2.7B)</strong> tramite perturbazioni della curvatura probabilistica.
         </Typography>
+
       </Box>
 
       {data && (
@@ -126,11 +162,37 @@ export default function AiDetection() {
               <Typography variant="body2" sx={{ color: "#75758a" }}>
                 Out of <strong>{data.eligible.toLocaleString()}</strong> eligible English statuses.
               </Typography>
-              <Typography variant="caption" sx={{ color: "#75758a", display: "block", mt: 3 }}>
+              <Typography variant="caption" sx={{ color: "#75758a", display: "block", mt: 2, mb: 2 }}>
                 Threshold for AI flag: &ge; {data.ai_threshold * 100}%
               </Typography>
+
+              <Button
+                variant="contained"
+                startIcon={<AnalyticsIcon />}
+                onClick={() => setStatsModalOpen(true)}
+                disableElevation
+                sx={{
+                  mt: 1,
+                  width: "100%",
+                  borderRadius: "32px",
+                  py: 1.2,
+                  px: 2.5,
+                  fontWeight: 500,
+                  fontSize: "14px",
+                  textTransform: "none",
+                  backgroundColor: "#17171c",
+                  color: "#ffffff",
+                  transition: "background-color 0.15s ease",
+                  "&:hover": {
+                    backgroundColor: "#2e2e38",
+                  },
+                }}
+              >
+                Statistiche Descrittive
+              </Button>
             </Box>
           </Grid>
+
 
           {/* Histogram Chart */}
           <Grid item xs={12} md={8}>
@@ -211,121 +273,228 @@ export default function AiDetection() {
           </Box>
 
           <Grid container spacing={3}>
-            {Object.entries(data.bucket_samples).map(([bucketName, samples]) => (
-              <Grid item xs={12} md={2.4} key={bucketName}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 2.5,
-                    borderRadius: "16px",
-                    border: "1px solid #e2e4e8",
-                    backgroundColor: "#ffffff",
-                    height: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
-                >
-                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                    <Chip
-                      label={`Scaglione ${bucketName}`}
-                      size="small"
-                      sx={{
-                        fontWeight: 700,
-                        fontSize: "11px",
-                        backgroundColor:
-                          bucketName.startsWith("0.8") || bucketName.startsWith("0.6")
-                            ? "#ff7759"
-                            : "#eeece7",
-                        color:
-                          bucketName.startsWith("0.8") || bucketName.startsWith("0.6")
-                            ? "#ffffff"
-                            : "#17171c",
-                      }}
-                    />
-                    <Typography variant="caption" sx={{ color: "#75758a", fontWeight: 600 }}>
-                      {samples.length} post
-                    </Typography>
-                  </Box>
+            {Object.entries(data.bucket_samples).map(([bucketName, samples]) => {
+              const currentPage = getBucketPage(bucketName);
+              const totalPages = Math.max(1, Math.ceil(samples.length / ITEMS_PER_BUCKET_PAGE));
+              const startIndex = (currentPage - 1) * ITEMS_PER_BUCKET_PAGE;
+              const paginatedSamples = samples.slice(startIndex, startIndex + ITEMS_PER_BUCKET_PAGE);
 
-                  {samples.length === 0 ? (
-                    <Typography variant="caption" sx={{ color: "#9e9ea7", fontStyle: "italic", my: "auto" }}>
-                      Nessun post presente in questo scaglione.
-                    </Typography>
-                  ) : (
-                    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, flexGrow: 1, maxHeight: 600, overflowY: "auto", pr: 0.5 }}>
-
-                      {samples.map(({ post, probability }) => (
-                        <Box
-                          key={post.id}
-                          sx={{
-                            p: 1.5,
-                            borderRadius: "10px",
-                            backgroundColor: "#f8f9fa",
-                            border: "1px solid #eff0f3",
-                          }}
-                        >
-                          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-                            <Typography
-                              variant="caption"
-                              sx={{ fontWeight: 600, color: "#17171c", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100px" }}
-                            >
-                              {post.acct}
-                            </Typography>
-                            <Chip
-                              label={`${(probability * 100).toFixed(1)}%`}
-                              size="small"
-                              sx={{
-                                height: "20px",
-                                fontSize: "10px",
-                                fontWeight: 700,
-                                backgroundColor: probability >= 0.5 ? "#fff0ec" : "#eeece7",
-                                color: probability >= 0.5 ? "#d94a2b" : "#555566",
-                              }}
-                            />
-                          </Box>
-
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              display: "-webkit-box",
-                              WebkitLineClamp: 3,
-                              WebkitBoxOrient: "vertical",
-                              overflow: "hidden",
-                              color: "#4a4a5a",
-                              fontSize: "12px",
-                              lineHeight: 1.4,
-                              mb: 1,
-                            }}
-                          >
-                            {post.content}
-                          </Typography>
-
-                          <Link
-                            to={`/posts/${post.id}`}
-                            style={{
-                              color: "#1863dc",
-                              fontSize: "11px",
-                              fontWeight: 600,
-                              textDecoration: "none",
-                            }}
-                          >
-                            Dettaglio &rarr;
-                          </Link>
-                        </Box>
-                      ))}
+              return (
+                <Grid item xs={12} md={2.4} key={bucketName}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2.5,
+                      borderRadius: "16px",
+                      border: "1px solid #e2e4e8",
+                      backgroundColor: "#ffffff",
+                      height: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
+                  >
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                      <Chip
+                        label={`Scaglione ${bucketName}`}
+                        size="small"
+                        sx={{
+                          fontWeight: 700,
+                          fontSize: "11px",
+                          backgroundColor:
+                            bucketName.startsWith("0.8") || bucketName.startsWith("0.6")
+                              ? "#ff7759"
+                              : "#eeece7",
+                          color:
+                            bucketName.startsWith("0.8") || bucketName.startsWith("0.6")
+                              ? "#ffffff"
+                              : "#17171c",
+                        }}
+                      />
+                      <Typography variant="caption" sx={{ color: "#75758a", fontWeight: 600 }}>
+                        {samples.length} post
+                      </Typography>
                     </Box>
-                  )}
-                </Paper>
-              </Grid>
-            ))}
+
+                    {samples.length === 0 ? (
+                      <Typography variant="caption" sx={{ color: "#9e9ea7", fontStyle: "italic", my: "auto" }}>
+                        Nessun post presente in questo scaglione.
+                      </Typography>
+                    ) : (
+                      <>
+                        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, flexGrow: 1 }}>
+                          {paginatedSamples.map(({ post, probability }) => {
+                            const isHighProb = probability >= 0.5;
+                            const probColor = isHighProb ? "#ff7759" : "#3b82f6";
+                            const probBg = isHighProb ? "#fff1ef" : "#eff6ff";
+                            return (
+                              <Paper
+                                key={post.id}
+                                elevation={0}
+                                sx={{
+                                  p: 2,
+                                  borderRadius: "12px",
+                                  backgroundColor: "#fafafa",
+                                  border: "1px solid #e5e7eb",
+                                  transition: "all 0.15s ease",
+                                  "&:hover": {
+                                    backgroundColor: "#ffffff",
+                                    borderColor: isHighProb ? "#ff7759" : "#3b82f6",
+                                    boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                                  },
+                                }}
+                              >
+                                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      fontWeight: 600,
+                                      color: "#17171c",
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                      whiteSpace: "nowrap",
+                                      maxWidth: "100px",
+                                      fontSize: "12px",
+                                    }}
+                                  >
+                                    {post.acct}
+                                  </Typography>
+                                  <Chip
+                                    label={`${(probability * 100).toFixed(1)}%`}
+                                    size="small"
+                                    sx={{
+                                      height: "20px",
+                                      fontSize: "10px",
+                                      fontWeight: 700,
+                                      backgroundColor: probBg,
+                                      color: probColor,
+                                    }}
+                                  />
+                                </Box>
+
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    display: "-webkit-box",
+                                    WebkitLineClamp: 4,
+                                    WebkitBoxOrient: "vertical",
+                                    overflow: "hidden",
+                                    color: "#212121",
+                                    fontSize: "13px",
+                                    lineHeight: 1.5,
+                                    mb: 1.5,
+                                  }}
+                                >
+                                  {post.content}
+                                </Typography>
+
+                                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                  <Typography variant="caption" sx={{ color: "#75758a", fontSize: "10px", fontFamily: "monospace" }}>
+                                    #{post.id}
+                                  </Typography>
+                                  <Button
+                                    component={Link}
+                                    to={`/posts/${post.id}`}
+                                    size="small"
+                                    variant="contained"
+                                    disableElevation
+                                    sx={{
+                                      fontSize: "11px",
+                                      fontWeight: 600,
+                                      textTransform: "none",
+                                      py: 0.3,
+                                      px: 1.5,
+                                      borderRadius: "16px",
+                                      backgroundColor: "#1863dc",
+                                      color: "#ffffff",
+                                      "&:hover": { backgroundColor: "#114cb0" },
+                                    }}
+                                  >
+                                    Vedi Dettagli &rarr;
+                                  </Button>
+                                </Box>
+                              </Paper>
+                            );
+                          })}
+                        </Box>
+
+                        {/* Pagination controls for this tier column */}
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 2, pt: 1.5, borderTop: "1px solid #f1f5f9" }}>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            disabled={currentPage <= 1}
+                            onClick={() => setBucketPage(bucketName, currentPage - 1)}
+                            sx={{ minWidth: "32px", px: 1, py: 0.2, fontSize: "11px", borderRadius: "8px" }}
+                          >
+                            &larr; Indietro
+                          </Button>
+                          <Typography variant="caption" sx={{ color: "#64748b", fontSize: "11px", fontWeight: 600 }}>
+                            {currentPage} / {totalPages}
+                          </Typography>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            disabled={currentPage >= totalPages}
+                            onClick={() => setBucketPage(bucketName, currentPage + 1)}
+                            sx={{ minWidth: "32px", px: 1, py: 0.2, fontSize: "11px", borderRadius: "8px" }}
+                          >
+                            Avanti &rarr;
+                          </Button>
+                        </Box>
+                      </>
+                    )}
+                  </Paper>
+                </Grid>
+              );
+            })}
           </Grid>
         </Paper>
       )}
 
 
+
       <Grid container spacing={4}>
-        {/* Filters */}
+        {/* Filters & Sorting */}
+
         <Grid item xs={12} md={3}>
+
+          <Paper sx={{ p: 3, borderRadius: "16px", border: "1px solid #e5e7eb", backgroundColor: "#ffffff", mb: 3 }}>
+            <Typography variant="caption" sx={{ color: "#75758a", mb: 1.5, display: "block" }}>
+              SORT PROBABILITIES
+            </Typography>
+            <ToggleButtonGroup
+              value={sortBy}
+              exclusive
+              onChange={handleSortChange}
+              size="small"
+              fullWidth
+              sx={{
+                "& .MuiToggleButton-root": {
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  textTransform: "none",
+                  py: 0.8,
+                  "&.Mui-selected": {
+                    backgroundColor: "#ff7759",
+                    color: "#ffffff",
+                    "&:hover": { backgroundColor: "#e66043" },
+                  },
+                },
+              }}
+            >
+              <ToggleButton value="top">
+                <TopIcon sx={{ fontSize: 16, mr: 0.5 }} /> Top %
+              </ToggleButton>
+              <ToggleButton value="bottom">
+                <BottomIcon sx={{ fontSize: 16, mr: 0.5 }} /> Bottom %
+              </ToggleButton>
+              <ToggleButton value="id">
+                <IdIcon sx={{ fontSize: 16, mr: 0.5 }} /> Default
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Paper>
+
           <Paper sx={{ p: 3, borderRadius: "16px", border: "1px solid #e5e7eb", backgroundColor: "#ffffff" }}>
             <Typography variant="caption" sx={{ color: "#75758a", mb: 2, display: "block" }}>
               SCORE QUARTILES
@@ -360,6 +529,7 @@ export default function AiDetection() {
             )}
           </Paper>
         </Grid>
+
 
         {/* AI Posts List */}
         <Grid item xs={12} md={9}>
@@ -480,6 +650,15 @@ export default function AiDetection() {
           )}
         </Grid>
       </Grid>
+
+      {/* Descriptive Statistics Modal */}
+      <StatsModal
+        open={statsModalOpen}
+        onClose={() => setStatsModalOpen(false)}
+        stats={data?.stats}
+        detectorLabel="FastDetectGPT (GPT-Neo 2.7B)"
+      />
     </Box>
   );
 }
+

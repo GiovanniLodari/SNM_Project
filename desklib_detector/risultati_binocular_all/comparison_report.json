@@ -1,0 +1,24 @@
+{
+  "soglia_ai": 0.5,
+  "id_totali": 200042,
+  "id_presenti_in_tutti_e_3": 192820,
+  "conteggio_ai": {
+    "ai_per_tutti_e_3": 1014,
+    "ai_per_esattamente_2": 13809,
+    "ai_per_esattamente_1": 91776,
+    "ai_per_nessuno": 93443
+  },
+  "accordo": {
+    "tutti_e_3_stessa_etichetta": 87439,
+    "coppie": {
+      "bino-gpt": 168525,
+      "bino-desk": 101888,
+      "desk-gpt": 97285
+    }
+  },
+  "copertura": {
+    "binoculars": 200040,
+    "desklib": 200042,
+    "gpt-neo": 192822
+  }
+}
