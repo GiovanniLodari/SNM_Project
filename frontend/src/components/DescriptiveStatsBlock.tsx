@@ -260,7 +260,7 @@ export default function DescriptiveStatsBlock() {
                         borderRadius: tokens.radius.sm,
                         color: "#fff",
                       }}
-                      formatter={(val: any) => [`${Number(val || 0).toLocaleString()} status`, "Frequenza"]}
+                      formatter={(val) => [`${Number(val || 0).toLocaleString()} status`, "Frequenza"]}
                     />
                     <Area type="monotone" dataKey="count" stroke={tokens.color.coral} strokeWidth={2.5} fillOpacity={1} fill="url(#dashboardProbGradient)" />
                   </AreaChart>

@@ -88,7 +88,7 @@ export default function AiDetection({ detectorKey }: AiDetectionProps = {}) {
     setPage(1);
   };
 
-  const handleSortChange = (_: any, newSort: string | null) => {
+  const handleSortChange = (_: React.SyntheticEvent, newSort: string | null) => {
     if (!newSort) return;
     setSortBy(newSort);
     setPage(1);

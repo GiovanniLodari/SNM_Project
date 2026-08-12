@@ -20,7 +20,7 @@ import {
 } from "@mui/icons-material";
 import { api, JobRow } from "../api/client.ts";
 import { usePipelinesQuery } from "../api/queries.ts";
-import { useNotification } from "../context/NotificationContext.tsx";
+import { useNotification } from "../context/useNotification.ts";
 import { tokens } from "../theme.ts";
 import { LoadingState, ErrorState } from "../components/States.tsx";
 

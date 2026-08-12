@@ -1,9 +1,10 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// En desarrollo el dev server de Vite corre en :5173 y el backend FastAPI
-// en :8080. Todas las llamadas a /api/* se proxean al backend para evitar
-// CORS en el navegador y mantener una sola base URL en el cliente.
+// In sviluppo il dev server di Vite gira su :5173 e il backend FastAPI su
+// :8088. Tutte le chiamate a /api/* sono inoltrate al backend per evitare
+// problemi di CORS nel browser e tenere una sola base URL nel client.
 export default defineConfig({
   plugins: [react()],
   server: {
@@ -17,5 +18,10 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",
+  },
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: ["./src/test/setup.ts"],
   },
 });

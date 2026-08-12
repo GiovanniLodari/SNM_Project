@@ -249,7 +249,7 @@ export default function FactChecking() {
             <BarChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
               <XAxis dataKey="name" style={{ fontSize: "12px", fontWeight: 600 }} />
               <YAxis tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-              <RechartsTooltip formatter={(val: any) => [Number(val).toLocaleString("it-IT"), "Post"]} />
+              <RechartsTooltip formatter={(val) => [Number(val).toLocaleString("it-IT"), "Post"]} />
               <Bar dataKey="count" radius={[8, 8, 0, 0]}>
                 {chartData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />

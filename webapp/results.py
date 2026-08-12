@@ -111,7 +111,12 @@ def load_fact_checks(path: Path) -> dict[int, dict]:
                     row["verdict"] = normalize_verdict(row.get("verdict", ""))
                     row["veracity"] = int(row["veracity"]) if row.get("veracity") is not None else 5
                     row["confidence"] = float(row["confidence"]) if row.get("confidence") else None
-                    checks[int(row["id"])] = row
+                    # Il csv da' tutto come stringa: senza questa conversione la
+                    # chiave del dizionario era un intero ma il campo `id` della
+                    # riga restava "8", e la stessa entita' viaggiava verso il
+                    # frontend come numero in post.id e come stringa in row.id.
+                    row["id"] = int(row["id"])
+                    checks[row["id"]] = row
                 except (KeyError, TypeError, ValueError):
                     # Righe troncate/malformate da un crash/interruzione vengono ignorate
                     continue
@@ -486,6 +491,13 @@ def compute_four_detector_comparison(
     considered_full = 0
     full_agree = 0
 
+    # Flussi detector -> fascia di consenso: per ogni post, ciascun detector che
+    # lo etichetta come IA contribuisce alla fascia corrispondente al numero
+    # totale di voti IA ricevuti da quel post. E' il dato che serve al diagramma
+    # Sankey, e che non veniva calcolato: ai_hist dice *quanti* detector hanno
+    # votato, mai *quali*, quindi il grafico non aveva una sorgente reale.
+    flussi = {d: {4: 0, 3: 0, 2: 0, 1: 0} for d in ("gpt", "bino", "desk", "ada")}
+
     for _id in all_ids:
         fd_row = fastdetect_scores.get(_id)
         fd_p = fd_row["probability"] if (fd_row and fd_row.get("probability") is not None and fd_row["probability"] == fd_row["probability"]) else None
@@ -513,6 +525,10 @@ def compute_four_detector_comparison(
         if present:
             ai_votes = sum(1 for v in present.values() if v)
             ai_hist[ai_votes] += 1
+            if ai_votes > 0:
+                for detector, ha_votato_ia in present.items():
+                    if ha_votato_ia:
+                        flussi[detector][ai_votes] += 1
 
         pairs = [
             ("bino", "gpt", "bino-gpt"),
@@ -546,6 +562,9 @@ def compute_four_detector_comparison(
             "tutti_e_4_stessa_etichetta": full_agree,
             "coppie": pair_agreement,
         },
+        # Chiavi in inglese perche' corrispondono agli id dei detector usati
+        # altrove nell'API; i valori sono conteggi per fascia di consenso.
+        "flussi_consenso": flussi,
         "copertura": {
             "fastdetectgpt": len(fastdetect_scores),
             "binoculars": len(bino_scores),

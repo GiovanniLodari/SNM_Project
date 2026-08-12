@@ -1,12 +1,7 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { useState, ReactNode } from "react";
 import { Snackbar, Alert, AlertColor, Typography, Box } from "@mui/material";
 import { tokens } from "../theme.ts";
-
-interface NotificationContextType {
-  notify: (message: string, severity?: AlertColor) => void;
-}
-
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+import { NotificationContext } from "./notification-context.ts";
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -63,12 +58,4 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       </Snackbar>
     </NotificationContext.Provider>
   );
-}
-
-export function useNotification() {
-  const context = useContext(NotificationContext);
-  if (!context) {
-    throw new Error("useNotification must be used within a NotificationProvider");
-  }
-  return context;
 }

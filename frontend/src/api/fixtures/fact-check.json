@@ -1,0 +1,87 @@
+{
+  "done": 35767,
+  "eligible": 192822,
+  "verdicts": {
+    "non verificabile": 19000,
+    "vero": 11955,
+    "misto": 3588,
+    "perlopi\u00c3\u00b9 vero": 419,
+    "falso": 748,
+    "perlopi\u00c3\u00b9 falso": 57
+  },
+  "page_rows": [
+    {
+      "post": {
+        "id": 8,
+        "language": "en",
+        "content": "# China speaks on # Artificialintelligence - \u00e2\u20ac\u0153Core technology is held by a few, and other participants can only get products and services while finding it very hard to build up technical capability of their own. In the AI era \u00e2\u20ac\u201d closed-source models, paid APIs, restricted compute, locked-down ecosystems \u00e2\u20ac\u201d the higher the concentration of technology, the more solid the relations of dependency in the global AI industry become. What China wants to explore is another order: pooling the strength of all humanity and all countries to build an open-source, all-factor AI ecosystem. \u00e2\u20ac\u0153This is because AI is a wholly different sort of technology and is bound to raise a series of security and ethical questions. Only with global participation and shared effort can a safe and effective path of development be found. \u00e2\u20ac\u0153At the 2026 World Artificial Intelligence Conference, the open logic of \u00e2\u20ac\u0153all-factor sharing\u00e2\u20ac\udc9d in China\u00e2\u20ac\u2122s international # AI cooperation will be presented as a clearer, more concrete action framework.\u00e2\u20ac\udc9d \u00e2\u20ac\u201dFrom Sinocism",
+        "created_at": "2026-07-17T06:04:30+02:00",
+        "acct": "CharlieMcHenry@connectop.us",
+        "bot": false,
+        "domain": "thecanadian.social"
+      },
+      "row": {
+        "id": 8,
+        "verdict": "non verificabile",
+        "veracity": 5,
+        "confidence": 0.9,
+        "reasoning": "Nessuna delle fonti fornite contiene informazioni sulla Commissione europea che obblighi Google a consentire agenti IA terzi su Android entro un termine specifico.",
+        "evidence_urls": "https://www.youtube.com/watch?v=MnkD47GMt7s; https://cloud.google.com/gemini-enterprise; https://ec.europa.eu/commission/presscorner/detail/en/ip_24_4123; https://play.google.com/store/apps/details?id=com.google.android.apps.bard&hl=en_US; https://progamersproduction.itch.io/three-android-port",
+        "model": "gpt-oss:20b"
+      }
+    },
+    {
+      "post": {
+        "id": 10,
+        "language": "en",
+        "content": "https://www. europesays.com/3135210/ Can Artificial Intelligence Make Good Music? # AI # Artificial # ArtificialIntelligence # CAN # good # intelligence # make # music",
+        "created_at": "2026-07-17T02:23:03+02:00",
+        "acct": "europesays@pubeurope.com",
+        "bot": false,
+        "domain": "thecanadian.social"
+      },
+      "row": {
+        "id": 10,
+        "verdict": "non verificabile",
+        "veracity": 5,
+        "confidence": 0.4,
+        "reasoning": "Nessuna fonte fornisce prove dell'esistenza del link 3135063 o dei contenuti indicati; le fonti citate non corrispondono a quella URL specifica.",
+        "evidence_urls": "https://www.startuphub.ai/ai-news/ai-research/2026/bridging-agentic-ai-runtimes-with-canonical-verification; https://www.europesays.com/3166733/; https://www.gartner.com/en/newsroom/press-releases/2025-06-25-gartner-predicts-over-40-percent-of-agentic-ai-projects-will-be-canceled-by-end-of-2027; https://www.agenticartificialintelligence.com/; https://www.coursera.org/professional-certificates/ibm-rag-and-agentic-ai",
+        "model": "gpt-oss:20b"
+      }
+    },
+    {
+      "post": {
+        "id": 11,
+        "language": "en",
+        "content": "Google ordered by the European Commission to open Android to third-party AI agents by 1 August 2027 https://www. macrumors.com/2026/07/16/eu-go ogle-ai-apps-android-access/ - - - Google a \u00c3\u00a9t\u00c3\u00a9 ordonn\u00c3\u00a9e par la Commission europ\u00c3\u00a9enne d\u00e2\u20ac\u2122ouvrir Android aux agents IA tierce partie d\u00e2\u20ac\u2122ici le 1er ao\u00c3\u00bbt 2027 https://www. igen.fr/services/2026/07/dma-p ourquoi-google-obtenu-avec-gemini-ai-ce-quapple-na-pas-eu-avec-siri-ai-157109 # EU # EuropeanUnion # UnionEurop\u00c3\u00a9enne # DMA # LMN # Google # Android # AI # IA # ArtificialIntelligence # IntelligenceArtificielle",
+        "created_at": "2026-07-17T01:21:09+02:00",
+        "acct": "EdwinG@mstdn.moimeme.ca",
+        "bot": false,
+        "domain": "thecanadian.social"
+      },
+      "row": {
+        "id": 11,
+        "verdict": "vero",
+        "veracity": 0,
+        "confidence": 0.92,
+        "reasoning": "L\u00e2\u20ac\u2122articolo di FedScoop conferma che il presidente Warsh ha dichiarato che la Fed non esternalizzer\u00c3\u00a0 le decisioni IA a un task force guidato da giganti tecnologici; i riferimenti a Kevin Warsh, Lisa Blunt Rochester e Tina Smith corrispondono allo stesso contenuto.",
+        "evidence_urls": "https://fedscoop.com/federal-reserve-ai-task-force-kevin-warsh/; https://www.youtube.com/watch?v=SYvSE8x4V24; https://www.europesays.com/3166733/; https://t.me/tech_01; https://www-fedscoop-com.nproxy.org/tech-force-hiring-opm-update/",
+        "model": "gpt-oss:20b"
+      }
+    }
+  ],
+  "page": 1,
+  "page_size": 50,
+  "total_count": 35767,
+  "has_next": true,
+  "verdict_options": [
+    "vero",
+    "perlopi\u00c3\u00b9 vero",
+    "misto",
+    "perlopi\u00c3\u00b9 falso",
+    "falso",
+    "non verificabile"
+  ],
+  "selected_verdicts": []
+}

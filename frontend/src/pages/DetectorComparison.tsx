@@ -424,7 +424,7 @@ export default function DetectorComparison() {
           <Grid container spacing={4} sx={{ mb: 6 }}>
             {/* Nivo Sankey Diagram Flow (Sprint 5) */}
             <Grid item xs={12}>
-              <DetectorSankeyChart />
+              <DetectorSankeyChart flussi={summary?.comparison_report?.flussi_consenso} />
             </Grid>
 
             <Grid item xs={12} md={6}>

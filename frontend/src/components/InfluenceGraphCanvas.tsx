@@ -24,6 +24,38 @@ import {
 } from "@mui/icons-material";
 import ReactECharts from "echarts-for-react";
 import { InfluenceGraphNode, InfluenceGraphLink, InfluenceSeed } from "../api/client.ts";
+
+/**
+ * Forma dei nodi e degli archi passati a ECharts. La libreria accetta oggetti
+ * liberi, ma qui erano dichiarati `any[]`: le due strutture centrali del
+ * componente non avevano alcun tipo. `rawNode` e' il nostro dato originale,
+ * che i callback rileggono dal payload dell'evento.
+ */
+interface EchartsNode {
+  id: string;
+  name: string;
+  symbolSize: number;
+  x: number;
+  y: number;
+  category: number;
+  itemStyle: Record<string, unknown>;
+  label: Record<string, unknown>;
+  rawNode: InfluenceGraphNode;
+}
+
+interface EchartsLink {
+  source: string;
+  target: string;
+  lineStyle: Record<string, unknown>;
+}
+
+/** Payload dei callback ECharts, ridotto ai campi effettivamente letti. */
+interface EchartsCallbackParams {
+  dataType?: "node" | "edge";
+  data?: { rawNode?: InfluenceGraphNode };
+  name?: string;
+  value?: number;
+}
 import { tokens } from "../theme.ts";
 
 interface InfluenceGraphCanvasProps {
@@ -114,7 +146,7 @@ export default function InfluenceGraphCanvas({
     };
 
     // Prepare ECharts Node Objects
-    const echartsNodes: any[] = [];
+    const echartsNodes: EchartsNode[] = [];
     const nodePosMap = new Map<string, { x: number; y: number }>();
 
     rawNodes.forEach((node) => {
@@ -191,7 +223,7 @@ export default function InfluenceGraphCanvas({
     });
 
     // Prepare ECharts Links Objects
-    const echartsLinks: any[] = [];
+    const echartsLinks: EchartsLink[] = [];
 
     rawLinks.forEach((link) => {
       const step = link.step;
@@ -227,9 +259,9 @@ export default function InfluenceGraphCanvas({
         backgroundColor: "rgba(23, 23, 28, 0.94)",
         borderColor: "rgba(255, 255, 255, 0.2)",
         textStyle: { color: tokens.color.canvas, fontFamily: tokens.font.body },
-        formatter: (params: any) => {
+        formatter: (params: EchartsCallbackParams) => {
           if (params.dataType === "node") {
-            const raw = params.data.rawNode;
+            const raw = params.data?.rawNode;
             if (!raw) return params.name;
             const isSeed = raw.is_seed || raw.id === selectedSeedId;
             const step = raw.activation_step;
@@ -298,7 +330,7 @@ export default function InfluenceGraphCanvas({
   const pctInfected = Math.round((activeCount / Math.max(1, rawNodes.length)) * 100);
 
   // Click handler on ECharts node
-  const onChartClick = (params: any) => {
+  const onChartClick = (params: EchartsCallbackParams) => {
     if (params.dataType === "node" && params.data?.rawNode && onSelectNode) {
       onSelectNode(params.data.rawNode);
     }

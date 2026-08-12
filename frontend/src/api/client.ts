@@ -1,3 +1,12 @@
+import type { ZodType } from "zod";
+import {
+  dashboardSchema,
+  accountsStatsSchema,
+  factCheckSchema,
+  detectorComparisonSummarySchema,
+  influenceSummarySchema,
+} from "./schemas.ts";
+
 export interface Post {
   id: number;
   language: string | null;
@@ -28,7 +37,7 @@ export interface FactCheck {
   confidence: number | null;
   reasoning: string;
   evidence_urls?: string;
-  evidence?: any;
+  evidence?: unknown;
   model?: string;
 }
 
@@ -234,10 +243,33 @@ function buildQuery(params: Record<string, string | string[] | number | undefine
   return s ? `?${s}` : "";
 }
 
-async function getJson<T>(url: string): Promise<T> {
+/**
+ * GET con validazione opzionale della risposta.
+ *
+ * Senza `schema` il comportamento e' quello di prima: un cast, che si fida del
+ * JSON ricevuto. Con `schema` la forma viene verificata, e una discrepanza fra
+ * backend e frontend diventa un errore immediato e localizzato invece di un
+ * `undefined` che riemerge molte righe piu' avanti.
+ */
+async function getJson<T>(url: string, schema?: ZodType): Promise<T> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Errore ${res.status} su ${url}`);
-  return (await res.json()) as T;
+  const payload = await res.json();
+
+  if (!schema) return payload as T;
+
+  // Lo schema fa da guardia sulla forma, non da sorgente del tipo: puo' quindi
+  // coprire i campi che contano senza rispecchiare ogni struttura annidata
+  // dell'interfaccia. Il tipo dichiarato resta quello di T.
+  const esito = schema.safeParse(payload);
+  if (!esito.success) {
+    const dettagli = esito.error.issues
+      .slice(0, 3)
+      .map((i) => `${i.path.join(".") || "(radice)"}: ${i.message}`)
+      .join("; ");
+    throw new Error(`Risposta inattesa da ${url} — ${dettagli}`);
+  }
+  return payload as T;
 }
 
 async function postJson<T>(url: string, body: URLSearchParams | FormData): Promise<T> {
@@ -257,7 +289,8 @@ export interface DetectorModelInfo {
   type: string;
   scored_count: number;
   ai_detected_count: number;
-  ai_percentage: number;
+  /** null quando il detector non ha valutato nulla: diverso da 0%. */
+  ai_percentage: number | null;
   description: string;
 }
 
@@ -276,6 +309,8 @@ export interface DetectorComparisonSummaryResponse {
       ai_per_esattamente_1: number;
       ai_per_nessuno: number;
     };
+    /** Conteggi detector -> fascia di consenso, per il diagramma Sankey. */
+    flussi_consenso?: Record<string, Record<string, number>>;
     accordo: {
       tutti_e_4_stessa_etichetta?: number;
       tutti_e_3_stessa_etichetta?: number;
@@ -460,7 +495,7 @@ export interface InfluenceComparisonResponse {
 }
 
 export const api = {
-  dashboard: () => getJson<DashboardStats>("/api/dashboard"),
+  dashboard: () => getJson<DashboardStats>("/api/dashboard", dashboardSchema),
   graph: (limit?: number, mode?: string) => getJson<GraphData>(`/api/graph${buildQuery({ limit, mode })}`),
   accountGraph: (accountId: number, limit?: number) =>
     getJson<GraphData>(`/api/graph/account/${accountId}${buildQuery({ limit })}`),
@@ -471,17 +506,17 @@ export const api = {
   posts: (lang: string[], page: number, pageSize: number = 25) =>
     getJson<PostsResponse>(`/api/posts${buildQuery({ lang, page, page_size: pageSize })}`),
   postDetail: (id: number) => getJson<PostDetailResponse>(`/api/posts/${id}`),
-  accounts: () => getJson<AccountsStats>("/api/accounts"),
+  accounts: () => getJson<AccountsStats>("/api/accounts", accountsStatsSchema),
   aiDetection: (probBucket: string[], page: number, sortBy: string = "id", detector: string = "fastdetect") =>
     getJson<AiDetectionResponse>(`/api/ai-detection${buildQuery({ detector, prob_bucket: probBucket, page, sort_by: sortBy })}`),
 
   detectorComparisonSummary: () =>
-    getJson<DetectorComparisonSummaryResponse>("/api/detector-comparison/summary"),
+    getJson<DetectorComparisonSummaryResponse>("/api/detector-comparison/summary", detectorComparisonSummarySchema),
   detectorComparisonPosts: (filterType: string, page: number, pageSize: number = 25, search: string = "") =>
     getJson<DetectorComparisonPostsResponse>(`/api/detector-comparison/posts${buildQuery({ filter_type: filterType, page, page_size: pageSize, search })}`),
 
   factCheck: (verdict: string[], page: number, search: string = "") =>
-    getJson<FactCheckResponse>(`/api/fact-check${buildQuery({ verdict, page, search })}`),
+    getJson<FactCheckResponse>(`/api/fact-check${buildQuery({ verdict, page, search })}`, factCheckSchema),
 
   pipelines: () => getJson<PipelinesResponse>("/api/pipelines"),
   dbSync: () => getJson<DbSyncResponse>("/api/db-sync"),
@@ -495,7 +530,7 @@ export const api = {
     return postJson<JobActionResponse>("/api/db-sync/import", form);
   },
 
-  influenceSummary: () => getJson<InfluenceSummaryResponse>("/api/influence-maximization/summary"),
+  influenceSummary: () => getJson<InfluenceSummaryResponse>("/api/influence-maximization/summary", influenceSummarySchema),
   influenceGraph: (seedId?: string) =>
     getJson<InfluenceGraphResponse>(`/api/influence-maximization/graph${buildQuery({ seed_id: seedId })}`),
   influenceSeeds: (page: number, pageSize: number = 25, search: string = "") =>

@@ -263,7 +263,7 @@ export default function PostDetail() {
                   &ldquo;{fact_check.reasoning}&rdquo;
                 </Typography>
                 
-                {fact_check.evidence && (
+                {fact_check.evidence != null && (
                   <Box sx={{ mt: 3 }}>
                     <Typography variant="caption" sx={{ color: tokens.color.textMuted, mb: 1, display: "block" }}>
                       EVIDENCE LOGS:

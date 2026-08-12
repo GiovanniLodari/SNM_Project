@@ -29,6 +29,7 @@ import {
 } from "recharts";
 import { DescriptiveStats } from "../api/client.ts";
 import { tokens } from "../theme.ts";
+import { percentileDaIstogramma } from "../utils/statistics.ts";
 
 interface StatsModalProps {
   open: boolean;
@@ -122,40 +123,10 @@ export default function StatsModal({
 }: StatsModalProps) {
   if (!stats) return null;
 
-  /**
-   * Percentile ricavato per interpolazione lineare sull'istogramma reale
-   * (`distribution_curve`, 10 bucket da 10 punti percentuali ciascuno).
-   *
-   * Sostituisce `mediana ± std * 0.674`, che assume una distribuzione normale:
-   * le probabilita' dei detector IA sono fortemente bimodali (si addensano
-   * agli estremi 0 e 1), quindi quella formula produceva quartili scorretti,
-   * mostrati in tabella come se fossero misurati. Resta una stima, limitata
-   * dalla granularita' dei bucket, ma deriva dai dati osservati.
-   */
-  const percentile = (frazione: number): number | null => {
-    const curva = stats.distribution_curve;
-    if (!curva || curva.length === 0) return null;
-
-    const totale = curva.reduce((acc, b) => acc + b.count, 0);
-    if (totale === 0) return null;
-
-    const obiettivo = totale * frazione;
-    const ampiezza = 100 / curva.length;
-    let cumulato = 0;
-
-    for (let i = 0; i < curva.length; i++) {
-      const conteggio = curva[i].count;
-      if (cumulato + conteggio >= obiettivo && conteggio > 0) {
-        const quotaNelBucket = (obiettivo - cumulato) / conteggio;
-        return +(i * ampiezza + quotaNelBucket * ampiezza).toFixed(1);
-      }
-      cumulato += conteggio;
-    }
-    return 100;
-  };
-
-  const q1 = percentile(0.25);
-  const q3 = percentile(0.75);
+  // Il calcolo vive in utils/statistics.ts: e' logica pura, quindi testabile
+  // senza montare il modale.
+  const q1 = percentileDaIstogramma(stats.distribution_curve, 0.25);
+  const q3 = percentileDaIstogramma(stats.distribution_curve, 0.75);
   const iqr = q1 !== null && q3 !== null ? +(q3 - q1).toFixed(1) : null;
   const pct = (v: number | null, suffisso: string) => (v !== null ? `${v}${suffisso}` : "n/d");
 
@@ -319,7 +290,7 @@ export default function StatsModal({
                         fontSize: "13px",
                         fontFamily: tokens.font.body,
                       }}
-                      formatter={(val: any) => [
+                      formatter={(val) => [
                         `${Number(val || 0).toLocaleString("it-IT")} post`,
                         "Frequenza",
                       ]}
@@ -644,7 +615,7 @@ export default function StatsModal({
                         borderRadius: tokens.radius.md,
                         fontSize: "13px",
                       }}
-                      formatter={(val: any) => [Number(val).toLocaleString("it-IT"), "Post"]}
+                      formatter={(val) => [Number(val).toLocaleString("it-IT"), "Post"]}
                     />
                     <Bar dataKey="count" radius={[0, 8, 8, 0]}>
                       {stats.top_domains.slice(0, 8).map((_, idx) => (

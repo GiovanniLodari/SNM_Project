@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import {
   Box,
   Typography,
@@ -71,7 +71,11 @@ export default function GraphHero() {
 
   hoveredNodeRef.current = hoveredNode;
 
-  const loadGraphData = (accountId?: number, mode?: string) => {
+  // useCallback perche' l'effect qui sotto dipende da questa funzione: senza,
+  // verrebbe ricreata a ogni render e l'effect si rilancerebbe all'infinito.
+  // Era il motivo della direttiva eslint-disable che stava qui, la quale pero'
+  // non disattivava nulla: un linter non c'era.
+  const loadGraphData = useCallback((accountId?: number, mode?: string) => {
     const effectiveMode = mode ?? graphMode;
     const fetchPromise = accountId ? api.accountGraph(accountId, 80) : api.graph(80, effectiveMode);
 
@@ -105,14 +109,11 @@ export default function GraphHero() {
             : "Impossibile caricare il grafo. Verificare che il backend sia in esecuzione."
         );
       });
-  };
+  }, [graphMode]);
 
-  // graphMode e' una dipendenza reale: loadGraphData lo legge tramite closure,
-  // quindi con l'array vuoto il primo caricamento usava un valore stantio.
   useEffect(() => {
     loadGraphData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [graphMode]);
+  }, [loadGraphData]);
 
   // Handle live account search autocomplete
   useEffect(() => {
@@ -285,9 +286,9 @@ export default function GraphHero() {
         for (let j = i + 1; j < nodes.length; j++) {
           const n1 = nodes[i];
           const n2 = nodes[j];
-          let dx = n2.x - n1.x;
-          let dy = n2.y - n1.y;
-          let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          const dx = n2.x - n1.x;
+          const dy = n2.y - n1.y;
+          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
 
           if (dist < 220) {
             const force = repulsionStrength / (dist * dist);
@@ -306,9 +307,9 @@ export default function GraphHero() {
         const target = nodesMap.get(link.target);
         if (!source || !target) return;
 
-        let dx = target.x - source.x;
-        let dy = target.y - source.y;
-        let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        const dx = target.x - source.x;
+        const dy = target.y - source.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
 
         const delta = dist - springLength;
         const force = delta * springStiffness;

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Box,
   Grid,
@@ -45,7 +46,6 @@ import {
   useInfluenceComparisonQuery,
   useInfluenceSeedsQuery,
 } from "../api/queries.ts";
-import { useAppStore } from "../store/useAppStore.ts";
 import { AnimatePresence } from "framer-motion";
 import PageTransition from "../components/PageTransition.tsx";
 import InfluenceGraphCanvas from "../components/InfluenceGraphCanvas.tsx";
@@ -56,7 +56,29 @@ import { tokens } from "../theme.ts";
 
 
 export default function InfluenceMaximization() {
-  const { activeInfluenceTab: activeTab, setActiveInfluenceTab: setActiveTab, selectedSeedId, setSelectedSeedId } = useAppStore();
+  // Tab attivo e seed selezionato vivono nella URL invece che in uno store
+  // globale: sono stato di navigazione, quindi il posto giusto e' la barra
+  // degli indirizzi. Cosi' un link porta l'altro esattamente dove si e', e il
+  // tasto Indietro del browser funziona. Lo store Zustand serviva solo qui e
+  // conteneva anche un seed iniziale scritto a mano ("66109").
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = Number(searchParams.get("tab") ?? 0);
+  const selectedSeedId = searchParams.get("seed") ?? "";
+
+  const aggiornaParametro = (chiave: string, valore: string) => {
+    setSearchParams(
+      (precedenti) => {
+        const successivi = new URLSearchParams(precedenti);
+        if (valore) successivi.set(chiave, valore);
+        else successivi.delete(chiave);
+        return successivi;
+      },
+      { replace: true },
+    );
+  };
+
+  const setActiveTab = (tab: number) => aggiornaParametro("tab", String(tab));
+  const setSelectedSeedId = (seedId: string) => aggiornaParametro("seed", seedId);
 
   const { data: summary, isLoading: loadingSummary, isError: errorSummary } = useInfluenceSummaryQuery();
   const { data: graphData } = useInfluenceGraphQuery(selectedSeedId);
@@ -543,7 +565,7 @@ export default function InfluenceMaximization() {
                       borderRadius: tokens.radius.md,
                       color: tokens.color.canvas,
                     }}
-                    formatter={(val: any) => [`${val}%`, "Copertura Cumulativa"]}
+                    formatter={(val) => [`${val}%`, "Copertura Cumulativa"]}
                   />
                   <Area
                     type="monotone"
