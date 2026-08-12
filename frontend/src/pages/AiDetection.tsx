@@ -32,6 +32,8 @@ import {
 import StatsModal from "../components/StatsModal.tsx";
 import { tokens } from "../theme.ts";
 import { EmptyState, LoadingState } from "../components/States.tsx";
+import { formatNumber } from "../utils/format.ts";
+import { useUrlList, useUrlNumber, useUrlString } from "../hooks/useUrlState.ts";
 
 interface AiDetectionProps {
   detectorKey?: string;
@@ -65,9 +67,9 @@ export default function AiDetection({ detectorKey }: AiDetectionProps = {}) {
   const activeDetectorKey = detectorKey || params.detector || "fastdetect";
   const config = DETECTOR_CONFIGS[activeDetectorKey] || DETECTOR_CONFIGS.fastdetect;
 
-  const [selectedBuckets, setSelectedBuckets] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<string>("id");
-  const [page, setPage] = useState(1);
+  const [selectedBuckets, setSelectedBuckets] = useUrlList("bucket");
+  const [sortBy, setSortBy] = useUrlString("sort", "id");
+  const [page, setPage] = useUrlNumber("page", 1);
   const [bucketPages, setBucketPages] = useState<Record<string, number>>({});
   const [statsModalOpen, setStatsModalOpen] = useState(false);
 
@@ -160,10 +162,10 @@ export default function AiDetection({ detectorKey }: AiDetectionProps = {}) {
                   mb: 2,
                 }}
               >
-                {data.done.toLocaleString()}
+                {formatNumber(data.done)}
               </Typography>
               <Typography variant="body2" sx={{ color: tokens.color.textMuted }}>
-                Out of <strong>{data.eligible.toLocaleString()}</strong> eligible English statuses.
+                Out of <strong>{formatNumber(data.eligible)}</strong> eligible English statuses.
               </Typography>
               <Typography variant="caption" sx={{ color: tokens.color.textMuted, display: "block", mt: 2, mb: 2 }}>
                 Threshold for AI flag: &ge; {data.ai_threshold * 100}%
@@ -232,7 +234,7 @@ export default function AiDetection({ detectorKey }: AiDetectionProps = {}) {
                         />
                       </Box>
                       <Typography variant="body2" sx={{ minWidth: 60, textAlign: "right", fontWeight: 600, color: tokens.color.nearBlack }}>
-                        {count.toLocaleString()}
+                        {formatNumber(count)}
                       </Typography>
                     </Box>
                   );

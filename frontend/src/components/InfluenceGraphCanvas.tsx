@@ -57,6 +57,7 @@ interface EchartsCallbackParams {
   value?: number;
 }
 import { tokens } from "../theme.ts";
+import { formatNumber } from "../utils/format.ts";
 
 interface InfluenceGraphCanvasProps {
   nodes: InfluenceGraphNode[];
@@ -272,7 +273,7 @@ export default function InfluenceGraphCanvas({
                   @${raw.acct || raw.id}
                 </strong><br/>
                 <span style="font-size: 12px; color: ${tokens.color.textFaint};">ID: ${raw.id}</span><br/>
-                <span style="font-size: 12px; color: ${tokens.color.canvas};">Followers: ${raw.followers?.toLocaleString() || 0}</span><br/>
+                <span style="font-size: 12px; color: ${tokens.color.canvas};">Followers: ${formatNumber(raw.followers ?? 0)}</span><br/>
                 <span style="font-size: 12px; font-weight: bold; color: ${isSeed ? tokens.color.coral : isAct ? tokens.color.activated : tokens.color.textMuted}">
                   Stato: ${isSeed ? "SEED BOT ORIGINE" : isAct ? `CONTAGIATO a Step ${step}` : "INATTIVO"}
                 </span>

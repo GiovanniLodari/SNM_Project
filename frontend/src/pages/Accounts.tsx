@@ -2,6 +2,7 @@ import { Typography, Box, Grid, Skeleton, Paper, LinearProgress, Tooltip, Stack 
 import { useAccountsQuery } from "../api/queries.ts";
 import { SmartToy as BotIcon, People as HumanIcon, Psychology as AiIcon, HelpOutline as HelpIcon } from "@mui/icons-material";
 import { tokens } from "../theme.ts";
+import { formatNumber } from "../utils/format.ts";
 
 export default function Accounts() {
   const { data: stats, isLoading: loading, isError } = useAccountsQuery();
@@ -87,7 +88,7 @@ export default function Accounts() {
                 <Paper sx={{ p: 3, textAlign: "center", borderRadius: tokens.radius.lg, backgroundColor: tokens.color.softStone }}>
                   <BotIcon sx={{ fontSize: 32, mb: 1, color: tokens.color.nearBlack }} />
                   <Typography variant="h4" sx={{ fontFamily: tokens.font.display, fontWeight: 400, color: tokens.color.nearBlack }}>
-                    {stats.bot_total.toLocaleString()}
+                    {formatNumber(stats.bot_total)}
                   </Typography>
                   <Typography variant="caption" sx={{ color: tokens.color.textMuted }}>
                     Bot Accounts
@@ -98,7 +99,7 @@ export default function Accounts() {
                 <Paper sx={{ p: 3, textAlign: "center", borderRadius: tokens.radius.lg, backgroundColor: tokens.color.softStone }}>
                   <HumanIcon sx={{ fontSize: 32, mb: 1, color: tokens.color.nearBlack }} />
                   <Typography variant="h4" sx={{ fontFamily: tokens.font.display, fontWeight: 400, color: tokens.color.nearBlack }}>
-                    {stats.nonbot_total.toLocaleString()}
+                    {formatNumber(stats.nonbot_total)}
                   </Typography>
                   <Typography variant="caption" sx={{ color: tokens.color.textMuted }}>
                     Human Accounts
@@ -149,7 +150,7 @@ export default function Accounts() {
               <Paper sx={{ p: 3, textAlign: "center", borderRadius: tokens.radius.lg, backgroundColor: tokens.color.surfaceBlue }}>
                 <AiIcon sx={{ fontSize: 32, mb: 1, color: tokens.color.actionBlue }} />
                 <Typography variant="h4" sx={{ fontFamily: tokens.font.display, fontWeight: 400, color: tokens.color.nearBlack }}>
-                  {stats.ai_producers_total.toLocaleString()}
+                  {formatNumber(stats.ai_producers_total)}
                 </Typography>
                 <Typography variant="caption" sx={{ color: tokens.color.textMuted }}>
                   Total Distinct AI Content Producers
@@ -163,7 +164,7 @@ export default function Accounts() {
                   BOT AI CREATORS:
                 </Typography>
                 <Typography variant="h5" sx={{ fontFamily: tokens.font.display, fontWeight: 600, color: tokens.color.coral, mt: 0.5 }}>
-                  {stats.ai_and_bot.toLocaleString()}
+                  {formatNumber(stats.ai_and_bot)}
                 </Typography>
                 <Typography variant="caption" sx={{ color: tokens.color.textMuted, fontSize: "11px", display: "block", mt: 0.5 }}>
                   ({stats.bot_total > 0 ? ((stats.ai_and_bot / stats.bot_total) * 100).toFixed(1) : 0}% dei bot usano IA)
@@ -174,7 +175,7 @@ export default function Accounts() {
                   HUMAN AI CREATORS:
                 </Typography>
                 <Typography variant="h5" sx={{ fontFamily: tokens.font.display, fontWeight: 600, color: tokens.color.deepGreen, mt: 0.5 }}>
-                  {stats.ai_and_not_bot.toLocaleString()}
+                  {formatNumber(stats.ai_and_not_bot)}
                 </Typography>
                 <Typography variant="caption" sx={{ color: tokens.color.textMuted, fontSize: "11px", display: "block", mt: 0.5 }}>
                   ({stats.nonbot_total > 0 ? ((stats.ai_and_not_bot / stats.nonbot_total) * 100).toFixed(1) : 0}% degli umani usano IA)

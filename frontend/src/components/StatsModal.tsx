@@ -30,6 +30,7 @@ import {
 import { DescriptiveStats } from "../api/client.ts";
 import { tokens } from "../theme.ts";
 import { percentileDaIstogramma } from "../utils/statistics.ts";
+import { formatNumber } from "../utils/format.ts";
 
 interface StatsModalProps {
   open: boolean;
@@ -179,7 +180,7 @@ export default function StatsModal({
           </Typography>
           <Typography variant="body2" sx={{ color: tokens.color.textMuted }}>
             Analisi quantitativa su{" "}
-            <strong>{stats.total_analyzed.toLocaleString("it-IT")}</strong> post elaborati · Soglia
+            <strong>{formatNumber(stats.total_analyzed)}</strong> post elaborati · Soglia
             classificazione IA:{" "}
             <strong>≥ 50%</strong>
           </Typography>
@@ -229,7 +230,7 @@ export default function StatsModal({
             <KpiCard
               label="Account Bot Presenti"
               value={`${stats.bot_breakdown.bot_percentage}%`}
-              sub={`${stats.bot_breakdown.bots.toLocaleString("it-IT")} bot · ${stats.bot_breakdown.humans.toLocaleString("it-IT")} umani`}
+              sub={`${formatNumber(stats.bot_breakdown.bots)} bot · ${formatNumber(stats.bot_breakdown.humans)} umani`}
               accent={tokens.color.actionBlue}
             />
           </Grid>
@@ -291,7 +292,7 @@ export default function StatsModal({
                         fontFamily: tokens.font.body,
                       }}
                       formatter={(val) => [
-                        `${Number(val || 0).toLocaleString("it-IT")} post`,
+                        `${formatNumber(Number(val || 0))} post`,
                         "Frequenza",
                       ]}
                     />
@@ -395,8 +396,8 @@ export default function StatsModal({
               </Typography>
               <Grid container spacing={2}>
                 {[
-                  { label: "Media caratteri", value: stats.text_length.avg_chars.toLocaleString("it-IT") },
-                  { label: "Mediana caratteri", value: stats.text_length.median_chars.toLocaleString("it-IT") },
+                  { label: "Media caratteri", value: formatNumber(stats.text_length.avg_chars) },
+                  { label: "Mediana caratteri", value: formatNumber(stats.text_length.median_chars) },
                   { label: "Media token", value: `~${stats.text_length.avg_tokens}` },
                 ].map((item) => (
                   <Grid item xs={12} key={item.label}>
@@ -477,7 +478,7 @@ export default function StatsModal({
                           fontWeight: 600,
                         }}
                       >
-                        {b.count.toLocaleString("it-IT")}
+                        {formatNumber(b.count)}
                       </Typography>
                       <Typography
                         variant="caption"
@@ -533,7 +534,7 @@ export default function StatsModal({
                   }}
                 />
                 <Typography variant="caption" sx={{ color: tokens.color.textMuted }}>
-                  {stats.bot_breakdown.bots.toLocaleString("it-IT")} post da account bot
+                  {formatNumber(stats.bot_breakdown.bots)} post da account bot
                 </Typography>
               </Box>
 
@@ -556,7 +557,7 @@ export default function StatsModal({
                   }}
                 />
                 <Typography variant="caption" sx={{ color: tokens.color.textMuted }}>
-                  {stats.bot_breakdown.humans.toLocaleString("it-IT")} post da account umani
+                  {formatNumber(stats.bot_breakdown.humans)} post da account umani
                 </Typography>
               </Box>
 
@@ -615,7 +616,7 @@ export default function StatsModal({
                         borderRadius: tokens.radius.md,
                         fontSize: "13px",
                       }}
-                      formatter={(val) => [Number(val).toLocaleString("it-IT"), "Post"]}
+                      formatter={(val) => [formatNumber(Number(val)), "Post"]}
                     />
                     <Bar dataKey="count" radius={[0, 8, 8, 0]}>
                       {stats.top_domains.slice(0, 8).map((_, idx) => (
@@ -667,7 +668,7 @@ export default function StatsModal({
                           </Box>
                         </TableCell>
                         <TableCell align="right" sx={{ fontFamily: tokens.font.mono, fontSize: "12px", fontWeight: 600, color: tokens.color.nearBlack, borderBottom: "1px solid #f2f2f2", py: 0.8 }}>
-                          {d.count.toLocaleString("it-IT")}
+                          {formatNumber(d.count)}
                         </TableCell>
                         <TableCell align="right" sx={{ fontFamily: tokens.font.mono, fontSize: "12px", color: tokens.color.textMuted, borderBottom: "1px solid #f2f2f2", py: 0.8 }}>
                           {pct}%

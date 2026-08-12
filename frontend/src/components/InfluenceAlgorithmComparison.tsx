@@ -33,6 +33,7 @@ import {
 } from "recharts";
 import { InfluenceComparisonResponse } from "../api/client.ts";
 import { tokens } from "../theme.ts";
+import { formatDecimal, formatNumber } from "../utils/format.ts";
 
 interface Props {
   data: InfluenceComparisonResponse;
@@ -68,8 +69,7 @@ export default function InfluenceAlgorithmComparison({ data }: Props) {
   const celf = algorithms["CELF++"];
   const pmia = algorithms["PMIA"];
   const skim = algorithms["SKIM"];
-  const fmt = (n: number | null | undefined, frazioni = 0) =>
-    n == null ? "n/d" : n.toLocaleString("it-IT", { maximumFractionDigits: frazioni });
+  const fmt = formatDecimal;
   /** Spread come quota dei nodi del sottografo. */
   const spreadPct = (info?: { mc_spread: number }) =>
     info && subgraph.nodes ? `${((info.mc_spread / subgraph.nodes) * 100).toFixed(1)}%` : "n/d";
@@ -304,10 +304,10 @@ export default function InfluenceAlgorithmComparison({ data }: Props) {
                 letterSpacing: "-0.32px",
               }}
             >
-              {subgraph.nodes.toLocaleString("it-IT")}
+              {formatNumber(subgraph.nodes)}
             </Typography>
             <Typography variant="caption" sx={{ color: tokens.color.textMuted, mt: 0.5, display: "block" }}>
-              Nodi • {subgraph.edges.toLocaleString("it-IT")} Archi
+              Nodi • {formatNumber(subgraph.edges)} Archi
             </Typography>
           </Paper>
         </Grid>
@@ -493,13 +493,13 @@ export default function InfluenceAlgorithmComparison({ data }: Props) {
                               {row.name} {row.isWinner && "🏆 (Vincitore Spread)"}
                             </Typography>
                             <Typography variant="body2" sx={{ mt: 0.5 }}>
-                              <strong>Spread Monte Carlo:</strong> {row.mc_spread.toLocaleString("it-IT")} nodi
+                              <strong>Spread Monte Carlo:</strong> {formatNumber(row.mc_spread)} nodi
                             </Typography>
                             <Typography variant="body2">
                               <strong>Copertura Sottografo:</strong> {row.percentage}%
                             </Typography>
                             <Typography variant="body2">
-                              <strong>Stima Teorica:</strong> {row.est_spread ? row.est_spread.toLocaleString("it-IT") : "N/D"}
+                              <strong>Stima Teorica:</strong> {row.est_spread ? formatNumber(row.est_spread) : "N/D"}
                             </Typography>
                             <Typography variant="body2">
                               <strong>Tempo Calcolo:</strong> {row.time_s}s
@@ -648,7 +648,7 @@ export default function InfluenceAlgorithmComparison({ data }: Props) {
                   </TableCell>
                   <TableCell align="right">
                     <Typography variant="body2" sx={{ color: tokens.color.textMuted, fontFamily: tokens.font.mono }}>
-                      {row.est_spread !== null ? row.est_spread.toLocaleString("it-IT") : "N/D (Baseline)"}
+                      {row.est_spread !== null ? formatNumber(row.est_spread) : "N/D (Baseline)"}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
@@ -660,7 +660,7 @@ export default function InfluenceAlgorithmComparison({ data }: Props) {
                         fontFamily: tokens.font.mono,
                       }}
                     >
-                      {row.mc_spread.toLocaleString("it-IT")}
+                      {formatNumber(row.mc_spread)}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">

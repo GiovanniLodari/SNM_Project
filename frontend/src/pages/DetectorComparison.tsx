@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Box,
   Typography,
@@ -37,12 +37,14 @@ import {
   useDetectorComparisonPostsQuery,
 } from "../api/queries.ts";
 import { tokens } from "../theme.ts";
+import { formatNumber } from "../utils/format.ts";
+import { useUrlNumber, useUrlString } from "../hooks/useUrlState.ts";
 
 export default function DetectorComparison() {
-  const [page, setPage] = useState(1);
-  const [pageSize] = useState(15);
-  const [filterType, setFilterType] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useUrlNumber("page", 1);
+  const pageSize = 15;
+  const [filterType, setFilterType] = useUrlString("filter", "all");
+  const [searchTerm, setSearchTerm] = useUrlString("q");
 
   const debouncedSearch = useDebounce(searchTerm, 400);
 
@@ -272,7 +274,7 @@ export default function DetectorComparison() {
                   Campione Condiviso
                 </Typography>
                 <Typography variant="h4" sx={{ fontFamily: tokens.font.display, fontWeight: 700, color: tokens.color.black, mt: 1 }}>
-                  {(summary?.comparison_report?.id_presenti_in_tutti_e_4 ?? summary?.comparison_report?.id_totali)?.toLocaleString("it-IT") ?? "n/d"}
+                  {formatNumber(summary?.comparison_report?.id_presenti_in_tutti_e_4 ?? summary?.comparison_report?.id_totali)}
                 </Typography>
                 <Typography variant="body2" sx={{ color: tokens.color.textMuted, mt: 0.5, fontSize: "13px" }}>
                   Post analizzati dai 4 modelli
@@ -294,7 +296,7 @@ export default function DetectorComparison() {
                   Unanime IA (4/4)
                 </Typography>
                 <Typography variant="h4" sx={{ fontFamily: tokens.font.display, fontWeight: 700, color: tokens.color.purple, mt: 1 }}>
-                  {(summary?.comparison_report?.conteggio_ai?.ai_per_tutti_e_4 ?? 0).toLocaleString("it-IT")}
+                  {formatNumber((summary?.comparison_report?.conteggio_ai?.ai_per_tutti_e_4 ?? 0))}
                 </Typography>
                 <Typography variant="body2" sx={{ color: tokens.color.textMuted, mt: 0.5, fontSize: "13px" }}>
                   High-confidence AI (Consenso 4/4)
@@ -316,7 +318,7 @@ export default function DetectorComparison() {
                   Maggioranza IA (3/4)
                 </Typography>
                 <Typography variant="h4" sx={{ fontFamily: tokens.font.display, fontWeight: 700, color: tokens.color.deepGreen, mt: 1 }}>
-                  {(summary?.comparison_report?.conteggio_ai?.ai_per_esattamente_3 ?? 0).toLocaleString("it-IT")}
+                  {formatNumber((summary?.comparison_report?.conteggio_ai?.ai_per_esattamente_3 ?? 0))}
                 </Typography>
                 <Typography variant="body2" sx={{ color: tokens.color.textMuted, mt: 0.5, fontSize: "13px" }}>
                   Accordo a 3 modelli
@@ -344,7 +346,7 @@ export default function DetectorComparison() {
                 </Typography>
                 <Typography variant="body2" sx={{ color: tokens.color.textMuted, mt: 0.5, fontSize: "13px" }}>
                   {summary?.comparison_report?.accordo?.tutti_e_4_stessa_etichetta != null
-                    ? `${summary.comparison_report.accordo.tutti_e_4_stessa_etichetta.toLocaleString("it-IT")} post concordi 100%`
+                    ? `${formatNumber(summary.comparison_report.accordo.tutti_e_4_stessa_etichetta)} post concordi 100%`
                     : "Report di confronto non generato"}
                 </Typography>
               </Card>
@@ -402,7 +404,7 @@ export default function DetectorComparison() {
                           Post Valutati
                         </Typography>
                         <Typography variant="body1" sx={{ fontWeight: 700, fontFamily: tokens.font.display }}>
-                          {m.scored_count.toLocaleString("it-IT")}
+                          {formatNumber(m.scored_count)}
                         </Typography>
                       </Grid>
                       <Grid item xs={6}>
@@ -410,7 +412,7 @@ export default function DetectorComparison() {
                           % Positivi IA
                         </Typography>
                         <Typography variant="body1" sx={{ fontWeight: 700, fontFamily: tokens.font.display, color: tokens.color.coral }}>
-                          {m.ai_percentage}% ({m.ai_detected_count.toLocaleString("it-IT")})
+                          {m.ai_percentage}% ({formatNumber(m.ai_detected_count)})
                         </Typography>
                       </Grid>
                     </Grid>
@@ -470,7 +472,7 @@ export default function DetectorComparison() {
                         </Box>
                         <Typography variant="caption" sx={{ color: tokens.color.textMuted }}>
                           {typeof concordi === "number"
-                            ? `${concordi.toLocaleString("it-IT")} post concordi.${pair.nota ? ` ${pair.nota}` : ""}`
+                            ? `${formatNumber(concordi)} post concordi.${pair.nota ? ` ${pair.nota}` : ""}`
                             : "Dato non disponibile: report di confronto non generato."}
                         </Typography>
                       </Box>
@@ -488,7 +490,7 @@ export default function DetectorComparison() {
                 </Typography>
                 <Typography variant="body2" sx={{ color: tokens.color.textMuted, mb: 3 }}>
                   {idTotali
-                    ? `Suddivisione del dataset da ${idTotali.toLocaleString("it-IT")} post in base al numero di modelli (su 4) che classificano il testo come IA:`
+                    ? `Suddivisione del dataset da ${formatNumber(idTotali)} post in base al numero di modelli (su 4) che classificano il testo come IA:`
                     : "Suddivisione del dataset in base al numero di modelli (su 4) che classificano il testo come IA:"}
                 </Typography>
 
@@ -498,7 +500,7 @@ export default function DetectorComparison() {
                       <BarChart data={consensusData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
                         <XAxis type="number" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                         <YAxis dataKey="name" type="category" width={130} style={{ fontSize: "12px" }} />
-                        <RechartsTooltip formatter={(val) => [Number(val).toLocaleString("it-IT"), "Post"]} />
+                        <RechartsTooltip formatter={(val) => [formatNumber(Number(val)), "Post"]} />
                         <Bar dataKey="count" radius={[0, 8, 8, 0]}>
                           {consensusData.map((entry) => (
                             <Cell key={entry.name} fill={entry.color} />
@@ -543,7 +545,7 @@ export default function DetectorComparison() {
               />
               <Typography variant="caption" sx={{ color: tokens.color.textMuted, fontFamily: tokens.font.mono }}>
                 {summary?.bot_investigation
-                  ? `${summary.bot_investigation.total_bot_statuses.toLocaleString("it-IT")} STATUS DA ACCOUNT BOT DICHIARATI (bot = true)`
+                  ? `${formatNumber(summary.bot_investigation.total_bot_statuses)} STATUS DA ACCOUNT BOT DICHIARATI (bot = true)`
                   : "CONTEGGIO STATUS BOT NON DISPONIBILE"}
               </Typography>
             </Box>
@@ -587,7 +589,7 @@ export default function DetectorComparison() {
                       </Typography>
                       <Typography variant="caption" sx={{ color: tokens.color.textMuted }}>
                         {stats && stats.scored > 0
-                          ? `${stats.ai_count.toLocaleString("it-IT")} su ${stats.scored.toLocaleString("it-IT")} post bot. ${card.nota}`
+                          ? `${formatNumber(stats.ai_count)} su ${formatNumber(stats.scored)} post bot. ${card.nota}`
                           : "Nessun post di account bot valutato da questo detector."}
                       </Typography>
                     </Box>
@@ -769,7 +771,7 @@ export default function DetectorComparison() {
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 3 }}>
           <Typography variant="body2" sx={{ color: tokens.color.textMuted }}>
             Mostrando {posts.length > 0 ? (page - 1) * pageSize + 1 : 0} - {Math.min(page * pageSize, totalPosts)} di{" "}
-            <strong>{totalPosts.toLocaleString("it-IT")}</strong> post
+            <strong>{formatNumber(totalPosts)}</strong> post
           </Typography>
           <Pagination
             count={Math.ceil(totalPosts / pageSize)}

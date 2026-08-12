@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useUrlNumber, useUrlString } from "../hooks/useUrlState.ts";
 import {
   Box,
   Grid,
@@ -52,6 +52,7 @@ import InfluenceGraphCanvas from "../components/InfluenceGraphCanvas.tsx";
 import AccountDetailModal from "../components/AccountDetailModal.tsx";
 import InfluenceAlgorithmComparison from "../components/InfluenceAlgorithmComparison.tsx";
 import { tokens } from "../theme.ts";
+import { formatNumber, formatPercent } from "../utils/format.ts";
 
 
 
@@ -61,32 +62,16 @@ export default function InfluenceMaximization() {
   // degli indirizzi. Cosi' un link porta l'altro esattamente dove si e', e il
   // tasto Indietro del browser funziona. Lo store Zustand serviva solo qui e
   // conteneva anche un seed iniziale scritto a mano ("66109").
-  const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = Number(searchParams.get("tab") ?? 0);
-  const selectedSeedId = searchParams.get("seed") ?? "";
-
-  const aggiornaParametro = (chiave: string, valore: string) => {
-    setSearchParams(
-      (precedenti) => {
-        const successivi = new URLSearchParams(precedenti);
-        if (valore) successivi.set(chiave, valore);
-        else successivi.delete(chiave);
-        return successivi;
-      },
-      { replace: true },
-    );
-  };
-
-  const setActiveTab = (tab: number) => aggiornaParametro("tab", String(tab));
-  const setSelectedSeedId = (seedId: string) => aggiornaParametro("seed", seedId);
+  const [activeTab, setActiveTab] = useUrlNumber("tab", 0);
+  const [selectedSeedId, setSelectedSeedId] = useUrlString("seed");
 
   const { data: summary, isLoading: loadingSummary, isError: errorSummary } = useInfluenceSummaryQuery();
   const { data: graphData } = useInfluenceGraphQuery(selectedSeedId);
   const { data: comparisonData } = useInfluenceComparisonQuery();
 
   // Leaderboard seeds pagination and search
-  const [seedsPage, setSeedsPage] = useState<number>(1);
-  const [seedsSearch, setSeedsSearch] = useState<string>("");
+  const [seedsPage, setSeedsPage] = useUrlNumber("seedsPage", 1);
+  const [seedsSearch, setSeedsSearch] = useUrlString("seedsQ");
   const { data: seedsRes, isLoading: seedsLoading } = useInfluenceSeedsQuery(seedsPage, 10, seedsSearch);
   const seedsData = seedsRes ? { seeds: seedsRes.seeds, total: seedsRes.total } : null;
 
@@ -187,9 +172,9 @@ export default function InfluenceMaximization() {
           }}
         >
           Simulazione della cascata di influenza sul grafo sociale Mastodon/Fediverse. Un set di{" "}
-          <strong style={{ color: tokens.color.nearBlack }}>{meta.seeds.toLocaleString("it-IT")} account bot AI</strong> ha raggiunto e attivato{" "}
-          <strong style={{ color: tokens.color.coral }}>{meta.reached_nodes.toLocaleString("it-IT")} nodi</strong> (pari al{" "}
-          <strong style={{ color: tokens.color.coral }}>{meta.reached_pct.toLocaleString("it-IT", { maximumFractionDigits: 2 })}%</strong> della rete totale di {meta.nodes.toLocaleString("it-IT")} nodi) attraverso {meta.num_steps} step di propagazione probabilistica Independent Cascade.
+          <strong style={{ color: tokens.color.nearBlack }}>{formatNumber(meta.seeds)} account bot AI</strong> ha raggiunto e attivato{" "}
+          <strong style={{ color: tokens.color.coral }}>{formatNumber(meta.reached_nodes)} nodi</strong> (pari al{" "}
+          <strong style={{ color: tokens.color.coral }}>{formatPercent(meta.reached_pct, 2)}</strong> della rete totale di {formatNumber(meta.nodes)} nodi) attraverso {meta.num_steps} step di propagazione probabilistica Independent Cascade.
         </Typography>
       </Box>
 
@@ -260,11 +245,11 @@ export default function InfluenceMaximization() {
                   mt: 1,
                 }}
               >
-                {meta.nodes.toLocaleString()}
+                {formatNumber(meta.nodes)}
               </Typography>
             </Box>
             <Typography variant="caption" sx={{ color: tokens.color.textMuted, mt: 2 }}>
-              {meta.edges.toLocaleString()} archi nel grafo
+              {formatNumber(meta.edges)} archi nel grafo
             </Typography>
           </Paper>
         </Grid>
@@ -297,7 +282,7 @@ export default function InfluenceMaximization() {
                   mt: 1,
                 }}
               >
-                {meta.seeds.toLocaleString()}
+                {formatNumber(meta.seeds)}
               </Typography>
             </Box>
             <Typography variant="caption" sx={{ color: tokens.color.textMuted, mt: 2 }}>
@@ -335,7 +320,7 @@ export default function InfluenceMaximization() {
                   mt: 1,
                 }}
               >
-                {meta.reached_nodes.toLocaleString()}
+                {formatNumber(meta.reached_nodes)}
               </Typography>
             </Box>
             <Chip
@@ -382,7 +367,7 @@ export default function InfluenceMaximization() {
                   mt: 1,
                 }}
               >
-                {demographics.activated_human.toLocaleString()}
+                {formatNumber(demographics.activated_human)}
               </Typography>
             </Box>
             <Typography variant="caption" sx={{ color: tokens.color.textMuted, mt: 2 }}>
@@ -426,7 +411,7 @@ export default function InfluenceMaximization() {
               {(() => {
                 if (step_stats.length === 0) return "Statistiche per step non disponibili";
                 const picco = step_stats.reduce((a, b) => (b.new_nodes > a.new_nodes ? b : a));
-                return `Max diffusione in t=${picco.step} (${picco.new_nodes.toLocaleString("it-IT")} nodi)`;
+                return `Max diffusione in t=${picco.step} (${formatNumber(picco.new_nodes)} nodi)`;
               })()}
             </Typography>
           </Paper>
@@ -610,7 +595,7 @@ export default function InfluenceMaximization() {
                   Leaderboard Top Seed Bot
                 </Typography>
                 <Typography variant="caption" sx={{ color: tokens.color.textMuted }}>
-                  Classifica dei {meta.seeds.toLocaleString("it-IT")} seed bot ordinati per impatto diretto di propagazione.
+                  Classifica dei {formatNumber(meta.seeds)} seed bot ordinati per impatto diretto di propagazione.
                 </Typography>
               </Box>
 
@@ -681,7 +666,7 @@ export default function InfluenceMaximization() {
                         </TableCell>
                         <TableCell align="right">
                           <Typography variant="body2" sx={{ fontFamily: tokens.font.mono, fontSize: "13px" }}>
-                            {s.followers.toLocaleString()}
+                            {formatNumber(s.followers)}
                           </Typography>
                         </TableCell>
                         <TableCell align="right">
@@ -785,7 +770,7 @@ export default function InfluenceMaximization() {
                       </TableCell>
                       <TableCell align="right">
                         <Typography variant="body2" sx={{ fontFamily: tokens.font.mono, fontSize: "13px" }}>
-                          {t.followers.toLocaleString()}
+                          {formatNumber(t.followers)}
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
@@ -849,7 +834,7 @@ export default function InfluenceMaximization() {
                 Greedy / Lazy Forward
               </Typography>
               <Typography variant="caption" sx={{ color: tokens.color.textMuted, display: "block", mt: 0.5 }}>
-                Selezione dei {meta.seeds.toLocaleString("it-IT")} nodi seed mediante stima di massima influenza marginale.
+                Selezione dei {formatNumber(meta.seeds)} nodi seed mediante stima di massima influenza marginale.
               </Typography>
             </Box>
           </Grid>

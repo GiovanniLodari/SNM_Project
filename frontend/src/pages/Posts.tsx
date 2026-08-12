@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
   Typography,
   Box,
@@ -19,11 +19,15 @@ import { usePostsQuery } from "../api/queries.ts";
 import { SmartToy as BotIcon, ArrowBack as PrevIcon, ArrowForward as NextIcon } from "@mui/icons-material";
 import { tokens } from "../theme.ts";
 import { EmptyState } from "../components/States.tsx";
+import { formatDateTime } from "../utils/format.ts";
+import { useUrlList, useUrlNumber } from "../hooks/useUrlState.ts";
 
 export default function Posts() {
-  const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  // Filtri nella URL: la vista diventa condivisibile e il tasto Indietro
+  // ripercorre i filtri invece di uscire dalla pagina.
+  const [selectedLangs, setSelectedLangs] = useUrlList("lang");
+  const [page, setPage] = useUrlNumber("page", 1);
+  const [pageSize, setPageSize] = useUrlNumber("size", 10);
 
   const { data, isLoading: loading, isError } = usePostsQuery(selectedLangs, page, pageSize);
   const error = isError ? "Impossibile caricare l'elenco dei post." : null;
@@ -42,15 +46,7 @@ export default function Posts() {
     setPage(1);
   };
 
-  const formatTime = (timeStr: string | null) => {
-    if (!timeStr) return "";
-    try {
-      const d = new Date(timeStr);
-      return d.toLocaleString("it-IT");
-    } catch {
-      return timeStr;
-    }
-  };
+  const formatTime = formatDateTime;
 
   if (loading && !data) {
     return (

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Typography,
   Box,
@@ -33,11 +32,15 @@ import { useFactCheckQuery } from "../api/queries.ts";
 import { useDebounce } from "../hooks/useDebounce.ts";
 import { tokens } from "../theme.ts";
 import { EmptyState, ErrorState } from "../components/States.tsx";
+import { formatNumber } from "../utils/format.ts";
+import { useUrlList, useUrlNumber, useUrlString } from "../hooks/useUrlState.ts";
 
 export default function FactChecking() {
-  const [selectedVerdicts, setSelectedVerdicts] = useState<string[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [page, setPage] = useState(1);
+  // Filtri nella URL: la ricerca appena riparata produce viste che vale la
+  // pena poter condividere per link.
+  const [selectedVerdicts, setSelectedVerdicts] = useUrlList("verdict");
+  const [searchTerm, setSearchTerm] = useUrlString("q");
+  const [page, setPage] = useUrlNumber("page", 1);
 
   const debouncedSearch = useDebounce(searchTerm, 400);
 
@@ -109,7 +112,7 @@ export default function FactChecking() {
           }}
         >
           CLAIM VERIFICATION ARCHIVE
-          {totalAudited !== null && ` • ${totalAudited.toLocaleString("it-IT")} AUDITED POSTS`}
+          {totalAudited !== null && ` • ${formatNumber(totalAudited)} AUDITED POSTS`}
         </Typography>
         <Typography
           variant="h3"
@@ -158,7 +161,7 @@ export default function FactChecking() {
               Totale Post Auditati
             </Typography>
             <Typography variant="h4" sx={{ fontFamily: tokens.font.display, fontWeight: 700, color: tokens.color.black, mt: 1 }}>
-              {totalAudited !== null ? totalAudited.toLocaleString("it-IT") : "n/d"}
+              {totalAudited !== null ? formatNumber(totalAudited) : "n/d"}
             </Typography>
             <Typography variant="body2" sx={{ color: tokens.color.textMuted, mt: 0.5, fontSize: "13px" }}>
               Identificati come Checkworthy
@@ -180,7 +183,7 @@ export default function FactChecking() {
               Verificati Veritieri (Vero)
             </Typography>
             <Typography variant="h4" sx={{ fontFamily: tokens.font.display, fontWeight: 700, color: tokens.color.deepGreen, mt: 1 }}>
-              {trueCount.toLocaleString("it-IT")}
+              {formatNumber(trueCount)}
             </Typography>
             <Typography variant="body2" sx={{ color: tokens.color.textMuted, mt: 0.5, fontSize: "13px" }}>
               {quota(trueCount) ? `${quota(trueCount)}% confermati da fonti ufficiali` : "Totale non disponibile"}
@@ -202,7 +205,7 @@ export default function FactChecking() {
               Falsi / Disinformazione
             </Typography>
             <Typography variant="h4" sx={{ fontFamily: tokens.font.display, fontWeight: 700, color: tokens.color.danger, mt: 1 }}>
-              {falseCount.toLocaleString("it-IT")}
+              {formatNumber(falseCount)}
             </Typography>
             <Typography variant="body2" sx={{ color: tokens.color.textMuted, mt: 0.5, fontSize: "13px" }}>
               {quota(falseCount) ? `${quota(falseCount)}% bufale / affermazioni smentite` : "Totale non disponibile"}
@@ -224,7 +227,7 @@ export default function FactChecking() {
               Non Verificabili / Opinioni
             </Typography>
             <Typography variant="h4" sx={{ fontFamily: tokens.font.display, fontWeight: 700, color: tokens.color.textMuted, mt: 1 }}>
-              {unverifiableCount.toLocaleString("it-IT")}
+              {formatNumber(unverifiableCount)}
             </Typography>
             <Typography variant="body2" sx={{ color: tokens.color.textMuted, mt: 0.5, fontSize: "13px" }}>
               {quota(unverifiableCount) ? `${quota(unverifiableCount)}% opinioni o assenza fonti` : "Totale non disponibile"}
@@ -240,7 +243,7 @@ export default function FactChecking() {
         </Typography>
         <Typography variant="body2" sx={{ color: tokens.color.textMuted, mb: 3 }}>
           {totalAudited !== null
-            ? `Distribuzione dei ${totalAudited.toLocaleString("it-IT")} post auditati in base all'esito dell'analisi delle fonti web e al ragionamento sintetico del modello:`
+            ? `Distribuzione dei ${formatNumber(totalAudited)} post auditati in base all'esito dell'analisi delle fonti web e al ragionamento sintetico del modello:`
             : "Distribuzione dei post auditati in base all'esito dell'analisi delle fonti web e al ragionamento sintetico del modello:"}
         </Typography>
 
@@ -249,7 +252,7 @@ export default function FactChecking() {
             <BarChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
               <XAxis dataKey="name" style={{ fontSize: "12px", fontWeight: 600 }} />
               <YAxis tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-              <RechartsTooltip formatter={(val) => [Number(val).toLocaleString("it-IT"), "Post"]} />
+              <RechartsTooltip formatter={(val) => [formatNumber(Number(val)), "Post"]} />
               <Bar dataKey="count" radius={[8, 8, 0, 0]}>
                 {chartData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
@@ -324,7 +327,7 @@ export default function FactChecking() {
       ) : (
         <Stack spacing={3}>
           <Typography variant="body2" sx={{ color: tokens.color.textMuted }}>
-            {data.total_count.toLocaleString("it-IT")}{" "}
+            {formatNumber(data.total_count)}{" "}
             {data.total_count === 1 ? "risultato" : "risultati"}
             {(searchTerm || selectedVerdicts.length > 0) && " per i filtri attivi"}
             {" · pagina "}

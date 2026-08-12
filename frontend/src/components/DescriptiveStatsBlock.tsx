@@ -21,6 +21,7 @@ import { useAiDetectionQuery } from "../api/queries.ts";
 import AnalyticsIcon from "@mui/icons-material/Analytics";
 import StatsModal from "./StatsModal.tsx";
 import { tokens } from "../theme.ts";
+import { formatNumber } from "../utils/format.ts";
 
 
 export default function DescriptiveStatsBlock() {
@@ -185,7 +186,7 @@ export default function DescriptiveStatsBlock() {
                 {stats.bot_breakdown.bot_percentage}%
               </Typography>
               <Typography variant="caption" sx={{ color: tokens.color.textMuted }}>
-                {stats.bot_breakdown.bots.toLocaleString()} bot vs {stats.bot_breakdown.humans.toLocaleString()} umani
+                {formatNumber(stats.bot_breakdown.bots)} bot vs {formatNumber(stats.bot_breakdown.humans)} umani
               </Typography>
             </Box>
           </Grid>
@@ -260,7 +261,7 @@ export default function DescriptiveStatsBlock() {
                         borderRadius: tokens.radius.sm,
                         color: "#fff",
                       }}
-                      formatter={(val) => [`${Number(val || 0).toLocaleString()} status`, "Frequenza"]}
+                      formatter={(val) => [`${formatNumber(Number(val || 0))} status`, "Frequenza"]}
                     />
                     <Area type="monotone" dataKey="count" stroke={tokens.color.coral} strokeWidth={2.5} fillOpacity={1} fill="url(#dashboardProbGradient)" />
                   </AreaChart>

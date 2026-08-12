@@ -12,6 +12,7 @@ import {
 } from "@mui/icons-material";
 import { tokens } from "../theme.ts";
 import { LoadingState } from "../components/States.tsx";
+import { formatNumber } from "../utils/format.ts";
 
 export default function Dashboard() {
   const { data: stats, isLoading: loading, isError } = useDashboardQuery();
@@ -76,7 +77,7 @@ export default function Dashboard() {
                   mb: 1,
                 }}
               >
-                {stats.posts_total.toLocaleString()}
+                {formatNumber(stats.posts_total)}
               </Typography>
               <Typography variant="body2" sx={{ color: tokens.color.textMuted }}>
                 Total post records collected from monitored instance nodes.
@@ -126,7 +127,7 @@ export default function Dashboard() {
                   mb: 1,
                 }}
               >
-                {stats.follows_total.toLocaleString()}
+                {formatNumber(stats.follows_total)}
               </Typography>
               <Typography variant="body2" sx={{ color: tokens.color.textMuted }}>
                 Static social follow edges discovered via relationship crawler.
@@ -183,7 +184,7 @@ export default function Dashboard() {
                     Completamento FastDetectGPT
                   </Typography>
                   <Typography variant="caption" sx={{ color: tokens.color.coral, fontWeight: 600 }}>
-                    {aiPercent.toFixed(1)}% ({stats.ai_done.toLocaleString()} / {stats.ai_eligible.toLocaleString()})
+                    {aiPercent.toFixed(1)}% ({formatNumber(stats.ai_done)} / {formatNumber(stats.ai_eligible)})
                   </Typography>
                 </Box>
                 <LinearProgress
@@ -247,7 +248,7 @@ export default function Dashboard() {
                 </Typography>
               </Box>
               <Typography variant="body2" sx={{ color: tokens.color.textFaint, mb: 3 }}>
-                Verified <strong>{stats.fact_check_done.toLocaleString()}</strong> of <strong>{stats.fact_check_eligible.toLocaleString()}</strong> checkworthy claim statuses.
+                Verified <strong>{formatNumber(stats.fact_check_done)}</strong> of <strong>{formatNumber(stats.fact_check_eligible)}</strong> checkworthy claim statuses.
               </Typography>
 
               <Box sx={{ mb: 3 }}>

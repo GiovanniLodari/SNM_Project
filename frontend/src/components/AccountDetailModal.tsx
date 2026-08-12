@@ -20,6 +20,7 @@ import {
 } from "@mui/icons-material";
 import { AccountDetail } from "../api/client.ts";
 import { tokens } from "../theme.ts";
+import { formatDate, formatNumber } from "../utils/format.ts";
 
 interface AccountDetailModalProps {
   open: boolean;
@@ -256,7 +257,7 @@ export default function AccountDetailModal({
               </Typography>
             </Stack>
             <Typography variant="h6" sx={{ fontFamily: tokens.font.display, fontWeight: 400, color: tokens.color.canvas, fontSize: "24px" }}>
-              {(account?.followers_count ?? 0).toLocaleString()}
+              {formatNumber((account?.followers_count ?? 0))}
             </Typography>
           </Box>
 
@@ -276,7 +277,7 @@ export default function AccountDetailModal({
               </Typography>
             </Stack>
             <Typography variant="h6" sx={{ fontFamily: tokens.font.display, fontWeight: 400, color: tokens.color.canvas, fontSize: "24px" }}>
-              {(account?.following_count ?? 0).toLocaleString()}
+              {formatNumber((account?.following_count ?? 0))}
             </Typography>
           </Box>
 
@@ -296,7 +297,7 @@ export default function AccountDetailModal({
               </Typography>
             </Stack>
             <Typography variant="h6" sx={{ fontFamily: tokens.font.display, fontWeight: 400, color: tokens.color.canvas, fontSize: "24px" }}>
-              {(account?.statuses_count ?? 0).toLocaleString()}
+              {formatNumber((account?.statuses_count ?? 0))}
             </Typography>
           </Box>
         </Stack>
@@ -323,7 +324,7 @@ export default function AccountDetailModal({
         {account?.created_at && (
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
             <Typography variant="caption" sx={{ color: tokens.color.textFaint, fontFamily: tokens.font.mono, fontSize: "12px" }}>
-              Registrato il: <strong style={{ color: tokens.color.canvas }}>{new Date(account.created_at).toLocaleDateString("it-IT")}</strong>
+              Registrato il: <strong style={{ color: tokens.color.canvas }}>{formatDate(account.created_at)}</strong>
             </Typography>
           </Stack>
         )}

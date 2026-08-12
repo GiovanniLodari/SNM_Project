@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import type { Simulation, SimulationNodeDatum } from "d3-force";
 import {
   Box,
   Typography,
@@ -18,8 +19,13 @@ import { api, GraphNode, GraphLink, AccountSearchResult, AccountDetail } from ".
 import AccountDetailModal from "./AccountDetailModal.tsx";
 import { GraphToolbar } from "./graph/GraphToolbar.tsx";
 import { tokens } from "../theme.ts";
+import {
+  centraSimulazione,
+  configuraForze,
+  creaSimulazione,
+} from "../utils/graphSimulation.ts";
 
-interface PhysicsNode extends GraphNode {
+interface PhysicsNode extends GraphNode, SimulationNodeDatum {
   x: number;
   y: number;
   vx: number;
@@ -61,6 +67,35 @@ export default function GraphHero() {
   // fallimento dell'API iniettava una topologia di esempio con account
   // inventati, indistinguibile dai dati reali per chi guarda.
   const [graphError, setGraphError] = useState<string | null>(null);
+
+  // Simulazione d3: creata una volta e riconfigurata quando l'insieme dei nodi
+  // visibili cambia, cioe' a ogni passo della rivelazione progressiva.
+  const simulazioneRef = useRef<Simulation<PhysicsNode, GraphLink> | null>(null);
+  const contaNodiSimulatiRef = useRef<number>(0);
+
+  /**
+   * Allinea la simulazione ai nodi visibili. La configurazione delle forze sta
+   * in utils/graphSimulation.ts, dove puo' essere verificata senza montare un
+   * canvas; qui resta solo il quando, non il come.
+   */
+  const aggiornaSimulazione = useCallback(
+    (nodi: PhysicsNode[], archi: GraphLink[], centroX: number, centroY: number) => {
+      let sim = simulazioneRef.current;
+      if (!sim) {
+        sim = creaSimulazione<PhysicsNode>();
+        simulazioneRef.current = sim;
+      }
+
+      // Riconfigurare a ogni fotogramma azzererebbe il quadtree e il grafo
+      // sobbalzerebbe: si interviene solo quando i nodi cambiano davvero.
+      if (nodi.length !== contaNodiSimulatiRef.current) {
+        contaNodiSimulatiRef.current = nodi.length;
+        configuraForze(sim, nodi, archi);
+      }
+      centraSimulazione(sim, centroX, centroY);
+    },
+    [],
+  );
 
   // Physics simulation nodes ref so animation loop has fresh state
   const physicsNodesRef = useRef<Map<number, PhysicsNode>>(new Map());
@@ -275,70 +310,19 @@ export default function GraphHero() {
         (l) => visibleIds.has(l.source) && visibleIds.has(l.target)
       );
 
-      // 1. PHYSICS UPDATE
-      const repulsionStrength = 1800;
-      const springLength = 95;
-      const springStiffness = 0.04;
-      const damping = 0.82;
-      const gravity = 0.02;
+      // 1. SIMULAZIONE
+      // La calcola d3-force. Prima c'era un integratore scritto a mano: la
+      // repulsione confrontava tutte le coppie di nodi, quindi O(n^2), e il
+      // costo veniva contenuto ignorando le coppie oltre i 220px - un rimedio
+      // che falsa il campo di forze. forceManyBody usa un quadtree
+      // (Barnes-Hut) e scende a O(n log n) senza troncare nulla.
+      aggiornaSimulazione(nodes, activeLinks, centerX, centerY);
+      simulazioneRef.current?.tick();
 
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const n1 = nodes[i];
-          const n2 = nodes[j];
-          const dx = n2.x - n1.x;
-          const dy = n2.y - n1.y;
-          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-
-          if (dist < 220) {
-            const force = repulsionStrength / (dist * dist);
-            const fx = (dx / dist) * force;
-            const fy = (dy / dist) * force;
-            n1.vx -= fx;
-            n1.vy -= fy;
-            n2.vx += fx;
-            n2.vy += fy;
-          }
-        }
-      }
-
-      activeLinks.forEach((link) => {
-        const source = nodesMap.get(link.source);
-        const target = nodesMap.get(link.target);
-        if (!source || !target) return;
-
-        const dx = target.x - source.x;
-        const dy = target.y - source.y;
-        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-
-        const delta = dist - springLength;
-        const force = delta * springStiffness;
-        const fx = (dx / dist) * force;
-        const fy = (dy / dist) * force;
-
-        source.vx += fx;
-        source.vy += fy;
-        target.vx -= fx;
-        target.vy -= fy;
-      });
-
+      // Il nodo trascinato resta dove lo tiene il puntatore: `fx`/`fy` sono la
+      // convenzione d3 per fissare una posizione durante il drag.
+      const pad = 24;
       nodes.forEach((n) => {
-        if (draggedNodeRef.current && draggedNodeRef.current.id === n.id) {
-          n.vx = 0;
-          n.vy = 0;
-          return;
-        }
-
-        n.vx += (centerX - n.x) * gravity;
-        n.vy += (centerY - n.y) * gravity;
-
-        n.vx *= damping;
-        n.vy *= damping;
-
-        n.x += n.vx;
-        n.y += n.vy;
-
-        const pad = 24;
         n.x = Math.max(pad, Math.min(width - pad, n.x));
         n.y = Math.max(pad, Math.min(height - pad, n.y));
       });
@@ -481,7 +465,7 @@ export default function GraphHero() {
       cancelAnimationFrame(animFrameId);
       window.removeEventListener("resize", updateCanvasSize);
     };
-  }, [allLinks, speedMultiplier]);
+  }, [allLinks, speedMultiplier, aggiornaSimulazione]);
 
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -491,8 +475,13 @@ export default function GraphHero() {
     const my = e.clientY - rect.top;
 
     if (isDraggingRef.current && draggedNodeRef.current) {
-      draggedNodeRef.current.x = mx;
-      draggedNodeRef.current.y = my;
+      const nodo = draggedNodeRef.current;
+      // fx/fy fissano il nodo per d3: senza, la simulazione lo riporterebbe
+      // indietro al tick successivo e il trascinamento non terrebbe.
+      nodo.x = mx;
+      nodo.y = my;
+      nodo.fx = mx;
+      nodo.fy = my;
       return;
     }
 
@@ -519,6 +508,8 @@ export default function GraphHero() {
     if (hoveredNode) {
       isDraggingRef.current = true;
       draggedNodeRef.current = hoveredNode;
+      hoveredNode.fx = hoveredNode.x;
+      hoveredNode.fy = hoveredNode.y;
     }
   };
 
@@ -537,6 +528,12 @@ export default function GraphHero() {
         wasDrag = Math.sqrt(dx * dx + dy * dy) > 5;
       } else {
         wasDrag = true;
+      }
+      // Rilasciando si tolgono i vincoli: il nodo torna a essere governato
+      // dalle forze e si riassesta con gli altri.
+      if (draggedNodeRef.current) {
+        draggedNodeRef.current.fx = null;
+        draggedNodeRef.current.fy = null;
       }
       isDraggingRef.current = false;
       draggedNodeRef.current = null;
