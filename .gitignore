@@ -38,6 +38,10 @@ fase_1_beta/
 # in data/ (fuori da questo repo annidato) per essere tracciato normalmente.
 fast-detect-gpt/
 
+# AdaDetectGPT (external tool, fase 1 AI detection) - stesso motivo di
+# fast-detect-gpt/ sopra: repo git annidato, non tracciato.
+AdaDetectGPT/
+
 # Copia di lavoro dei codici del "fisso" (secondo PC, esegue l'AI detection
 # su GPU) - non tracciato, stesso motivo di fast-detect-gpt/
 fisso/
@@ -92,4 +96,13 @@ desklib_detector/risultati_binocular_all/*.jsonl
 desklib_detector/risultati_binocular_all/*.csv
 
 # Dataset Influence Maximization (>200MB, non tracciato su Git per limite GitHub 100MB)
-influence_maximization/*.json
+influence_maximization/*.json
+
+# Output detector locali non tracciati (binoculars, comparatore_detector, desklib_detector)
+binoculars/ai_detection_report.json
+binoculars/ai_detection_report.md
+binoculars/ai_scores_binoculars.ckpt.json
+comparatore_detector/ai_scores_binoculars_corrected.jsonl
+comparatore_detector/comparison_report.json
+comparatore_detector/probabilities_merged.json
+desklib_detector/risultati.csv

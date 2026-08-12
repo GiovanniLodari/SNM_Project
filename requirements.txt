@@ -14,3 +14,4 @@ torch
 transformers
 networkx
 pyvis
+scikit-learn
