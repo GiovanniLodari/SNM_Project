@@ -83,6 +83,33 @@ def get_posts_by_ids(conn: psycopg2.extensions.connection, ids: list[int]) -> di
     return {row[0]: _row_to_post(row) for row in rows}
 
 
+def status_ids_matching_content(
+    conn: psycopg2.extensions.connection, term: str,
+) -> set[int]:
+    """Id degli status il cui contenuto contiene `term` (senza distinzione di
+    maiuscole).
+
+    Serve a filtrare *prima* di paginare. L'alternativa - scaricare i contenuti
+    di tutte le righe candidate e cercare in Python - non e' praticabile: gli
+    id da passare sarebbero decine di migliaia e su SQLite `= ANY(%s)` viene
+    espanso in un `IN (?, ?, ...)` che sfonda il limite di parametri. Qui la
+    query ha un solo parametro e il confronto lo fa il database.
+
+    I metacaratteri LIKE nel termine sono neutralizzati con ESCAPE, altrimenti
+    una ricerca di '_' o '%' scritta dall'utente si comporterebbe da jolly.
+    """
+    if not term.strip():
+        return set()
+    pattern = term.lower().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT s.id FROM statuses s "
+            "WHERE s.deleted_at IS NULL AND lower(s.content) LIKE %s ESCAPE '\\'",
+            (f"%{pattern}%",),
+        )
+        return {row[0] for row in cur.fetchall()}
+
+
 def count_accounts_by_bot(conn: psycopg2.extensions.connection) -> dict[bool, int]:
     with conn.cursor() as cur:
         cur.execute("SELECT bot, COUNT(*) FROM accounts GROUP BY bot")

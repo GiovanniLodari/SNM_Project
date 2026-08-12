@@ -2,36 +2,22 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import {
   Box,
   Typography,
-  Button,
   Chip,
   IconButton,
-  Slider,
-  Tooltip,
   Paper,
   Stack,
-  Autocomplete,
-  TextField,
-  InputAdornment,
-  CircularProgress,
-  Select,
-  MenuItem,
 } from "@mui/material";
 import {
-  PlayArrow,
-  Pause,
-  SkipNext,
-  RestartAlt,
-  Speed,
   Hub as HubIcon,
   SmartToy as BotIcon,
   Person as HumanIcon,
   Fullscreen,
   FullscreenExit,
-  Search as SearchIcon,
-  Public as PublicIcon,
 } from "@mui/icons-material";
 import { api, GraphNode, GraphLink, AccountSearchResult, AccountDetail } from "../api/client.ts";
 import AccountDetailModal from "./AccountDetailModal.tsx";
+import { GraphToolbar } from "./graph/GraphToolbar.tsx";
+import { tokens } from "../theme.ts";
 
 interface PhysicsNode extends GraphNode {
   x: number;
@@ -69,6 +55,12 @@ export default function GraphHero() {
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [modalAccount, setModalAccount] = useState<AccountDetail | null>(null);
   const [modalLoading, setModalLoading] = useState<boolean>(false);
+  const [modalError, setModalError] = useState<string | null>(null);
+
+  // Errore di caricamento del grafo. Deve restare visibile: in precedenza un
+  // fallimento dell'API iniettava una topologia di esempio con account
+  // inventati, indistinguibile dai dati reali per chi guarda.
+  const [graphError, setGraphError] = useState<string | null>(null);
 
   // Physics simulation nodes ref so animation loop has fresh state
   const physicsNodesRef = useRef<Map<number, PhysicsNode>>(new Map());
@@ -79,14 +71,11 @@ export default function GraphHero() {
 
   hoveredNodeRef.current = hoveredNode;
 
-  // Load initial graph data
-  useEffect(() => {
-    loadGraphData();
-  }, []);
-
   const loadGraphData = (accountId?: number, mode?: string) => {
     const effectiveMode = mode ?? graphMode;
     const fetchPromise = accountId ? api.accountGraph(accountId, 80) : api.graph(80, effectiveMode);
+
+    setGraphError(null);
 
     fetchPromise
       .then((data) => {
@@ -98,44 +87,32 @@ export default function GraphHero() {
           setVisibleCount(Math.min(5, data.nodes.length));
           setIsPlaying(true);
         } else {
-          useFallbackData();
+          setAllNodes([]);
+          setAllLinks([]);
+          setGraphError(
+            accountId
+              ? "Nessuna connessione trovata per questo account."
+              : "Nessun dato di rete disponibile: il database non contiene follow."
+          );
         }
       })
       .catch((err) => {
-        console.warn("Failed to fetch graph, using fallback sample topology:", err);
-        useFallbackData();
+        setAllNodes([]);
+        setAllLinks([]);
+        setGraphError(
+          err instanceof Error
+            ? `Impossibile caricare il grafo: ${err.message}`
+            : "Impossibile caricare il grafo. Verificare che il backend sia in esecuzione."
+        );
       });
   };
 
-  const useFallbackData = () => {
-    const sampleNodes: GraphNode[] = [
-      { id: 1, label: "@ai_researcher@mastodon.social", bot: false, group: "human", degree: 4, domain: "mastodon.social" },
-      { id: 2, label: "@news_bot@bot.fediverse.observer", bot: true, group: "bot", degree: 5, domain: "bot.fediverse.observer" },
-      { id: 3, label: "@fact_checker@truth.org", bot: false, group: "human", degree: 3, domain: "truth.org" },
-      { id: 4, label: "@synthetic_feed@ai.gen", bot: true, group: "bot", degree: 6, domain: "ai.gen" },
-      { id: 5, label: "@disinfo_tracker@network.net", bot: false, group: "human", degree: 4, domain: "network.net" },
-      { id: 6, label: "@mastodon_hub@mastodon.online", bot: false, group: "instance", degree: 7, domain: "mastodon.online" },
-      { id: 7, label: "@auto_reposter@bot.social", bot: true, group: "bot", degree: 3, domain: "bot.social" },
-      { id: 8, label: "@tech_trends@fediverse.it", bot: false, group: "human", degree: 4, domain: "fediverse.it" },
-      { id: 9, label: "@ai_pipeline_node@snm.ai", bot: true, group: "bot", degree: 5, domain: "snm.ai" },
-    ];
-
-    const sampleLinks: GraphLink[] = [
-      { source: 1, target: 2 },
-      { source: 1, target: 3 },
-      { source: 2, target: 4 },
-      { source: 4, target: 5 },
-      { source: 3, target: 5 },
-      { source: 6, target: 1 },
-      { source: 6, target: 8 },
-      { source: 7, target: 4 },
-      { source: 8, target: 9 },
-      { source: 9, target: 2 },
-      { source: 5, target: 1 },
-    ];
-    setAllNodes(sampleNodes);
-    setAllLinks(sampleLinks);
-  };
+  // graphMode e' una dipendenza reale: loadGraphData lo legge tramite closure,
+  // quindi con l'array vuoto il primo caricamento usava un valore stantio.
+  useEffect(() => {
+    loadGraphData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [graphMode]);
 
   // Handle live account search autocomplete
   useEffect(() => {
@@ -169,48 +146,31 @@ export default function GraphHero() {
     }
   };
 
-  // Handle Clicking any Node -> Open Rich Metadata Popup Modal!
   const handleNodeClick = (node: PhysicsNode) => {
     setModalLoading(true);
     setModalOpen(true);
+    setModalError(null);
+    setModalAccount(null);
 
     api
       .accountDetail(node.id)
       .then((res) => {
+        // Nessun oggetto di ripiego: i due rami costruivano metriche inventate
+        // (followers_count: degree * 12, statuses_count: 42) presentate nel
+        // modale come dati dell'account.
         if (res.account) {
           setModalAccount(res.account);
         } else {
-          // Construct fallback detail object from node if DB detail is incomplete
-          setModalAccount({
-            id: node.id,
-            acct: node.label,
-            username: node.label.split("@")[1] || node.label,
-            display_name: node.label,
-            bot: node.bot,
-            domain: node.domain || "fediverse",
-            url: `https://${node.domain || "mastodon.social"}/@${node.label.replace(/^@/, "")}`,
-            followers_count: node.degree ? node.degree * 12 : 1,
-            following_count: 5,
-            statuses_count: 42,
-            note: "Account utente indicizzato dalla rete Fediverse.",
-          });
+          setModalError(`Nessun dettaglio in archivio per ${node.label}.`);
         }
         setModalLoading(false);
       })
-      .catch(() => {
-        setModalAccount({
-          id: node.id,
-          acct: node.label,
-          username: node.label.split("@")[1] || node.label,
-          display_name: node.label,
-          bot: node.bot,
-          domain: node.domain || "fediverse",
-          url: `https://${node.domain || "mastodon.social"}/@${node.label.replace(/^@/, "")}`,
-          followers_count: node.degree ? node.degree * 12 : 1,
-          following_count: 5,
-          statuses_count: 42,
-          note: "Account utente indicizzato dalla rete Fediverse.",
-        });
+      .catch((err) => {
+        setModalError(
+          err instanceof Error
+            ? `Impossibile caricare i dettagli dell'account: ${err.message}`
+            : "Impossibile caricare i dettagli dell'account."
+        );
         setModalLoading(false);
       });
   };
@@ -399,9 +359,9 @@ export default function GraphHero() {
         ctx.lineTo(target.x, target.y);
 
         if (isHighlighted) {
-          ctx.strokeStyle = "#ff7759";
+          ctx.strokeStyle = tokens.color.coral;
           ctx.lineWidth = 2.5;
-          ctx.shadowColor = "#ff7759";
+          ctx.shadowColor = tokens.color.coral;
           ctx.shadowBlur = 8;
         } else {
           ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
@@ -457,14 +417,14 @@ export default function GraphHero() {
 
         ctx.save();
 
-        let baseColor = "#10b981";
+        let baseColor = tokens.color.success;
         let glowColor = "rgba(16, 185, 129, 0.4)";
 
         if (n.bot) {
-          baseColor = "#ff7759";
+          baseColor = tokens.color.coral;
           glowColor = "rgba(255, 119, 89, 0.5)";
         } else if (n.group === "instance" || (n.degree && n.degree >= 5)) {
-          baseColor = "#00e5ff";
+          baseColor = tokens.color.accentCyan;
           glowColor = "rgba(0, 229, 255, 0.5)";
         }
 
@@ -489,20 +449,20 @@ export default function GraphHero() {
         ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
         ctx.fillStyle = baseColor;
         ctx.fill();
-        ctx.strokeStyle = "#ffffff";
+        ctx.strokeStyle = tokens.color.canvas;
         ctx.lineWidth = isHovered ? 2.5 : 1.5;
         ctx.stroke();
 
         if (n.bot) {
           ctx.beginPath();
           ctx.arc(n.x, n.y, n.radius * 0.45, 0, Math.PI * 2);
-          ctx.fillStyle = "#ffffff";
+          ctx.fillStyle = tokens.color.canvas;
           ctx.fill();
         }
 
         if (isHovered || n.radius > 12) {
           ctx.font = "600 11px Inter, sans-serif";
-          ctx.fillStyle = "#ffffff";
+          ctx.fillStyle = tokens.color.canvas;
           ctx.textAlign = "center";
           const shortLabel = n.label.length > 20 ? n.label.substring(0, 18) + "..." : n.label;
           ctx.fillText(shortLabel, n.x, n.y + n.radius + 14);
@@ -605,7 +565,7 @@ export default function GraphHero() {
       sx={{
         borderRadius: "28px",
         backgroundColor: "#131924",
-        color: "#ffffff",
+        color: tokens.color.canvas,
         p: { xs: 3, md: 4 },
         mb: 6,
         position: "relative",
@@ -638,188 +598,34 @@ export default function GraphHero() {
         }}
       />
 
-      {/* Top Header Row with Search Input */}
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: { xs: "column", md: "row" },
-          justify: "space-between",
-          alignItems: { xs: "flex-start", md: "center" },
-          gap: 2,
-          mb: 3,
-          position: "relative",
-          zIndex: 2,
+      {/* Header, Search & Controls Toolbar */}
+      <GraphToolbar
+        graphMode={graphMode}
+        onGraphModeChange={(newMode) => {
+          // Il ricaricamento e' guidato dall'effect su [graphMode]: chiamare
+          // qui loadGraphData causerebbe un doppio fetch.
+          setGraphMode(newMode);
+          setSelectedSearchAccount(null);
         }}
-      >
-        <Box sx={{ flex: 1 }}>
-
-
-          <Typography
-            variant="h3"
-            sx={{
-              fontFamily: "Space Grotesk, Inter, sans-serif",
-              fontWeight: 500,
-              fontSize: { xs: "28px", md: "38px" },
-              letterSpacing: "-1px",
-              lineHeight: 1.1,
-              color: "#ffffff",
-            }}
-          >
-            Fediverse Intelligence Command Center
-          </Typography>
-        </Box>
-
-        {/* Graph Mode Dropdown */}
-        <Select
-          value={graphMode}
-          onChange={(e) => {
-            const newMode = e.target.value as string;
-            setGraphMode(newMode);
-            setSelectedSearchAccount(null);
-            loadGraphData(undefined, newMode);
-          }}
-          size="small"
-          sx={{
-            minWidth: 150,
-            borderRadius: "32px",
-            backgroundColor: "rgba(15, 23, 42, 0.8)",
-            backdropFilter: "blur(8px)",
-            color: "#ffffff",
-            fontSize: "13px",
-            fontWeight: 600,
-            border: "1px solid rgba(255, 255, 255, 0.15)",
-            "& .MuiSelect-icon": { color: "#94a3b8" },
-            "&:hover": { borderColor: "#00e5ff" },
-            "&.Mui-focused": {
-              borderColor: "#00e5ff",
-              boxShadow: "0 0 12px rgba(0, 229, 255, 0.3)",
-            },
-            "& .MuiOutlinedInput-notchedOutline": { border: "none" },
-          }}
-          MenuProps={{
-            PaperProps: {
-              sx: {
-                backgroundColor: "#0b0f19",
-                color: "#ffffff",
-                borderRadius: "16px",
-                border: "1px solid rgba(255, 255, 255, 0.15)",
-                mt: 1,
-              },
-            },
-          }}
-        >
-          <MenuItem value="all">
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <PublicIcon sx={{ fontSize: 16 }} /> Tutti gli account
-            </Box>
-          </MenuItem>
-          <MenuItem value="bot">
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <BotIcon sx={{ fontSize: 16 }} /> Solo Bot
-            </Box>
-          </MenuItem>
-          <MenuItem value="human">
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <HumanIcon sx={{ fontSize: 16 }} /> Solo Utenti
-            </Box>
-          </MenuItem>
-        </Select>
-
-        {/* Account Search Autocomplete Bar */}
-        <Box sx={{ width: { xs: "100%", md: "340px" } }}>
-          <Autocomplete
-            options={searchResults}
-            getOptionLabel={(option) => option.acct}
-            loading={searchLoading}
-            value={selectedSearchAccount}
-            onInputChange={(_, newInputValue) => setSearchQuery(newInputValue)}
-            onChange={(_, newValue) => handleSelectSearchedAccount(newValue)}
-            renderOption={(props, option) => (
-              <Box
-                component="li"
-                {...props}
-                sx={{
-                  p: 1.5,
-                  borderRadius: "12px",
-                  display: "flex",
-                  justify: "space-between",
-                  alignItems: "center",
-                  "&:hover": { backgroundColor: "rgba(0, 229, 255, 0.15)" },
-                }}
-              >
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: "#ffffff" }}>
-                    {option.acct}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: "#94a3b8" }}>
-                    Domain: {option.domain}
-                  </Typography>
-                </Box>
-                {option.bot && (
-                  <Chip
-                    icon={<BotIcon sx={{ fontSize: "12px !important", color: "#ffffff !important" }} />}
-                    label="BOT"
-                    size="small"
-                    sx={{ backgroundColor: "#ff7759", color: "#ffffff", fontSize: "9px", fontWeight: 700 }}
-                  />
-                )}
-              </Box>
-            )}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                placeholder="Cerca Utente per rete follower..."
-                variant="outlined"
-                size="small"
-                InputProps={{
-                  ...params.InputProps,
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ color: "#00e5ff" }} />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <>
-                      {searchLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                      {params.InputProps.endAdornment}
-                    </>
-                  ),
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: "32px",
-                    backgroundColor: "rgba(15, 23, 42, 0.8)",
-                    backdropFilter: "blur(8px)",
-                    color: "#ffffff",
-                    fontSize: "13px",
-                    border: "1px solid rgba(255, 255, 255, 0.15)",
-                    "&:hover": {
-                      borderColor: "#00e5ff",
-                    },
-                    "&.Mui-focused": {
-                      borderColor: "#00e5ff",
-                      boxShadow: "0 0 12px rgba(0, 229, 255, 0.3)",
-                    },
-                  },
-                }}
-              />
-            )}
-            PaperComponent={(props) => (
-              <Paper
-                {...props}
-                elevation={8}
-                sx={{
-                  backgroundColor: "#0b0f19",
-                  color: "#ffffff",
-                  borderRadius: "16px",
-                  border: "1px solid rgba(255, 255, 255, 0.15)",
-                  mt: 1,
-                }}
-              />
-            )}
-          />
-        </Box>
-      </Box>
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        searchResults={searchResults}
+        searchLoading={searchLoading}
+        selectedSearchAccount={selectedSearchAccount}
+        onSelectSearchedAccount={handleSelectSearchedAccount}
+        isPlaying={isPlaying}
+        onTogglePlay={() => setIsPlaying(!isPlaying)}
+        onStepIncrement={() => setVisibleCount((prev) => Math.min(prev + 3, allNodes.length))}
+        onResetGraph={() => {
+          setSelectedSearchAccount(null);
+          loadGraphData(undefined, graphMode);
+        }}
+        visibleCount={visibleCount}
+        totalNodesCount={allNodes.length}
+        onVisibleCountChange={setVisibleCount}
+        speedMultiplier={speedMultiplier}
+        onSpeedMultiplierChange={setSpeedMultiplier}
+      />
 
       {/* Dynamic Metric Badges */}
       <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
@@ -827,17 +633,17 @@ export default function GraphHero() {
           sx={{
             px: 2.5,
             py: 1.5,
-            borderRadius: "16px",
+            borderRadius: tokens.radius.lg,
             backgroundColor: "rgba(255, 255, 255, 0.04)",
             border: "1px solid rgba(255, 255, 255, 0.08)",
             textAlign: "center",
           }}
         >
-          <Typography variant="caption" sx={{ color: "#64748b", textTransform: "uppercase", fontSize: "10px" }}>
+          <Typography variant="caption" sx={{ color: tokens.color.darkSlateDeep, textTransform: "uppercase", fontSize: "10px" }}>
             NODES LOADED
           </Typography>
-          <Typography variant="h6" sx={{ fontFamily: "Space Grotesk", fontWeight: 700, color: "#ffffff" }}>
-            {visibleCount} <span style={{ fontSize: "12px", color: "#64748b" }}>/ {allNodes.length}</span>
+          <Typography variant="h6" sx={{ fontFamily: tokens.font.display, fontWeight: 700, color: tokens.color.canvas }}>
+            {visibleCount} <span style={{ fontSize: "12px", color: tokens.color.darkSlateDeep }}>/ {allNodes.length}</span>
           </Typography>
         </Box>
 
@@ -845,16 +651,16 @@ export default function GraphHero() {
           sx={{
             px: 2.5,
             py: 1.5,
-            borderRadius: "16px",
+            borderRadius: tokens.radius.lg,
             backgroundColor: "rgba(255, 255, 255, 0.04)",
             border: "1px solid rgba(255, 255, 255, 0.08)",
             textAlign: "center",
           }}
         >
-          <Typography variant="caption" sx={{ color: "#64748b", textTransform: "uppercase", fontSize: "10px" }}>
+          <Typography variant="caption" sx={{ color: tokens.color.darkSlateDeep, textTransform: "uppercase", fontSize: "10px" }}>
             ACTIVE EDGES
           </Typography>
-          <Typography variant="h6" sx={{ fontFamily: "Space Grotesk", fontWeight: 700, color: "#00e5ff" }}>
+          <Typography variant="h6" sx={{ fontFamily: tokens.font.display, fontWeight: 700, color: tokens.color.accentCyan }}>
             {activeLinksCount}
           </Typography>
         </Box>
@@ -863,16 +669,16 @@ export default function GraphHero() {
           sx={{
             px: 2.5,
             py: 1.5,
-            borderRadius: "16px",
+            borderRadius: tokens.radius.lg,
             backgroundColor: "rgba(255, 255, 255, 0.04)",
             border: "1px solid rgba(255, 255, 255, 0.08)",
             textAlign: "center",
           }}
         >
-          <Typography variant="caption" sx={{ color: "#64748b", textTransform: "uppercase", fontSize: "10px" }}>
+          <Typography variant="caption" sx={{ color: tokens.color.darkSlateDeep, textTransform: "uppercase", fontSize: "10px" }}>
             BOT RATIO
           </Typography>
-          <Typography variant="h6" sx={{ fontFamily: "Space Grotesk", fontWeight: 700, color: "#ff7759" }}>
+          <Typography variant="h6" sx={{ fontFamily: tokens.font.display, fontWeight: 700, color: tokens.color.coral }}>
             {botRatio}%
           </Typography>
         </Box>
@@ -885,7 +691,7 @@ export default function GraphHero() {
           width: "100%",
           height: isFullscreen ? "75vh" : "440px",
           borderRadius: "20px",
-          backgroundColor: "#0b0f19",
+          backgroundColor: tokens.color.darkSurface,
           border: "1px solid rgba(255, 255, 255, 0.08)",
           overflow: "hidden",
           transition: "all 0.3s ease",
@@ -898,6 +704,30 @@ export default function GraphHero() {
           onMouseUp={handleCanvasMouseUp}
           style={{ width: "100%", height: "100%", cursor: hoveredNode ? "pointer" : "default" }}
         />
+
+        {graphError && (
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 1,
+              px: 4,
+              textAlign: "center",
+              backgroundColor: "rgba(11, 15, 25, 0.92)",
+            }}
+          >
+            <Typography sx={{ color: tokens.color.canvas, fontWeight: 600, fontSize: "0.95rem" }}>
+              Grafo non disponibile
+            </Typography>
+            <Typography sx={{ color: tokens.color.darkSlate, fontSize: "0.85rem", maxWidth: 460 }}>
+              {graphError}
+            </Typography>
+          </Box>
+        )}
 
         {/* Legend Overlay (Top Left inside Canvas) */}
         <Stack
@@ -916,20 +746,20 @@ export default function GraphHero() {
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#ff7759" }} />
-            <Typography variant="caption" sx={{ color: "#cbd5e1", fontSize: "11px" }}>
+            <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: tokens.color.coral }} />
+            <Typography variant="caption" sx={{ color: tokens.color.darkSlateLight, fontSize: "11px" }}>
               Bot Node
             </Typography>
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#10b981" }} />
-            <Typography variant="caption" sx={{ color: "#cbd5e1", fontSize: "11px" }}>
+            <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: tokens.color.success }} />
+            <Typography variant="caption" sx={{ color: tokens.color.darkSlateLight, fontSize: "11px" }}>
               Human User
             </Typography>
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#00e5ff" }} />
-            <Typography variant="caption" sx={{ color: "#cbd5e1", fontSize: "11px" }}>
+            <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: tokens.color.accentCyan }} />
+            <Typography variant="caption" sx={{ color: tokens.color.darkSlateLight, fontSize: "11px" }}>
               Hub Instance
             </Typography>
           </Box>
@@ -944,7 +774,7 @@ export default function GraphHero() {
             right: 14,
             backgroundColor: "rgba(15, 23, 42, 0.75)",
             backdropFilter: "blur(8px)",
-            color: "#ffffff",
+            color: tokens.color.canvas,
             "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.2)" },
           }}
         >
@@ -960,7 +790,7 @@ export default function GraphHero() {
               bottom: 16,
               left: 16,
               p: 2,
-              borderRadius: "16px",
+              borderRadius: tokens.radius.lg,
               backgroundColor: "rgba(15, 23, 42, 0.9)",
               backdropFilter: "blur(12px)",
               border: "1px solid rgba(255, 255, 255, 0.15)",
@@ -972,167 +802,42 @@ export default function GraphHero() {
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
                 {hoveredNode.bot ? (
                   <Chip
-                    icon={<BotIcon sx={{ fontSize: "14px !important", color: "#ffffff !important" }} />}
+                    icon={<BotIcon sx={{ fontSize: "14px !important", color: `${tokens.color.canvas} !important` }} />}
                     label="BOT DETECTED"
                     size="small"
-                    sx={{ backgroundColor: "#ff7759", color: "#ffffff", fontWeight: 700, fontSize: "10px" }}
+                    sx={{ backgroundColor: tokens.color.coral, color: tokens.color.canvas, fontWeight: 700, fontSize: "10px" }}
                   />
                 ) : hoveredNode.group === "instance" ? (
                   <Chip
-                    icon={<HubIcon sx={{ fontSize: "14px !important", color: "#000000 !important" }} />}
+                    icon={<HubIcon sx={{ fontSize: "14px !important", color: `${tokens.color.black} !important` }} />}
                     label="HUB INSTANCE"
                     size="small"
-                    sx={{ backgroundColor: "#00e5ff", color: "#000000", fontWeight: 700, fontSize: "10px" }}
+                    sx={{ backgroundColor: tokens.color.accentCyan, color: tokens.color.black, fontWeight: 700, fontSize: "10px" }}
                   />
                 ) : (
                   <Chip
-                    icon={<HumanIcon sx={{ fontSize: "14px !important", color: "#ffffff !important" }} />}
+                    icon={<HumanIcon sx={{ fontSize: "14px !important", color: `${tokens.color.canvas} !important` }} />}
                     label="HUMAN USER"
                     size="small"
-                    sx={{ backgroundColor: "#10b981", color: "#ffffff", fontWeight: 700, fontSize: "10px" }}
+                    sx={{ backgroundColor: tokens.color.success, color: tokens.color.canvas, fontWeight: 700, fontSize: "10px" }}
                   />
                 )}
               </Stack>
-              <Typography variant="body2" sx={{ fontWeight: 700, color: "#ffffff", wordBreak: "break-all" }}>
+              <Typography variant="body2" sx={{ fontWeight: 700, color: tokens.color.canvas, wordBreak: "break-all" }}>
                 {hoveredNode.label}
               </Typography>
-              <Typography variant="caption" sx={{ color: "#94a3b8", display: "block", mt: 0.5 }}>
-                Domain: <strong style={{ color: "#cbd5e1" }}>{hoveredNode.domain || "fediverse"}</strong>
+              <Typography variant="caption" sx={{ color: tokens.color.darkSlate, display: "block", mt: 0.5 }}>
+                Domain: <strong style={{ color: tokens.color.darkSlateLight }}>{hoveredNode.domain || "fediverse"}</strong>
               </Typography>
-              <Typography variant="caption" sx={{ color: "#94a3b8", display: "block" }}>
-                Network Connections: <strong style={{ color: "#00e5ff" }}>{hoveredNode.degree || 1}</strong>
+              <Typography variant="caption" sx={{ color: tokens.color.darkSlate, display: "block" }}>
+                Network Connections: <strong style={{ color: tokens.color.accentCyan }}>{hoveredNode.degree || 1}</strong>
               </Typography>
-              <Typography variant="caption" sx={{ color: "#ff7759", fontSize: "10px", display: "block", mt: 0.5 }}>
+              <Typography variant="caption" sx={{ color: tokens.color.coral, fontSize: "10px", display: "block", mt: 0.5 }}>
                 👉 Clicca per aprire il popup metadati completo!
               </Typography>
             </Box>
           </Paper>
         )}
-      </Box>
-
-      {/* Incremental Rendering Control Bar */}
-      <Box
-        sx={{
-          mt: 3,
-          p: 2,
-          borderRadius: "20px",
-          backgroundColor: "rgba(255, 255, 255, 0.03)",
-          border: "1px solid rgba(255, 255, 255, 0.08)",
-          display: "flex",
-          flexDirection: { xs: "column", sm: "row" },
-          alignItems: "center",
-          justify: "space-between",
-          gap: 2,
-        }}
-      >
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <Tooltip title={isPlaying ? "Pausa Streaming" : "Avvia Streaming Progressivo"}>
-            <Button
-              variant="contained"
-              onClick={() => setIsPlaying(!isPlaying)}
-              startIcon={isPlaying ? <Pause /> : <PlayArrow />}
-              sx={{
-                borderRadius: "24px",
-                backgroundColor: isPlaying ? "#ff7759" : "#10b981",
-                color: "#ffffff",
-                fontWeight: 600,
-                px: 2.5,
-                "&:hover": {
-                  backgroundColor: isPlaying ? "#e05b3d" : "#0d9668",
-                },
-              }}
-            >
-              {isPlaying ? "PAUSE STREAM" : "PLAY STREAM"}
-            </Button>
-          </Tooltip>
-
-          <Tooltip title="Aggiungi +3 Nodi Ora">
-            <Button
-              variant="outlined"
-              onClick={() => setVisibleCount((prev) => Math.min(prev + 3, allNodes.length))}
-              disabled={visibleCount >= allNodes.length}
-              startIcon={<SkipNext />}
-              sx={{
-                borderRadius: "24px",
-                borderColor: "rgba(255, 255, 255, 0.2)",
-                color: "#ffffff",
-                "&:hover": { borderColor: "#00e5ff", backgroundColor: "rgba(0, 229, 255, 0.1)" },
-              }}
-            >
-              STEP (+3)
-            </Button>
-          </Tooltip>
-
-          <Tooltip title="Resetta Grafo al Network Iniziale">
-            <IconButton
-              onClick={() => {
-                setSelectedSearchAccount(null);
-                loadGraphData(undefined, graphMode);
-              }}
-              sx={{
-                color: "#94a3b8",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
-                "&:hover": { color: "#ffffff", backgroundColor: "rgba(255, 255, 255, 0.1)" },
-              }}
-            >
-              <RestartAlt />
-            </IconButton>
-          </Tooltip>
-        </Stack>
-
-        <Box sx={{ flex: 1, width: "100%", px: 2 }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
-            <Typography variant="caption" sx={{ color: "#94a3b8", fontFamily: "ui-monospace, monospace" }}>
-              RENDER PROGRESSION ("POCHI NODI ALLA VOLTA")
-            </Typography>
-            <Typography variant="caption" sx={{ color: "#00e5ff", fontWeight: 700, fontFamily: "ui-monospace, monospace" }}>
-              {visibleCount} / {allNodes.length} Nodes
-            </Typography>
-          </Box>
-          <Slider
-            value={visibleCount}
-            min={2}
-            max={allNodes.length || 20}
-            step={1}
-            onChange={(_, val) => setVisibleCount(val as number)}
-            sx={{
-              color: "#00e5ff",
-              height: 6,
-              "& .MuiSlider-thumb": {
-                width: 14,
-                height: 14,
-                backgroundColor: "#ffffff",
-                boxShadow: "0 0 10px #00e5ff",
-              },
-              "& .MuiSlider-track": {
-                backgroundColor: "#00e5ff",
-              },
-              "& .MuiSlider-rail": {
-                backgroundColor: "rgba(255, 255, 255, 0.1)",
-              },
-            }}
-          />
-        </Box>
-
-        <Stack direction="row" spacing={0.5} alignItems="center">
-          <Speed sx={{ color: "#64748b", fontSize: "18px", mr: 0.5 }} />
-          {[1, 2, 4].map((mult) => (
-            <Chip
-              key={mult}
-              label={`${mult}x`}
-              size="small"
-              onClick={() => setSpeedMultiplier(mult)}
-              sx={{
-                fontSize: "11px",
-                fontWeight: 700,
-                cursor: "pointer",
-                backgroundColor: speedMultiplier === mult ? "#00e5ff" : "rgba(255, 255, 255, 0.06)",
-                color: speedMultiplier === mult ? "#000000" : "#94a3b8",
-                "&:hover": { backgroundColor: speedMultiplier === mult ? "#00e5ff" : "rgba(255, 255, 255, 0.15)" },
-              }}
-            />
-          ))}
-        </Stack>
       </Box>
 
       {/* Account Detail Popup Modal */}
@@ -1141,6 +846,7 @@ export default function GraphHero() {
         onClose={() => setModalOpen(false)}
         account={modalAccount}
         loading={modalLoading}
+        error={modalError}
       />
     </Paper>
   );

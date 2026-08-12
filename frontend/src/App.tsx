@@ -49,9 +49,6 @@ const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const Posts = lazy(() => import("./pages/Posts.tsx"));
 const PostDetail = lazy(() => import("./pages/PostDetail.tsx"));
 const AiDetection = lazy(() => import("./pages/AiDetection.tsx"));
-const AiDetectionBinoculars = lazy(() => import("./pages/AiDetectionBinoculars.tsx"));
-const AiDetectionDesklib = lazy(() => import("./pages/AiDetectionDesklib.tsx"));
-const AiDetectionAda = lazy(() => import("./pages/AiDetectionAda.tsx"));
 const FactChecking = lazy(() => import("./pages/FactChecking.tsx"));
 const Accounts = lazy(() => import("./pages/Accounts.tsx"));
 const Pipelines = lazy(() => import("./pages/Pipelines.tsx"));
@@ -60,6 +57,7 @@ const DetectorComparison = lazy(() => import("./pages/DetectorComparison.tsx"));
 const InfluenceMaximization = lazy(() => import("./pages/InfluenceMaximization.tsx"));
 import { NotificationProvider } from "./context/NotificationContext.tsx";
 import ErrorBoundary from "./components/ErrorBoundary.tsx";
+import { tokens } from "./theme.ts";
 
 const drawerWidth = 270;
 
@@ -82,16 +80,16 @@ function NavigationContent() {
   ];
 
   return (
-    <Box sx={{ backgroundColor: "#ffffff", height: "100%", borderRight: "1px solid #e5e7eb", p: 2 }}>
+    <Box sx={{ backgroundColor: tokens.color.canvas, height: "100%", borderRight: tokens.border.subtle, p: 2 }}>
       {/* Brand Header */}
       <Box sx={{ px: 1, py: 2, mb: 2 }}>
         <Typography
           variant="h6"
           sx={{
-            fontFamily: "Space Grotesk, Inter, sans-serif",
+            fontFamily: tokens.font.display,
             fontWeight: 700,
             fontSize: "20px",
-            color: "#17171c",
+            color: tokens.color.nearBlack,
             letterSpacing: "-0.5px",
           }}
         >
@@ -100,9 +98,9 @@ function NavigationContent() {
         <Typography
           variant="caption"
           sx={{
-            fontFamily: "ui-monospace, monospace",
+            fontFamily: tokens.font.mono,
             fontSize: "11px",
-            color: "#75758a",
+            color: tokens.color.textMuted,
             textTransform: "uppercase",
             letterSpacing: "0.5px",
             display: "block",
@@ -131,27 +129,27 @@ function NavigationContent() {
                   borderRadius: "24px",
                   transition: "all 0.15s ease-in-out",
                   "&.Mui-selected": {
-                    backgroundColor: "#17171c",
-                    color: "#ffffff",
+                    backgroundColor: tokens.color.nearBlack,
+                    color: tokens.color.canvas,
                     "&:hover": {
-                      backgroundColor: "#17171c",
+                      backgroundColor: tokens.color.nearBlack,
                     },
                     "& .MuiListItemIcon-root": {
-                      color: "#ffffff",
+                      color: tokens.color.canvas,
                     },
                   },
                   "&:hover": {
-                    backgroundColor: isSelected ? "#17171c" : "#eeece7",
+                    backgroundColor: isSelected ? tokens.color.nearBlack : tokens.color.softStone,
                   },
                 }}
               >
-                <ListItemIcon sx={{ minWidth: 34, color: isSelected ? "#ffffff" : "#75758a" }}>
+                <ListItemIcon sx={{ minWidth: 34, color: isSelected ? tokens.color.canvas : tokens.color.textMuted }}>
                   {item.icon}
                 </ListItemIcon>
                 <ListItemText
                   primary={item.text}
                   primaryTypographyProps={{
-                    fontFamily: "Inter, sans-serif",
+                    fontFamily: tokens.font.body,
                     fontWeight: isSelected ? 600 : 500,
                     fontSize: "14px",
                   }}
@@ -180,7 +178,7 @@ export default function App() {
           <NotificationProvider>
             <CssBaseline />
           <HashRouter>
-            <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "#ffffff" }}>
+            <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: tokens.color.canvas }}>
 
           {/* Top Bar */}
           <AppBar
@@ -191,9 +189,9 @@ export default function App() {
               backgroundImage: "none",
               backgroundColor: "rgba(255, 255, 255, 0.9)",
               backdropFilter: "blur(8px)",
-              color: "#212121",
+              color: tokens.color.textPrimary,
               boxShadow: "none",
-              borderBottom: "1px solid #e5e7eb",
+              borderBottom: tokens.border.subtle,
             }}
           >
             <Toolbar sx={{ justifyContent: "space-between", height: "64px" }}>
@@ -212,10 +210,10 @@ export default function App() {
                 noWrap
                 component="div"
                 sx={{
-                  fontFamily: "Space Grotesk, Inter, sans-serif",
+                  fontFamily: tokens.font.display,
                   fontWeight: 500,
                   fontSize: "16px",
-                  color: "#17171c",
+                  color: tokens.color.nearBlack,
                 }}
               >
                 Information Analysis Platform
@@ -276,7 +274,7 @@ export default function App() {
               <Suspense
                 fallback={
                   <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh" }}>
-                    <CircularProgress sx={{ color: "#ff7759" }} />
+                    <CircularProgress sx={{ color: tokens.color.coral }} />
                   </Box>
                 }
               >
@@ -285,10 +283,11 @@ export default function App() {
                   <Route path="/posts" element={<Posts />} />
                   <Route path="/posts/:id" element={<PostDetail />} />
                   <Route path="/accounts" element={<Accounts />} />
-                  <Route path="/ai-detection" element={<AiDetection />} />
-                  <Route path="/ai-detection-binoculars" element={<AiDetectionBinoculars />} />
-                  <Route path="/ai-detection-desklib" element={<AiDetectionDesklib />} />
-                  <Route path="/ai-detection-ada" element={<AiDetectionAda />} />
+                  <Route path="/ai-detection" element={<AiDetection detectorKey="fastdetect" />} />
+                  <Route path="/ai-detection-binoculars" element={<AiDetection detectorKey="binoculars" />} />
+                  <Route path="/ai-detection-desklib" element={<AiDetection detectorKey="desklib" />} />
+                  <Route path="/ai-detection-ada" element={<AiDetection detectorKey="ada" />} />
+                  <Route path="/ai-detection/:detector" element={<AiDetection />} />
                   <Route path="/detector-comparison" element={<DetectorComparison />} />
                   <Route path="/influence-maximization" element={<InfluenceMaximization />} />
                   <Route path="/fact-check" element={<FactChecking />} />
@@ -305,15 +304,15 @@ export default function App() {
                 py: 4,
                 px: 3,
                 mt: "auto",
-                borderTop: "1px solid #e5e7eb",
-                backgroundColor: "#ffffff",
+                borderTop: tokens.border.subtle,
+                backgroundColor: tokens.color.canvas,
               }}
             >
               <Container maxWidth="xl" sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
-                <Typography variant="body2" sx={{ color: "#75758a", fontWeight: 500 }}>
+                <Typography variant="body2" sx={{ color: tokens.color.textMuted, fontWeight: 500 }}>
                   SNM Project — Fediverse Social Network & AI Analysis
                 </Typography>
-                <Typography variant="caption" sx={{ color: "#93939f", fontFamily: "ui-monospace, monospace" }}>
+                <Typography variant="caption" sx={{ color: tokens.color.textFaint, fontFamily: tokens.font.mono }}>
                   © {new Date().getFullYear()}
                 </Typography>
               </Container>

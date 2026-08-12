@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Box,
   Typography,
@@ -17,30 +17,19 @@ import {
   Bar,
   Cell,
 } from "recharts";
-import { api, DescriptiveStats } from "../api/client.ts";
+import { useAiDetectionQuery } from "../api/queries.ts";
 import AnalyticsIcon from "@mui/icons-material/Analytics";
 import StatsModal from "./StatsModal.tsx";
+import { tokens } from "../theme.ts";
 
 
 export default function DescriptiveStatsBlock() {
-  const [stats, setStats] = useState<DescriptiveStats | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Carica i dati delle statistiche descrittive da /api/ai-detection
-    api.aiDetection([], 1)
-      .then((res) => {
-        if (res.stats) {
-          setStats(res.stats);
-        }
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Errore durante il caricamento delle statistiche descrittive:", err);
-        setLoading(false);
-      });
-  }, []);
+  // Stessa chiave di query della pagina AI Detection: TanStack riusa la
+  // risposta gia' in cache invece di rifare la chiamata.
+  const { data, isLoading: loading } = useAiDetectionQuery([], 1);
+  const stats = data?.stats ?? null;
 
   if (loading || !stats) {
     return null;
@@ -55,36 +44,36 @@ export default function DescriptiveStatsBlock() {
           <Typography
             variant="h4"
             sx={{
-              fontFamily: "Space Grotesk, Inter, sans-serif",
+              fontFamily: tokens.font.display,
               fontWeight: 400,
               fontSize: { xs: "28px", md: "36px" },
-              color: "#17171c",
+              color: tokens.color.nearBlack,
               letterSpacing: "-0.48px",
             }}
           >
             Statistiche Descrittive del Corpus
           </Typography>
-          <Typography variant="body2" sx={{ color: "#75758a", mt: 0.5 }}>
+          <Typography variant="body2" sx={{ color: tokens.color.textMuted, mt: 0.5 }}>
             Metriche di sintesi e curve di distribuzione per il rilevamento del testo sintetico.
           </Typography>
         </Box>
 
         <Button
           variant="outlined"
-          startIcon={<AnalyticsIcon sx={{ color: "#1863dc" }} />}
+          startIcon={<AnalyticsIcon sx={{ color: tokens.color.actionBlue }} />}
           onClick={() => setModalOpen(true)}
           sx={{
-            borderRadius: "32px",
+            borderRadius: tokens.radius.pill,
             px: 3,
             py: 1,
             fontWeight: 600,
             fontSize: "13px",
             textTransform: "none",
-            borderColor: "#d9d9dd",
-            color: "#17171c",
+            borderColor: tokens.color.borderStrong,
+            color: tokens.color.nearBlack,
             "&:hover": {
-              borderColor: "#1863dc",
-              backgroundColor: "#f1f5ff",
+              borderColor: tokens.color.actionBlue,
+              backgroundColor: tokens.color.surfaceBlue,
             },
           }}
         >
@@ -92,13 +81,13 @@ export default function DescriptiveStatsBlock() {
         </Button>
       </Box>
 
-      {/* Grid di Card KPI traslucide su sfondo Soft Stone (#eeece7) */}
+      {/* Grid di Card KPI su sfondo Soft Stone */}
       <Box
         sx={{
           p: { xs: 3, md: 4 },
-          borderRadius: "22px",
-          backgroundColor: "#eeece7", // Soft Stone Surface da DESIGN.md
-          border: "1px solid #d9d9dd",
+          borderRadius: tokens.radius.xl,
+          backgroundColor: tokens.color.softStone, // Soft Stone Surface da DESIGN.md
+          border: tokens.border.strong,
         }}
       >
         <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -107,29 +96,29 @@ export default function DescriptiveStatsBlock() {
             <Box
               sx={{
                 p: 3,
-                borderRadius: "16px",
-                backgroundColor: "#ffffff",
-                border: "1px solid #e5e7eb",
+                borderRadius: tokens.radius.lg,
+                backgroundColor: tokens.color.canvas,
+                border: tokens.border.subtle,
                 boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
               }}
             >
-              <Typography variant="caption" sx={{ color: "#75758a", fontWeight: 600, display: "block", mb: 1, letterSpacing: "0.28px" }}>
+              <Typography variant="caption" sx={{ color: tokens.color.textMuted, fontWeight: 600, display: "block", mb: 1, letterSpacing: "0.28px" }}>
                 PROBABILITÀ MEDIA AI
               </Typography>
               <Typography
                 variant="h3"
                 sx={{
-                  fontFamily: "Space Grotesk, sans-serif",
+                  fontFamily: tokens.font.display,
                   fontWeight: 400,
                   fontSize: "38px",
-                  color: "#ff7759", // Coral Accent
+                  color: tokens.color.coral, // Coral Accent
                   lineHeight: 1,
                   mb: 1,
                 }}
               >
                 {stats.probability.mean}%
               </Typography>
-              <Typography variant="caption" sx={{ color: "#75758a" }}>
+              <Typography variant="caption" sx={{ color: tokens.color.textMuted }}>
                 Mediana: <strong>{stats.probability.median}%</strong> &bull; &plusmn;{stats.probability.std}% std
               </Typography>
             </Box>
@@ -140,29 +129,29 @@ export default function DescriptiveStatsBlock() {
             <Box
               sx={{
                 p: 3,
-                borderRadius: "16px",
-                backgroundColor: "#ffffff",
-                border: "1px solid #e5e7eb",
+                borderRadius: tokens.radius.lg,
+                backgroundColor: tokens.color.canvas,
+                border: tokens.border.subtle,
                 boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
               }}
             >
-              <Typography variant="caption" sx={{ color: "#75758a", fontWeight: 600, display: "block", mb: 1, letterSpacing: "0.28px" }}>
+              <Typography variant="caption" sx={{ color: tokens.color.textMuted, fontWeight: 600, display: "block", mb: 1, letterSpacing: "0.28px" }}>
                 LUNGHEZZA MEDIA POST
               </Typography>
               <Typography
                 variant="h3"
                 sx={{
-                  fontFamily: "Space Grotesk, sans-serif",
+                  fontFamily: tokens.font.display,
                   fontWeight: 400,
                   fontSize: "38px",
-                  color: "#1863dc", // Action Blue
+                  color: tokens.color.actionBlue, // Action Blue
                   lineHeight: 1,
                   mb: 1,
                 }}
               >
                 {stats.text_length.avg_chars}
               </Typography>
-              <Typography variant="caption" sx={{ color: "#75758a" }}>
+              <Typography variant="caption" sx={{ color: tokens.color.textMuted }}>
                 Caratteri medi &bull; Mediana: <strong>{stats.text_length.median_chars}</strong>
               </Typography>
             </Box>
@@ -173,29 +162,29 @@ export default function DescriptiveStatsBlock() {
             <Box
               sx={{
                 p: 3,
-                borderRadius: "16px",
-                backgroundColor: "#ffffff",
-                border: "1px solid #e5e7eb",
+                borderRadius: tokens.radius.lg,
+                backgroundColor: tokens.color.canvas,
+                border: tokens.border.subtle,
                 boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
               }}
             >
-              <Typography variant="caption" sx={{ color: "#75758a", fontWeight: 600, display: "block", mb: 1, letterSpacing: "0.28px" }}>
+              <Typography variant="caption" sx={{ color: tokens.color.textMuted, fontWeight: 600, display: "block", mb: 1, letterSpacing: "0.28px" }}>
                 ACCOUNT AUTOMATIZZATI
               </Typography>
               <Typography
                 variant="h3"
                 sx={{
-                  fontFamily: "Space Grotesk, sans-serif",
+                  fontFamily: tokens.font.display,
                   fontWeight: 400,
                   fontSize: "38px",
-                  color: "#17171c",
+                  color: tokens.color.nearBlack,
                   lineHeight: 1,
                   mb: 1,
                 }}
               >
                 {stats.bot_breakdown.bot_percentage}%
               </Typography>
-              <Typography variant="caption" sx={{ color: "#75758a" }}>
+              <Typography variant="caption" sx={{ color: tokens.color.textMuted }}>
                 {stats.bot_breakdown.bots.toLocaleString()} bot vs {stats.bot_breakdown.humans.toLocaleString()} umani
               </Typography>
             </Box>
@@ -206,29 +195,29 @@ export default function DescriptiveStatsBlock() {
             <Box
               sx={{
                 p: 3,
-                borderRadius: "16px",
-                backgroundColor: "#ffffff",
-                border: "1px solid #e5e7eb",
+                borderRadius: tokens.radius.lg,
+                backgroundColor: tokens.color.canvas,
+                border: tokens.border.subtle,
                 boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
               }}
             >
-              <Typography variant="caption" sx={{ color: "#75758a", fontWeight: 600, display: "block", mb: 1, letterSpacing: "0.28px" }}>
+              <Typography variant="caption" sx={{ color: tokens.color.textMuted, fontWeight: 600, display: "block", mb: 1, letterSpacing: "0.28px" }}>
                 TOKEN MEDI PER POST
               </Typography>
               <Typography
                 variant="h3"
                 sx={{
-                  fontFamily: "Space Grotesk, sans-serif",
+                  fontFamily: tokens.font.display,
                   fontWeight: 400,
                   fontSize: "38px",
-                  color: "#003c33", // Deep Enterprise Green
+                  color: tokens.color.deepGreen, // Deep Enterprise Green
                   lineHeight: 1,
                   mb: 1,
                 }}
               >
                 {stats.text_length.avg_tokens}
               </Typography>
-              <Typography variant="caption" sx={{ color: "#75758a" }}>
+              <Typography variant="caption" sx={{ color: tokens.color.textMuted }}>
                 Valutati da Fast-DetectGPT
               </Typography>
             </Box>
@@ -241,16 +230,16 @@ export default function DescriptiveStatsBlock() {
             <Box
               sx={{
                 p: 3.5,
-                borderRadius: "16px",
-                backgroundColor: "#ffffff",
-                border: "1px solid #e5e7eb",
+                borderRadius: tokens.radius.lg,
+                backgroundColor: tokens.color.canvas,
+                border: tokens.border.subtle,
               }}
             >
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "16px", color: "#17171c" }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "16px", color: tokens.color.nearBlack }}>
                   Spettro Continuo di Probabilità IA (KDE)
                 </Typography>
-                <Chip label="10 Bucket Fine-Grained" size="small" sx={{ backgroundColor: "#eeece7", color: "#75758a", fontSize: "11px" }} />
+                <Chip label="10 Bucket Fine-Grained" size="small" sx={{ backgroundColor: tokens.color.softStone, color: tokens.color.textMuted, fontSize: "11px" }} />
               </Box>
 
               <Box sx={{ height: 220, width: "100%" }}>
@@ -258,22 +247,22 @@ export default function DescriptiveStatsBlock() {
                   <AreaChart data={stats.distribution_curve} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="dashboardProbGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ff7759" stopOpacity={0.4} />
-                        <stop offset="95%" stopColor="#ff7759" stopOpacity={0.0} />
+                        <stop offset="5%" stopColor={tokens.color.coral} stopOpacity={0.4} />
+                        <stop offset="95%" stopColor={tokens.color.coral} stopOpacity={0.0} />
                       </linearGradient>
                     </defs>
-                    <XAxis dataKey="bucket" stroke="#75758a" tick={{ fontSize: 11 }} />
-                    <YAxis stroke="#75758a" tick={{ fontSize: 11 }} />
+                    <XAxis dataKey="bucket" stroke={tokens.color.textMuted} tick={{ fontSize: 11 }} />
+                    <YAxis stroke={tokens.color.textMuted} tick={{ fontSize: 11 }} />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: "#17171c",
+                        backgroundColor: tokens.color.nearBlack,
                         border: "none",
-                        borderRadius: "8px",
+                        borderRadius: tokens.radius.sm,
                         color: "#fff",
                       }}
                       formatter={(val: any) => [`${Number(val || 0).toLocaleString()} status`, "Frequenza"]}
                     />
-                    <Area type="monotone" dataKey="count" stroke="#ff7759" strokeWidth={2.5} fillOpacity={1} fill="url(#dashboardProbGradient)" />
+                    <Area type="monotone" dataKey="count" stroke={tokens.color.coral} strokeWidth={2.5} fillOpacity={1} fill="url(#dashboardProbGradient)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </Box>
@@ -285,33 +274,33 @@ export default function DescriptiveStatsBlock() {
             <Box
               sx={{
                 p: 3.5,
-                borderRadius: "16px",
-                backgroundColor: "#ffffff",
-                border: "1px solid #e5e7eb",
+                borderRadius: tokens.radius.lg,
+                backgroundColor: tokens.color.canvas,
+                border: tokens.border.subtle,
                 height: "100%",
                 display: "flex",
                 flexDirection: "column",
               }}
             >
-              <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "16px", color: "#17171c", mb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "16px", color: tokens.color.nearBlack, mb: 2 }}>
                 Top Istanze Fediverso
               </Typography>
               <Box sx={{ height: 180, width: "100%", flexGrow: 1 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={stats.top_domains} layout="vertical" margin={{ top: 0, right: 10, left: 10, bottom: 0 }}>
-                    <XAxis type="number" stroke="#75758a" tick={{ fontSize: 10 }} />
-                    <YAxis dataKey="domain" type="category" stroke="#17171c" tick={{ fontSize: 11 }} width={90} />
+                    <XAxis type="number" stroke={tokens.color.textMuted} tick={{ fontSize: 10 }} />
+                    <YAxis dataKey="domain" type="category" stroke={tokens.color.nearBlack} tick={{ fontSize: 11 }} width={90} />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: "#17171c",
+                        backgroundColor: tokens.color.nearBlack,
                         border: "none",
-                        borderRadius: "8px",
+                        borderRadius: tokens.radius.sm,
                         color: "#fff",
                       }}
                     />
                     <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                       {stats.top_domains.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={index === 0 ? "#ff7759" : index === 1 ? "#1863dc" : "#003c33"} />
+                        <Cell key={`cell-${index}`} fill={index === 0 ? tokens.color.coral : index === 1 ? tokens.color.actionBlue : tokens.color.deepGreen} />
                       ))}
                     </Bar>
                   </BarChart>

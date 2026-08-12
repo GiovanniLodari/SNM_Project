@@ -1,7 +1,24 @@
 import json
 import threading
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
+
+from fastapi import HTTPException
+
 from webapp.path_utils import INFLUENCE_MAXIMIZATION_PATH, CONFRONTO_ALGORITMI_PATH
+
+
+def _missing_data_file(path, descrizione: str) -> HTTPException:
+    """503 leggibile al posto di una FileNotFoundError grezza: i dataset di
+    Influence Maximization sono troppo grandi per stare su git (vedi
+    .gitignore), quindi la loro assenza e' una condizione prevista su un clone
+    fresco, non un bug. Il client deve poterlo distinguere da un 500."""
+    return HTTPException(
+        status_code=503,
+        detail=(
+            f"{descrizione} non e' disponibile: manca il file {path.name}. "
+            f"Va rigenerato o copiato in {path.parent}."
+        ),
+    )
 
 _CACHE_LOCK = threading.Lock()
 _INFLUENCE_DATA_CACHE: Optional[Dict[str, Any]] = None
@@ -21,7 +38,7 @@ def load_influence_data() -> Dict[str, Any]:
 
         path = INFLUENCE_MAXIMIZATION_PATH
         if not path.exists():
-            raise FileNotFoundError(f"File dati influence maximization non trovato: {path}")
+            raise _missing_data_file(path, "Il dataset di Influence Maximization")
 
         with open(path, "r", encoding="utf-8") as f:
             raw_data = json.load(f)
@@ -462,7 +479,7 @@ def get_algo_comparison() -> Dict[str, Any]:
 
         path = CONFRONTO_ALGORITMI_PATH
         if not path.exists():
-            raise FileNotFoundError(f"File confronto algoritmi non trovato: {path}")
+            raise _missing_data_file(path, "Il confronto fra algoritmi")
 
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)

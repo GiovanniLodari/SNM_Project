@@ -6,7 +6,6 @@ import {
   Typography,
   Box,
   Button,
-  CircularProgress,
   TextField,
   LinearProgress,
   Chip,
@@ -19,8 +18,11 @@ import {
   Refresh as RefreshIcon,
   ExpandMore as ExpandMoreIcon,
 } from "@mui/icons-material";
-import { api, JobRow, PipelinesResponse } from "../api/client.ts";
+import { api, JobRow } from "../api/client.ts";
+import { usePipelinesQuery } from "../api/queries.ts";
 import { useNotification } from "../context/NotificationContext.tsx";
+import { tokens } from "../theme.ts";
+import { LoadingState, ErrorState } from "../components/States.tsx";
 
 function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }) {
   const { notify } = useNotification();
@@ -67,10 +69,10 @@ function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }
   return (
     <Box
       sx={{
-        borderRadius: "22px",
-        border: "1px solid #e5e7eb",
-        backgroundColor: "#17171c", // Near-Black Agent Console style
-        color: "#ffffff",
+        borderRadius: tokens.radius.xl,
+        border: tokens.border.subtle,
+        backgroundColor: tokens.color.nearBlack, // Near-Black Agent Console style
+        color: tokens.color.canvas,
         p: 4,
         height: "100%",
         display: "flex",
@@ -79,20 +81,20 @@ function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }
     >
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
         <Box>
-          <Typography variant="h6" sx={{ color: "#ffffff", fontWeight: 600 }}>
+          <Typography variant="h6" sx={{ color: tokens.color.canvas, fontWeight: 600 }}>
             {job.label}
           </Typography>
-          <Typography variant="caption" sx={{ color: "#93939f", fontFamily: "CohereMono, monospace" }}>
+          <Typography variant="caption" sx={{ color: tokens.color.textFaint, fontFamily: "CohereMono, monospace" }}>
             AGENT ID: {job.name}
           </Typography>
         </Box>
         <Chip
           label={job.running ? "ACTIVE LOGGING" : "IDLE / STOPPED"}
           sx={{
-            borderRadius: "16px",
-            backgroundColor: job.running ? "#003c33" : "rgba(255, 255, 255, 0.1)",
-            color: job.running ? "#ffffff" : "#93939f",
-            fontFamily: "ui-monospace, monospace",
+            borderRadius: tokens.radius.lg,
+            backgroundColor: job.running ? tokens.color.deepGreen : "rgba(255, 255, 255, 0.1)",
+            color: job.running ? tokens.color.canvas : tokens.color.textFaint,
+            fontFamily: tokens.font.mono,
             fontSize: "10px",
             fontWeight: 600,
           }}
@@ -100,17 +102,17 @@ function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }
         />
       </Box>
 
-      <Typography variant="body2" sx={{ color: "#93939f", mb: 3, flexGrow: 1 }}>
+      <Typography variant="body2" sx={{ color: tokens.color.textFaint, mb: 3, flexGrow: 1 }}>
         {job.description || "No description specified."}
       </Typography>
 
       {job.running && job.progress_pct !== null && (
         <Box sx={{ mb: 3 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
-            <Typography variant="caption" sx={{ color: "#ffffff" }}>
+            <Typography variant="caption" sx={{ color: tokens.color.canvas }}>
               Progress
             </Typography>
-            <Typography variant="caption" sx={{ color: "#ff7759", fontWeight: 600 }}>
+            <Typography variant="caption" sx={{ color: tokens.color.coral, fontWeight: 600 }}>
               {job.progress_done} / {job.progress_total} ({job.progress_pct}%)
             </Typography>
           </Box>
@@ -121,7 +123,7 @@ function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }
               height: 6,
               borderRadius: 3,
               backgroundColor: "rgba(255, 255, 255, 0.1)",
-              "& .MuiLinearProgress-bar": { backgroundColor: "#ff7759" },
+              "& .MuiLinearProgress-bar": { backgroundColor: tokens.color.coral },
             }}
           />
         </Box>
@@ -140,12 +142,12 @@ function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }
             onChange={(e) => setParamValue(e.target.value)}
             sx={{
               backgroundColor: "rgba(255, 255, 255, 0.05)",
-              borderRadius: "12px",
-              "& .MuiInputLabel-root": { color: "#93939f" },
+              borderRadius: tokens.radius.md,
+              "& .MuiInputLabel-root": { color: tokens.color.textFaint },
               "& .MuiOutlinedInput-root": {
-                color: "#ffffff",
+                color: tokens.color.canvas,
                 "& fieldset": { borderColor: "rgba(255, 255, 255, 0.2)" },
-                "&:hover fieldset": { borderColor: "#ffffff" },
+                "&:hover fieldset": { borderColor: tokens.color.canvas },
               },
             }}
           />
@@ -157,18 +159,18 @@ function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }
         <Accordion
           elevation={0}
           sx={{
-            backgroundColor: "#000000",
-            color: "#00e5ff",
+            backgroundColor: tokens.color.black,
+            color: tokens.color.accentCyan,
             borderRadius: "12px !important",
             border: "1px solid rgba(255, 255, 255, 0.15)",
             mb: 3,
             "&::before": { display: "none" },
           }}
         >
-          <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: "#00e5ff" }} />}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: tokens.color.accentCyan }} />}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <ConsoleIcon sx={{ fontSize: 16, color: "#00e5ff" }} />
-              <Typography variant="caption" sx={{ fontFamily: "ui-monospace, monospace", color: "#ffffff", fontWeight: 600 }}>
+              <ConsoleIcon sx={{ fontSize: 16, color: tokens.color.accentCyan }} />
+              <Typography variant="caption" sx={{ fontFamily: tokens.font.mono, color: tokens.color.canvas, fontWeight: 600 }}>
                 Log Console & Dettagli Tecnici ({job.log_lines.length} righe)
               </Typography>
             </Box>
@@ -178,12 +180,12 @@ function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }
               sx={{
                 p: 1.5,
                 backgroundColor: "#050811",
-                color: "#00e5ff",
-                fontFamily: "ui-monospace, monospace",
+                color: tokens.color.accentCyan,
+                fontFamily: tokens.font.mono,
                 fontSize: "11px",
                 maxHeight: 200,
                 overflowY: "auto",
-                borderRadius: "8px",
+                borderRadius: tokens.radius.sm,
               }}
             >
               {job.log_lines.map((line, idx) => (
@@ -204,9 +206,9 @@ function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }
             onClick={handleStop}
             disabled={actionLoading}
             sx={{
-              backgroundColor: "#b30000", // Error Red
-              color: "#ffffff",
-              borderRadius: "32px",
+              backgroundColor: tokens.color.danger, // Error Red
+              color: tokens.color.canvas,
+              borderRadius: tokens.radius.pill,
               "&:hover": { backgroundColor: "#800000" },
             }}
           >
@@ -220,10 +222,10 @@ function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }
             onClick={handleStart}
             disabled={actionLoading}
             sx={{
-              backgroundColor: "#ffffff",
-              color: "#17171c",
-              borderRadius: "32px",
-              "&:hover": { backgroundColor: "#eeece7" },
+              backgroundColor: tokens.color.canvas,
+              color: tokens.color.nearBlack,
+              borderRadius: tokens.radius.pill,
+              "&:hover": { backgroundColor: tokens.color.softStone },
             }}
           >
             Launch Pipeline
@@ -235,40 +237,15 @@ function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }
 }
 
 export default function Pipelines() {
-  const [data, setData] = useState<PipelinesResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchPipelines = (silent = false) => {
-    if (!silent) setLoading(true);
-    api.pipelines()
-      .then((res) => {
-        setData(res);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setError("Impossibile caricare lo stato delle pipeline.");
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    fetchPipelines();
-
-    // Auto-refresh ogni 3 secondi per tracciare i log live e lo stato di running
-    const interval = setInterval(() => {
-      fetchPipelines(true);
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, []);
+  // usePipelinesQuery porta gia' refetchInterval a 3s per i log live: il
+  // setInterval scritto a mano qui lo duplicava.
+  const { data, isLoading: loading, isError, refetch } = usePipelinesQuery();
+  const error = isError ? "Impossibile caricare lo stato delle pipeline." : null;
+  const fetchPipelines = () => { refetch(); };
 
   if (loading && !data) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh" }}>
-        <CircularProgress color="primary" />
-      </Box>
+      <LoadingState />
     );
   }
 
@@ -280,16 +257,16 @@ export default function Pipelines() {
           <Typography
             variant="h2"
             sx={{
-              fontFamily: "Space Grotesk, Inter, sans-serif",
+              fontFamily: tokens.font.display,
               fontWeight: 400,
               fontSize: { xs: "32px", md: "48px" },
-              color: "#17171c",
+              color: tokens.color.nearBlack,
               mb: 1,
             }}
           >
             Pipeline Command System
           </Typography>
-          <Typography variant="body1" sx={{ color: "#75758a" }}>
+          <Typography variant="body1" sx={{ color: tokens.color.textMuted }}>
             Orchestrate background crawlers, relationship density generators, Fast-DetectGPT, and LLM fact checkers.
           </Typography>
         </Box>
@@ -297,23 +274,19 @@ export default function Pipelines() {
           startIcon={<RefreshIcon />}
           onClick={() => fetchPipelines()}
           variant="outlined"
-          sx={{ borderRadius: "32px" }}
+          sx={{ borderRadius: tokens.radius.pill }}
         >
           Refresh State
         </Button>
       </Box>
 
-      {error && (
-        <Box sx={{ mb: 3 }}>
-          <Typography color="error">{error}</Typography>
-        </Box>
-      )}
+      <ErrorState message={error} />
 
       {data && (
         <Grid container spacing={4}>
           {data.jobs.map((job) => (
             <Grid item xs={12} md={6} key={job.name}>
-              <PipelineCard job={job} onRefresh={() => fetchPipelines(true)} />
+              <PipelineCard job={job} onRefresh={() => fetchPipelines()} />
             </Grid>
           ))}
         </Grid>

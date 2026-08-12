@@ -2,29 +2,11 @@ import os
 import re
 
 
-class MissingCredentialError(Exception):
-    pass
-
-
 def normalize_domain(domain: str) -> str:
     """Converte un dominio istanza nel nome della env var che ne contiene il token.
     Esempio: 'mastodon.social' -> 'MASTODON_TOKEN_MASTODON_SOCIAL'."""
     normalized = re.sub(r"[^a-zA-Z0-9]", "_", domain).upper()
     return f"MASTODON_TOKEN_{normalized}"
-
-
-def get_token(domain: str) -> str:
-    """Restituisce il token di accesso per l'istanza, letto da env var.
-    Alza MissingCredentialError con un messaggio esplicito se il token manca."""
-    env_var = normalize_domain(domain)
-    token = os.environ.get(env_var)
-    if not token:
-        raise MissingCredentialError(
-            f"Nessun token trovato per l'istanza '{domain}'. "
-            f"Registra un'app su https://{domain}/settings/applications "
-            f"e imposta la variabile d'ambiente {env_var} in .env."
-        )
-    return token
 
 
 def get_optional_token(domain: str) -> str | None:

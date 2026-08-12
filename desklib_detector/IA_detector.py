@@ -15,6 +15,7 @@ Uso:
 import csv
 import json
 import os
+from pathlib import Path
 import sys
 import time
 import torch
@@ -25,7 +26,7 @@ from transformers import AutoTokenizer, AutoConfig, AutoModel, PreTrainedModel
 # ---------------------------------------------------------------------------
 # CONFIGURAZIONE
 # ---------------------------------------------------------------------------
-INPUT_FILE       = "C:/Users/antoc/PycharmProjects/ProgettoSocialNetwork/post_texts.jsonl"
+INPUT_FILE       = str(Path(__file__).resolve().parent.parent / "post_texts.jsonl")
 OUTPUT_CSV       = "risultati.csv"
 OUTPUT_REPORT    = "report.txt"
 TARGET_LANG      = "en"

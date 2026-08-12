@@ -24,6 +24,7 @@ import {
 } from "@mui/icons-material";
 import ReactECharts from "echarts-for-react";
 import { InfluenceGraphNode, InfluenceGraphLink, InfluenceSeed } from "../api/client.ts";
+import { tokens } from "../theme.ts";
 
 interface InfluenceGraphCanvasProps {
   nodes: InfluenceGraphNode[];
@@ -70,9 +71,9 @@ export default function InfluenceGraphCanvas({
     if (!rawNodes || rawNodes.length === 0) return {};
 
     const categories = [
-      { name: "1. SEED BOT FOCUS", itemStyle: { color: "#ff7759" } },
-      { name: "2. NUOVO INFETTO", itemStyle: { color: "#34c759" } },
-      { name: "3. ATTIVO CONTAGIATO", itemStyle: { color: "#00e5ff" } },
+      { name: "1. SEED BOT FOCUS", itemStyle: { color: tokens.color.coral } },
+      { name: "2. NUOVO INFETTO", itemStyle: { color: tokens.color.activated } },
+      { name: "3. ATTIVO CONTAGIATO", itemStyle: { color: tokens.color.accentCyan } },
       { name: "4. INATTIVO", itemStyle: { color: "#475569" } },
     ];
 
@@ -173,16 +174,16 @@ export default function InfluenceGraphCanvas({
         itemStyle: {
           opacity,
           borderWidth: isSeed ? 3 : isJustActivated ? 2 : 1,
-          borderColor: isSeed ? "#ffffff" : isJustActivated ? "#ffffff" : "rgba(255,255,255,0.4)",
+          borderColor: isSeed ? tokens.color.canvas : isJustActivated ? tokens.color.canvas : "rgba(255,255,255,0.4)",
           shadowBlur: isSeed ? 20 : isJustActivated ? 15 : 0,
-          shadowColor: isSeed ? "#ff7759" : isJustActivated ? "#34c759" : "transparent",
+          shadowColor: isSeed ? tokens.color.coral : isJustActivated ? tokens.color.activated : "transparent",
         },
         label: {
           show: isSeed || isJustActivated,
           fontSize: isSeed ? 13 : 11,
           fontFamily: "Space Grotesk, Inter, monospace",
           fontWeight: isSeed ? "bold" : "normal",
-          color: isSeed ? "#ff7759" : isJustActivated ? "#34c759" : "#ffffff",
+          color: isSeed ? tokens.color.coral : isJustActivated ? tokens.color.activated : tokens.color.canvas,
         },
         // Custom Payload Data for Tooltip
         rawNode: node,
@@ -201,7 +202,7 @@ export default function InfluenceGraphCanvas({
       let lineWidth = 0.5;
 
       if (isCurrentWave) {
-        lineColor = "#ff7759";
+        lineColor = tokens.color.coral;
         lineWidth = 3;
       } else if (isFired) {
         lineColor = "rgba(0, 229, 255, 0.4)";
@@ -220,12 +221,12 @@ export default function InfluenceGraphCanvas({
     });
 
     return {
-      backgroundColor: "#17171c",
+      backgroundColor: tokens.color.nearBlack,
       tooltip: {
         trigger: "item",
         backgroundColor: "rgba(23, 23, 28, 0.94)",
         borderColor: "rgba(255, 255, 255, 0.2)",
-        textStyle: { color: "#ffffff", fontFamily: "Inter, sans-serif" },
+        textStyle: { color: tokens.color.canvas, fontFamily: tokens.font.body },
         formatter: (params: any) => {
           if (params.dataType === "node") {
             const raw = params.data.rawNode;
@@ -235,12 +236,12 @@ export default function InfluenceGraphCanvas({
             const isAct = step !== null && step <= currentStep;
             return `
               <div style="padding: 4px;">
-                <strong style="font-size: 14px; color: ${isSeed ? "#ff7759" : isAct ? "#00e5ff" : "#93939f"}">
+                <strong style="font-size: 14px; color: ${isSeed ? tokens.color.coral : isAct ? tokens.color.accentCyan : tokens.color.textFaint}">
                   @${raw.acct || raw.id}
                 </strong><br/>
-                <span style="font-size: 12px; color: #93939f;">ID: ${raw.id}</span><br/>
-                <span style="font-size: 12px; color: #ffffff;">Followers: ${raw.followers?.toLocaleString() || 0}</span><br/>
-                <span style="font-size: 12px; font-weight: bold; color: ${isSeed ? "#ff7759" : isAct ? "#34c759" : "#75758a"}">
+                <span style="font-size: 12px; color: ${tokens.color.textFaint};">ID: ${raw.id}</span><br/>
+                <span style="font-size: 12px; color: ${tokens.color.canvas};">Followers: ${raw.followers?.toLocaleString() || 0}</span><br/>
+                <span style="font-size: 12px; font-weight: bold; color: ${isSeed ? tokens.color.coral : isAct ? tokens.color.activated : tokens.color.textMuted}">
                   Stato: ${isSeed ? "SEED BOT ORIGINE" : isAct ? `CONTAGIATO a Step ${step}` : "INATTIVO"}
                 </span>
               </div>
@@ -251,7 +252,7 @@ export default function InfluenceGraphCanvas({
       },
       legend: {
         data: categories.map((c) => c.name),
-        textStyle: { color: "#93939f", fontFamily: "ui-monospace, monospace", fontSize: 11 },
+        textStyle: { color: tokens.color.textFaint, fontFamily: tokens.font.mono, fontSize: 11 },
         top: 16,
         right: 20,
       },
@@ -315,11 +316,11 @@ export default function InfluenceGraphCanvas({
     <Paper
       elevation={0}
       sx={{
-        borderRadius: "22px",
+        borderRadius: tokens.radius.xl,
         overflow: "hidden",
-        border: "1px solid #e5e7eb",
-        backgroundColor: "#17171c",
-        color: "#ffffff",
+        border: tokens.border.subtle,
+        backgroundColor: tokens.color.nearBlack,
+        color: tokens.color.canvas,
         position: "relative",
       }}
     >
@@ -338,22 +339,22 @@ export default function InfluenceGraphCanvas({
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <PulseIcon sx={{ color: "#ff7759", fontSize: 24 }} />
+          <PulseIcon sx={{ color: tokens.color.coral, fontSize: 24 }} />
           <Box>
             <Typography
               variant="h6"
               sx={{
-                fontFamily: "Space Grotesk, Inter, sans-serif",
+                fontFamily: tokens.font.display,
                 fontSize: "16px",
                 fontWeight: 600,
-                color: "#ffffff",
+                color: tokens.color.canvas,
               }}
             >
               Grafo di Propagazione Apache ECharts
             </Typography>
             <Typography
               variant="caption"
-              sx={{ color: "#93939f", fontFamily: "ui-monospace, monospace", fontSize: "11px" }}
+              sx={{ color: tokens.color.textFaint, fontFamily: tokens.font.mono, fontSize: "11px" }}
             >
               Simulazione WebGL/Canvas • Step {currentStep} / {maxStep} (Profondità max seed: Step {maxSeedStep})
             </Typography>
@@ -367,14 +368,14 @@ export default function InfluenceGraphCanvas({
               size="small"
               sx={{
                 ml: 2,
-                color: "#ff7759",
-                fontFamily: "ui-monospace, monospace",
+                color: tokens.color.coral,
+                fontFamily: tokens.font.mono,
                 fontWeight: 700,
                 fontSize: "12px",
                 backgroundColor: "rgba(255, 119, 89, 0.12)",
                 borderRadius: "20px",
                 border: "1px solid rgba(255, 119, 89, 0.4)",
-                "& .MuiSelect-icon": { color: "#ff7759" },
+                "& .MuiSelect-icon": { color: tokens.color.coral },
               }}
             >
               {topSeeds.map((s) => (
@@ -397,17 +398,17 @@ export default function InfluenceGraphCanvas({
             borderRadius: "10px",
             p: 0.5,
             "& .MuiToggleButton-root": {
-              color: "#93939f",
+              color: tokens.color.textFaint,
               border: "none",
               borderRadius: "6px",
               px: 1.5,
               py: 0.4,
               fontSize: "11px",
-              fontFamily: "ui-monospace, monospace",
+              fontFamily: tokens.font.mono,
               fontWeight: 600,
               "&.Mui-selected": {
-                backgroundColor: "#ff7759",
-                color: "#ffffff",
+                backgroundColor: tokens.color.coral,
+                color: tokens.color.canvas,
               },
             },
           }}
@@ -439,11 +440,11 @@ export default function InfluenceGraphCanvas({
             top: 16,
             left: 16,
             p: 2,
-            borderRadius: "16px",
+            borderRadius: tokens.radius.lg,
             backgroundColor: "rgba(13, 13, 16, 0.85)",
             backdropFilter: "blur(10px)",
             border: "1px solid rgba(255, 255, 255, 0.15)",
-            color: "#ffffff",
+            color: tokens.color.canvas,
             minWidth: 240,
             pointerEvents: "none",
           }}
@@ -451,8 +452,8 @@ export default function InfluenceGraphCanvas({
           <Typography
             variant="caption"
             sx={{
-              color: "#ff7759",
-              fontFamily: "ui-monospace, monospace",
+              color: tokens.color.coral,
+              fontFamily: tokens.font.mono,
               fontWeight: 700,
               letterSpacing: "0.5px",
             }}
@@ -461,16 +462,16 @@ export default function InfluenceGraphCanvas({
           </Typography>
 
           <Box sx={{ mt: 1, display: "flex", flexDirection: "column", gap: 0.5 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, color: "#ffffff" }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: tokens.color.canvas }}>
               Passo Attuale:{" "}
-              <span style={{ color: "#00e5ff", fontFamily: "monospace" }}>
+              <span style={{ color: tokens.color.accentCyan, fontFamily: "monospace" }}>
                 STEP {currentStep} / {maxStep}
               </span>
             </Typography>
             <Typography
               variant="caption"
               sx={{
-                color: currentStep > maxSeedStep ? "#ff7759" : newInThisStep > 0 ? "#34c759" : "#93939f",
+                color: currentStep > maxSeedStep ? tokens.color.coral : newInThisStep > 0 ? tokens.color.activated : tokens.color.textFaint,
                 fontWeight: 600,
               }}
             >
@@ -478,7 +479,7 @@ export default function InfluenceGraphCanvas({
                 ? `Cascata completata al Passo ${maxSeedStep}`
                 : `Nodi Contagiati in questo step: +${newInThisStep}`}
             </Typography>
-            <Typography variant="caption" sx={{ color: "#93939f" }}>
+            <Typography variant="caption" sx={{ color: tokens.color.textFaint }}>
               Popolazione Raggiunta:{" "}
               <strong>
                 {activeCount} / {rawNodes.length} ({pctInfected}%)
@@ -505,8 +506,8 @@ export default function InfluenceGraphCanvas({
           <IconButton
             onClick={() => setIsPlaying(!isPlaying)}
             sx={{
-              backgroundColor: "#ff7759",
-              color: "#ffffff",
+              backgroundColor: tokens.color.coral,
+              color: tokens.color.canvas,
               "&:hover": { backgroundColor: "#e05c3e" },
             }}
           >
@@ -515,21 +516,21 @@ export default function InfluenceGraphCanvas({
 
           <IconButton
             onClick={() => setCurrentStep(0)}
-            sx={{ color: "#93939f", "&:hover": { color: "#ffffff" } }}
+            sx={{ color: tokens.color.textFaint, "&:hover": { color: tokens.color.canvas } }}
           >
             <RestartAlt />
           </IconButton>
 
           <IconButton
             onClick={() => setCurrentStep((prev) => Math.max(0, prev - 1))}
-            sx={{ color: "#93939f", "&:hover": { color: "#ffffff" } }}
+            sx={{ color: tokens.color.textFaint, "&:hover": { color: tokens.color.canvas } }}
           >
             <SkipPrevious />
           </IconButton>
 
           <IconButton
             onClick={() => setCurrentStep((prev) => Math.min(maxStep, prev + 1))}
-            sx={{ color: "#93939f", "&:hover": { color: "#ffffff" } }}
+            sx={{ color: tokens.color.textFaint, "&:hover": { color: tokens.color.canvas } }}
           >
             <SkipNext />
           </IconButton>
@@ -538,12 +539,12 @@ export default function InfluenceGraphCanvas({
         {/* Step Slider */}
         <Box sx={{ flexGrow: 1, minWidth: 200, px: 2 }}>
           <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
-            <Typography variant="caption" sx={{ color: "#93939f", fontFamily: "ui-monospace, monospace" }}>
+            <Typography variant="caption" sx={{ color: tokens.color.textFaint, fontFamily: tokens.font.mono }}>
               SCRUBBER TEMPORALE DELLA CASCATA (Independent Cascade)
             </Typography>
             <Typography
               variant="caption"
-              sx={{ color: "#00e5ff", fontFamily: "ui-monospace, monospace", fontWeight: 700 }}
+              sx={{ color: tokens.color.accentCyan, fontFamily: tokens.font.mono, fontWeight: 700 }}
             >
               PASSO {currentStep} DI {maxStep}
             </Typography>
@@ -555,15 +556,15 @@ export default function InfluenceGraphCanvas({
             step={1}
             onChange={(_, val) => setCurrentStep(val as number)}
             sx={{
-              color: "#00e5ff",
+              color: tokens.color.accentCyan,
               "& .MuiSlider-thumb": {
                 width: 16,
                 height: 16,
-                backgroundColor: "#ffffff",
+                backgroundColor: tokens.color.canvas,
                 boxShadow: "0 0 12px rgba(0, 229, 255, 0.9)",
               },
               "& .MuiSlider-track": {
-                backgroundColor: "#00e5ff",
+                backgroundColor: tokens.color.accentCyan,
               },
               "& .MuiSlider-rail": {
                 backgroundColor: "rgba(255, 255, 255, 0.2)",
@@ -574,18 +575,18 @@ export default function InfluenceGraphCanvas({
 
         {/* Speed Selector */}
         <Stack direction="row" alignItems="center" spacing={1}>
-          <SpeedIcon sx={{ color: "#93939f", fontSize: 18 }} />
+          <SpeedIcon sx={{ color: tokens.color.textFaint, fontSize: 18 }} />
           <Select
             value={speedMultiplier}
             onChange={(e) => setSpeedMultiplier(Number(e.target.value))}
             size="small"
             sx={{
-              color: "#ffffff",
-              fontFamily: "ui-monospace, monospace",
+              color: tokens.color.canvas,
+              fontFamily: tokens.font.mono,
               fontSize: "12px",
               backgroundColor: "rgba(255, 255, 255, 0.06)",
-              borderRadius: "8px",
-              "& .MuiSelect-icon": { color: "#ffffff" },
+              borderRadius: tokens.radius.sm,
+              "& .MuiSelect-icon": { color: tokens.color.canvas },
             }}
           >
             <MenuItem value={0.5}>0.5x</MenuItem>

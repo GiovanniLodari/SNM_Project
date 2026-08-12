@@ -28,6 +28,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { DescriptiveStats } from "../api/client.ts";
+import { tokens } from "../theme.ts";
 
 interface StatsModalProps {
   open: boolean;
@@ -37,13 +38,13 @@ interface StatsModalProps {
 }
 
 // Cohere-style mono label chip
-function MonoChip({ label, color = "#ff7759", bg = "#fff0ec" }: { label: string; color?: string; bg?: string }) {
+function MonoChip({ label, color = tokens.color.coral, bg = tokens.color.surfaceCoral }: { label: string; color?: string; bg?: string }) {
   return (
     <Chip
       label={label}
       size="small"
       sx={{
-        fontFamily: "ui-monospace, monospace",
+        fontFamily: tokens.font.mono,
         fontSize: "10px",
         fontWeight: 700,
         letterSpacing: "0.28px",
@@ -61,7 +62,7 @@ function KpiCard({
   label,
   value,
   sub,
-  accent = "#17171c",
+  accent = tokens.color.nearBlack,
 }: {
   label: string;
   value: string | number;
@@ -72,8 +73,8 @@ function KpiCard({
     <Box
       sx={{
         p: 3,
-        borderRadius: "16px",
-        backgroundColor: "#eeece7",
+        borderRadius: tokens.radius.lg,
+        backgroundColor: tokens.color.softStone,
         height: "100%",
         borderTop: `3px solid ${accent}`,
       }}
@@ -81,9 +82,9 @@ function KpiCard({
       <Typography
         variant="caption"
         sx={{
-          fontFamily: "ui-monospace, monospace",
+          fontFamily: tokens.font.mono,
           fontSize: "11px",
-          color: "#75758a",
+          color: tokens.color.textMuted,
           textTransform: "uppercase",
           letterSpacing: "0.28px",
           display: "block",
@@ -94,7 +95,7 @@ function KpiCard({
       </Typography>
       <Typography
         sx={{
-          fontFamily: "Space Grotesk, Inter, sans-serif",
+          fontFamily: tokens.font.display,
           fontWeight: 400,
           fontSize: "40px",
           lineHeight: 1.0,
@@ -105,7 +106,7 @@ function KpiCard({
         {value}
       </Typography>
       {sub && (
-        <Typography variant="caption" sx={{ color: "#75758a", display: "block", lineHeight: 1.4 }}>
+        <Typography variant="caption" sx={{ color: tokens.color.textMuted, display: "block", lineHeight: 1.4 }}>
           {sub}
         </Typography>
       )}
@@ -121,10 +122,42 @@ export default function StatsModal({
 }: StatsModalProps) {
   if (!stats) return null;
 
-  // Quartile proxies derived from min/median/max + std
-  const q1 = +(stats.probability.median - stats.probability.std * 0.674).toFixed(1);
-  const q3 = +(stats.probability.median + stats.probability.std * 0.674).toFixed(1);
-  const iqr = +(q3 - q1).toFixed(1);
+  /**
+   * Percentile ricavato per interpolazione lineare sull'istogramma reale
+   * (`distribution_curve`, 10 bucket da 10 punti percentuali ciascuno).
+   *
+   * Sostituisce `mediana ± std * 0.674`, che assume una distribuzione normale:
+   * le probabilita' dei detector IA sono fortemente bimodali (si addensano
+   * agli estremi 0 e 1), quindi quella formula produceva quartili scorretti,
+   * mostrati in tabella come se fossero misurati. Resta una stima, limitata
+   * dalla granularita' dei bucket, ma deriva dai dati osservati.
+   */
+  const percentile = (frazione: number): number | null => {
+    const curva = stats.distribution_curve;
+    if (!curva || curva.length === 0) return null;
+
+    const totale = curva.reduce((acc, b) => acc + b.count, 0);
+    if (totale === 0) return null;
+
+    const obiettivo = totale * frazione;
+    const ampiezza = 100 / curva.length;
+    let cumulato = 0;
+
+    for (let i = 0; i < curva.length; i++) {
+      const conteggio = curva[i].count;
+      if (cumulato + conteggio >= obiettivo && conteggio > 0) {
+        const quotaNelBucket = (obiettivo - cumulato) / conteggio;
+        return +(i * ampiezza + quotaNelBucket * ampiezza).toFixed(1);
+      }
+      cumulato += conteggio;
+    }
+    return 100;
+  };
+
+  const q1 = percentile(0.25);
+  const q3 = percentile(0.75);
+  const iqr = q1 !== null && q3 !== null ? +(q3 - q1).toFixed(1) : null;
+  const pct = (v: number | null, suffisso: string) => (v !== null ? `${v}${suffisso}` : "n/d");
 
 
 
@@ -136,10 +169,10 @@ export default function StatsModal({
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: "22px",
-          backgroundColor: "#ffffff",
+          borderRadius: tokens.radius.xl,
+          backgroundColor: tokens.color.canvas,
           boxShadow: "0 25px 60px rgba(0,0,0,0.12)",
-          border: "1px solid #e5e7eb",
+          border: tokens.border.subtle,
           overflow: "hidden",
           maxHeight: "92vh",
         },
@@ -150,21 +183,21 @@ export default function StatsModal({
         sx={{
           px: 4,
           py: 3,
-          borderBottom: "1px solid #e5e7eb",
+          borderBottom: tokens.border.subtle,
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-start",
-          backgroundColor: "#ffffff",
+          backgroundColor: tokens.color.canvas,
         }}
       >
         <Box>
           <MonoChip label={`ANALISI STATISTICA • ${detectorLabel.toUpperCase()}`} />
           <Typography
             sx={{
-              fontFamily: "Space Grotesk, Inter, sans-serif",
+              fontFamily: tokens.font.display,
               fontWeight: 400,
               fontSize: { xs: "24px", md: "36px" },
-              color: "#000000",
+              color: tokens.color.black,
               letterSpacing: "-0.72px",
               lineHeight: 1.1,
               mt: 1.5,
@@ -173,7 +206,7 @@ export default function StatsModal({
           >
             Statistiche Descrittive Avanzate
           </Typography>
-          <Typography variant="body2" sx={{ color: "#75758a" }}>
+          <Typography variant="body2" sx={{ color: tokens.color.textMuted }}>
             Analisi quantitativa su{" "}
             <strong>{stats.total_analyzed.toLocaleString("it-IT")}</strong> post elaborati · Soglia
             classificazione IA:{" "}
@@ -183,10 +216,10 @@ export default function StatsModal({
         <IconButton
           onClick={onClose}
           sx={{
-            color: "#75758a",
+            color: tokens.color.textMuted,
             mt: -0.5,
-            borderRadius: "12px",
-            "&:hover": { backgroundColor: "#eeece7", color: "#17171c" },
+            borderRadius: tokens.radius.md,
+            "&:hover": { backgroundColor: tokens.color.softStone, color: tokens.color.nearBlack },
           }}
         >
           <CloseIcon />
@@ -202,15 +235,15 @@ export default function StatsModal({
               label="Probabilità Media"
               value={`${stats.probability.mean}%`}
               sub={`Mediana: ${stats.probability.median}% · Dev.Std: ±${stats.probability.std}%`}
-              accent="#ff7759"
+              accent={tokens.color.coral}
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
             <KpiCard
               label="Range Probabilità"
               value={`${stats.probability.min}–${stats.probability.max}%`}
-              sub={`IQR stimato: ${iqr}pp · Q1≈${q1}% Q3≈${q3}%`}
-              accent="#17171c"
+              sub={`IQR: ${pct(iqr, "pp")} · Q1 ${pct(q1, "%")} · Q3 ${pct(q3, "%")}`}
+              accent={tokens.color.nearBlack}
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
@@ -218,7 +251,7 @@ export default function StatsModal({
               label="Lunghezza Media Post"
               value={`${stats.text_length.avg_chars}`}
               sub={`Mediana: ${stats.text_length.median_chars} caratteri · ~${stats.text_length.avg_tokens} token`}
-              accent="#003c33"
+              accent={tokens.color.deepGreen}
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
@@ -226,7 +259,7 @@ export default function StatsModal({
               label="Account Bot Presenti"
               value={`${stats.bot_breakdown.bot_percentage}%`}
               sub={`${stats.bot_breakdown.bots.toLocaleString("it-IT")} bot · ${stats.bot_breakdown.humans.toLocaleString("it-IT")} umani`}
-              accent="#1863dc"
+              accent={tokens.color.actionBlue}
             />
           </Grid>
         </Grid>
@@ -239,63 +272,63 @@ export default function StatsModal({
             <Box
               sx={{
                 p: 3.5,
-                borderRadius: "16px",
-                border: "1px solid #e5e7eb",
-                backgroundColor: "#ffffff",
+                borderRadius: tokens.radius.lg,
+                border: tokens.border.subtle,
+                backgroundColor: tokens.color.canvas,
               }}
             >
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
                 <Box>
                   <Typography
                     variant="caption"
-                    sx={{ fontFamily: "ui-monospace, monospace", color: "#ff7759", fontWeight: 700, display: "block", mb: 0.5 }}
+                    sx={{ fontFamily: tokens.font.mono, color: tokens.color.coral, fontWeight: 700, display: "block", mb: 0.5 }}
                   >
                     DISTRIBUZIONE DI PROBABILITÀ
                   </Typography>
-                  <Typography variant="subtitle1" sx={{ fontFamily: "Space Grotesk", fontWeight: 600, color: "#17171c" }}>
+                  <Typography variant="subtitle1" sx={{ fontFamily: tokens.font.display, fontWeight: 600, color: tokens.color.nearBlack }}>
                     Spettro continuo per decile (0–100%)
                   </Typography>
                 </Box>
-                <MonoChip label={`${stats.distribution_curve.length} FASCE`} color="#75758a" bg="#eeece7" />
+                <MonoChip label={`${stats.distribution_curve.length} FASCE`} color={tokens.color.textMuted} bg={tokens.color.softStone} />
               </Box>
               <Box sx={{ height: 240 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={stats.distribution_curve} margin={{ top: 5, right: 10, left: -15, bottom: 0 }}>
                     <defs>
                       <linearGradient id="coralGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ff7759" stopOpacity={0.25} />
-                        <stop offset="95%" stopColor="#ff7759" stopOpacity={0.0} />
+                        <stop offset="5%" stopColor={tokens.color.coral} stopOpacity={0.25} />
+                        <stop offset="95%" stopColor={tokens.color.coral} stopOpacity={0.0} />
                       </linearGradient>
                     </defs>
                     <XAxis
                       dataKey="bucket"
-                      stroke="#d9d9dd"
-                      tick={{ fontSize: 11, fill: "#75758a", fontFamily: "ui-monospace, monospace" }}
+                      stroke={tokens.color.borderStrong}
+                      tick={{ fontSize: 11, fill: tokens.color.textMuted, fontFamily: tokens.font.mono }}
                     />
                     <YAxis
-                      stroke="#d9d9dd"
-                      tick={{ fontSize: 11, fill: "#75758a" }}
+                      stroke={tokens.color.borderStrong}
+                      tick={{ fontSize: 11, fill: tokens.color.textMuted }}
                       tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)}
                     />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: "#ffffff",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "12px",
+                        backgroundColor: tokens.color.canvas,
+                        border: tokens.border.subtle,
+                        borderRadius: tokens.radius.md,
                         boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
                         fontSize: "13px",
-                        fontFamily: "Inter, sans-serif",
+                        fontFamily: tokens.font.body,
                       }}
                       formatter={(val: any) => [
                         `${Number(val || 0).toLocaleString("it-IT")} post`,
                         "Frequenza",
                       ]}
                     />
-                    <ReferenceLine x="0.5-0.6" stroke="#ff7759" strokeDasharray="4 3" label={{ value: "Soglia IA", fill: "#ff7759", fontSize: 11 }} />
+                    <ReferenceLine x="0.5-0.6" stroke={tokens.color.coral} strokeDasharray="4 3" label={{ value: "Soglia IA", fill: tokens.color.coral, fontSize: 11 }} />
                     <Area
                       type="monotone"
                       dataKey="count"
-                      stroke="#ff7759"
+                      stroke={tokens.color.coral}
                       strokeWidth={2.5}
                       fillOpacity={1}
                       fill="url(#coralGrad)"
@@ -303,7 +336,7 @@ export default function StatsModal({
                   </AreaChart>
                 </ResponsiveContainer>
               </Box>
-              <Typography variant="caption" sx={{ color: "#75758a", mt: 1.5, display: "block" }}>
+              <Typography variant="caption" sx={{ color: tokens.color.textMuted, mt: 1.5, display: "block" }}>
                 La linea tratteggiata indica la soglia di classificazione IA (≥ 50%). Post alla destra della soglia
                 vengono classificati come generati artificialmente.
               </Typography>
@@ -315,9 +348,9 @@ export default function StatsModal({
             <Box
               sx={{
                 p: 3.5,
-                borderRadius: "16px",
-                border: "1px solid #e5e7eb",
-                backgroundColor: "#ffffff",
+                borderRadius: tokens.radius.lg,
+                border: tokens.border.subtle,
+                backgroundColor: tokens.color.canvas,
                 height: "100%",
                 display: "flex",
                 flexDirection: "column",
@@ -326,24 +359,24 @@ export default function StatsModal({
             >
               <Typography
                 variant="caption"
-                sx={{ fontFamily: "ui-monospace, monospace", color: "#ff7759", fontWeight: 700, display: "block", mb: 2 }}
+                sx={{ fontFamily: tokens.font.mono, color: tokens.color.coral, fontWeight: 700, display: "block", mb: 2 }}
               >
                 RIEPILOGO QUANTITATIVO
               </Typography>
 
               {[
-                { label: "Media (μ)", value: `${stats.probability.mean}%`, accent: "#ff7759" },
-                { label: "Mediana (M)", value: `${stats.probability.median}%`, accent: "#17171c" },
-                { label: "Dev. Std (σ)", value: `±${stats.probability.std}%`, accent: "#75758a" },
-                { label: "Minimo", value: `${stats.probability.min}%`, accent: "#75758a" },
-                { label: "Massimo", value: `${stats.probability.max}%`, accent: "#75758a" },
-                { label: "Q1 (stimato)", value: `${q1}%`, accent: "#1863dc" },
-                { label: "Q3 (stimato)", value: `${q3}%`, accent: "#1863dc" },
-                { label: "IQR (stimato)", value: `${iqr}pp`, accent: "#1863dc" },
+                { label: "Media (μ)", value: `${stats.probability.mean}%`, accent: tokens.color.coral },
+                { label: "Mediana (M)", value: `${stats.probability.median}%`, accent: tokens.color.nearBlack },
+                { label: "Dev. Std (σ)", value: `±${stats.probability.std}%`, accent: tokens.color.textMuted },
+                { label: "Minimo", value: `${stats.probability.min}%`, accent: tokens.color.textMuted },
+                { label: "Massimo", value: `${stats.probability.max}%`, accent: tokens.color.textMuted },
+                { label: "Q1 (da istogramma)", value: pct(q1, "%"), accent: tokens.color.actionBlue },
+                { label: "Q3 (da istogramma)", value: pct(q3, "%"), accent: tokens.color.actionBlue },
+                { label: "IQR (da istogramma)", value: pct(iqr, "pp"), accent: tokens.color.actionBlue },
                 ...(stats.criteria
                   ? [
-                      { label: "Criteria medio", value: String(stats.criteria.mean), accent: "#003c33" },
-                      { label: "Criteria mediano", value: String(stats.criteria.median), accent: "#003c33" },
+                      { label: "Criteria medio", value: String(stats.criteria.mean), accent: tokens.color.deepGreen },
+                      { label: "Criteria mediano", value: String(stats.criteria.median), accent: tokens.color.deepGreen },
                     ]
                   : []),
               ].map((row, i, arr) => (
@@ -357,13 +390,13 @@ export default function StatsModal({
                     borderBottom: i < arr.length - 1 ? "1px solid #f2f2f2" : "none",
                   }}
                 >
-                  <Typography variant="body2" sx={{ color: "#212121", fontSize: "13px" }}>
+                  <Typography variant="body2" sx={{ color: tokens.color.textPrimary, fontSize: "13px" }}>
                     {row.label}
                   </Typography>
                   <Typography
                     variant="body2"
                     sx={{
-                      fontFamily: "ui-monospace, monospace",
+                      fontFamily: tokens.font.mono,
                       fontWeight: 700,
                       fontSize: "13px",
                       color: row.accent,
@@ -382,10 +415,10 @@ export default function StatsModal({
 
           {/* Lunghezza testo */}
           <Grid item xs={12} md={4}>
-            <Box sx={{ p: 3.5, borderRadius: "16px", border: "1px solid #e5e7eb", backgroundColor: "#ffffff", height: "100%" }}>
+            <Box sx={{ p: 3.5, borderRadius: tokens.radius.lg, border: tokens.border.subtle, backgroundColor: tokens.color.canvas, height: "100%" }}>
               <Typography
                 variant="caption"
-                sx={{ fontFamily: "ui-monospace, monospace", color: "#1863dc", fontWeight: 700, display: "block", mb: 2 }}
+                sx={{ fontFamily: tokens.font.mono, color: tokens.color.actionBlue, fontWeight: 700, display: "block", mb: 2 }}
               >
                 LUNGHEZZA DEL TESTO
               </Typography>
@@ -396,11 +429,11 @@ export default function StatsModal({
                   { label: "Media token", value: `~${stats.text_length.avg_tokens}` },
                 ].map((item) => (
                   <Grid item xs={12} key={item.label}>
-                    <Box sx={{ p: 2, borderRadius: "12px", backgroundColor: "#eeece7" }}>
-                      <Typography variant="caption" sx={{ color: "#75758a", display: "block", mb: 0.5 }}>
+                    <Box sx={{ p: 2, borderRadius: tokens.radius.md, backgroundColor: tokens.color.softStone }}>
+                      <Typography variant="caption" sx={{ color: tokens.color.textMuted, display: "block", mb: 0.5 }}>
                         {item.label}
                       </Typography>
-                      <Typography sx={{ fontFamily: "Space Grotesk", fontWeight: 400, fontSize: "28px", color: "#17171c", lineHeight: 1 }}>
+                      <Typography sx={{ fontFamily: tokens.font.display, fontWeight: 400, fontSize: "28px", color: tokens.color.nearBlack, lineHeight: 1 }}>
                         {item.value}
                       </Typography>
                     </Box>
@@ -412,16 +445,16 @@ export default function StatsModal({
 
           {/* Classification breakdown bars */}
           <Grid item xs={12} md={8}>
-            <Box sx={{ p: 3.5, borderRadius: "16px", border: "1px solid #e5e7eb", backgroundColor: "#ffffff", height: "100%" }}>
+            <Box sx={{ p: 3.5, borderRadius: tokens.radius.lg, border: tokens.border.subtle, backgroundColor: tokens.color.canvas, height: "100%" }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
                 <Box>
                   <Typography
                     variant="caption"
-                    sx={{ fontFamily: "ui-monospace, monospace", color: "#1863dc", fontWeight: 700, display: "block", mb: 0.5 }}
+                    sx={{ fontFamily: tokens.font.mono, color: tokens.color.actionBlue, fontWeight: 700, display: "block", mb: 0.5 }}
                   >
                     CLASSIFICAZIONE PER FASCIA
                   </Typography>
-                  <Typography variant="subtitle1" sx={{ fontFamily: "Space Grotesk", fontWeight: 600, color: "#17171c" }}>
+                  <Typography variant="subtitle1" sx={{ fontFamily: tokens.font.display, fontWeight: 600, color: tokens.color.nearBlack }}>
                     Peso relativo di ciascuno scaglione
                   </Typography>
                 </Box>
@@ -439,9 +472,9 @@ export default function StatsModal({
                         variant="caption"
                         sx={{
                           minWidth: 70,
-                          fontFamily: "ui-monospace, monospace",
+                          fontFamily: tokens.font.mono,
                           fontSize: "11px",
-                          color: isAi ? "#ff7759" : "#75758a",
+                          color: isAi ? tokens.color.coral : tokens.color.textMuted,
                           fontWeight: isAi ? 700 : 400,
                         }}
                       >
@@ -454,9 +487,9 @@ export default function StatsModal({
                           sx={{
                             height: 10,
                             borderRadius: 5,
-                            backgroundColor: "#eeece7",
+                            backgroundColor: tokens.color.softStone,
                             "& .MuiLinearProgress-bar": {
-                              backgroundColor: isAi ? "#ff7759" : "#17171c",
+                              backgroundColor: isAi ? tokens.color.coral : tokens.color.nearBlack,
                               borderRadius: 5,
                             },
                           }}
@@ -467,9 +500,9 @@ export default function StatsModal({
                         sx={{
                           minWidth: 80,
                           textAlign: "right",
-                          fontFamily: "ui-monospace, monospace",
+                          fontFamily: tokens.font.mono,
                           fontSize: "11px",
-                          color: "#212121",
+                          color: tokens.color.textPrimary,
                           fontWeight: 600,
                         }}
                       >
@@ -480,9 +513,9 @@ export default function StatsModal({
                         sx={{
                           minWidth: 42,
                           textAlign: "right",
-                          fontFamily: "ui-monospace, monospace",
+                          fontFamily: tokens.font.mono,
                           fontSize: "11px",
-                          color: "#75758a",
+                          color: tokens.color.textMuted,
                         }}
                       >
                         {b.percentage}%
@@ -502,10 +535,10 @@ export default function StatsModal({
 
           {/* Bot analysis */}
           <Grid item xs={12} md={5}>
-            <Box sx={{ p: 3.5, borderRadius: "16px", border: "1px solid #e5e7eb", backgroundColor: "#ffffff", height: "100%" }}>
+            <Box sx={{ p: 3.5, borderRadius: tokens.radius.lg, border: tokens.border.subtle, backgroundColor: tokens.color.canvas, height: "100%" }}>
               <Typography
                 variant="caption"
-                sx={{ fontFamily: "ui-monospace, monospace", color: "#ff7759", fontWeight: 700, display: "block", mb: 2 }}
+                sx={{ fontFamily: tokens.font.mono, color: tokens.color.coral, fontWeight: 700, display: "block", mb: 2 }}
               >
                 COMPOSIZIONE ACCOUNT
               </Typography>
@@ -514,7 +547,7 @@ export default function StatsModal({
               <Box sx={{ mb: 2.5 }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>Account Bot (bot=true)</Typography>
-                  <Typography variant="body2" sx={{ fontFamily: "ui-monospace, monospace", fontWeight: 700, color: "#17171c" }}>
+                  <Typography variant="body2" sx={{ fontFamily: tokens.font.mono, fontWeight: 700, color: tokens.color.nearBlack }}>
                     {stats.bot_breakdown.bot_percentage}%
                   </Typography>
                 </Box>
@@ -524,11 +557,11 @@ export default function StatsModal({
                   sx={{
                     height: 8,
                     borderRadius: 4,
-                    backgroundColor: "#eeece7",
-                    "& .MuiLinearProgress-bar": { backgroundColor: "#17171c", borderRadius: 4 },
+                    backgroundColor: tokens.color.softStone,
+                    "& .MuiLinearProgress-bar": { backgroundColor: tokens.color.nearBlack, borderRadius: 4 },
                   }}
                 />
-                <Typography variant="caption" sx={{ color: "#75758a" }}>
+                <Typography variant="caption" sx={{ color: tokens.color.textMuted }}>
                   {stats.bot_breakdown.bots.toLocaleString("it-IT")} post da account bot
                 </Typography>
               </Box>
@@ -537,7 +570,7 @@ export default function StatsModal({
               <Box sx={{ mb: 3 }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>Account Umani</Typography>
-                  <Typography variant="body2" sx={{ fontFamily: "ui-monospace, monospace", fontWeight: 700, color: "#1863dc" }}>
+                  <Typography variant="body2" sx={{ fontFamily: tokens.font.mono, fontWeight: 700, color: tokens.color.actionBlue }}>
                     {(100 - stats.bot_breakdown.bot_percentage).toFixed(1)}%
                   </Typography>
                 </Box>
@@ -547,22 +580,22 @@ export default function StatsModal({
                   sx={{
                     height: 8,
                     borderRadius: 4,
-                    backgroundColor: "#eeece7",
-                    "& .MuiLinearProgress-bar": { backgroundColor: "#1863dc", borderRadius: 4 },
+                    backgroundColor: tokens.color.softStone,
+                    "& .MuiLinearProgress-bar": { backgroundColor: tokens.color.actionBlue, borderRadius: 4 },
                   }}
                 />
-                <Typography variant="caption" sx={{ color: "#75758a" }}>
+                <Typography variant="caption" sx={{ color: tokens.color.textMuted }}>
                   {stats.bot_breakdown.humans.toLocaleString("it-IT")} post da account umani
                 </Typography>
               </Box>
 
-              <Divider sx={{ borderColor: "#e5e7eb", mb: 2 }} />
+              <Divider sx={{ borderColor: tokens.color.border, mb: 2 }} />
 
-              <Box sx={{ p: 2, borderRadius: "12px", backgroundColor: "#eeece7" }}>
-                <Typography variant="caption" sx={{ fontFamily: "ui-monospace, monospace", color: "#75758a", display: "block", mb: 0.5 }}>
+              <Box sx={{ p: 2, borderRadius: tokens.radius.md, backgroundColor: tokens.color.softStone }}>
+                <Typography variant="caption" sx={{ fontFamily: tokens.font.mono, color: tokens.color.textMuted, display: "block", mb: 0.5 }}>
                   NOTA METODOLOGICA
                 </Typography>
-                <Typography variant="body2" sx={{ color: "#212121", fontSize: "13px", lineHeight: 1.5 }}>
+                <Typography variant="body2" sx={{ color: tokens.color.textPrimary, fontSize: "13px", lineHeight: 1.5 }}>
                   Il campo <code>bot=true</code> è auto-dichiarato dai software client al momento della registrazione
                   su Mastodon. Non implica che il testo sia generato da LLM: molti bot aggregano contenuto umano
                   (news, feed meteo, bollettini automatici).
@@ -573,14 +606,14 @@ export default function StatsModal({
 
           {/* Top Domini Bar Chart */}
           <Grid item xs={12} md={7}>
-            <Box sx={{ p: 3.5, borderRadius: "16px", border: "1px solid #e5e7eb", backgroundColor: "#ffffff", height: "100%" }}>
+            <Box sx={{ p: 3.5, borderRadius: tokens.radius.lg, border: tokens.border.subtle, backgroundColor: tokens.color.canvas, height: "100%" }}>
               <Typography
                 variant="caption"
-                sx={{ fontFamily: "ui-monospace, monospace", color: "#75758a", fontWeight: 700, display: "block", mb: 0.5 }}
+                sx={{ fontFamily: tokens.font.mono, color: tokens.color.textMuted, fontWeight: 700, display: "block", mb: 0.5 }}
               >
                 TOP ISTANZE FEDIVERSO
               </Typography>
-              <Typography variant="subtitle1" sx={{ fontFamily: "Space Grotesk", fontWeight: 600, color: "#17171c", mb: 2.5 }}>
+              <Typography variant="subtitle1" sx={{ fontFamily: tokens.font.display, fontWeight: 600, color: tokens.color.nearBlack, mb: 2.5 }}>
                 Distribuzione dei post per dominio Mastodon
               </Typography>
 
@@ -593,22 +626,22 @@ export default function StatsModal({
                   >
                     <XAxis
                       type="number"
-                      stroke="#d9d9dd"
-                      tick={{ fontSize: 10, fill: "#75758a" }}
+                      stroke={tokens.color.borderStrong}
+                      tick={{ fontSize: 10, fill: tokens.color.textMuted }}
                       tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v))}
                     />
                     <YAxis
                       dataKey="domain"
                       type="category"
-                      stroke="#d9d9dd"
-                      tick={{ fontSize: 11, fill: "#212121" }}
+                      stroke={tokens.color.borderStrong}
+                      tick={{ fontSize: 11, fill: tokens.color.textPrimary }}
                       width={100}
                     />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: "#ffffff",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "12px",
+                        backgroundColor: tokens.color.canvas,
+                        border: tokens.border.subtle,
+                        borderRadius: tokens.radius.md,
                         fontSize: "13px",
                       }}
                       formatter={(val: any) => [Number(val).toLocaleString("it-IT"), "Post"]}
@@ -617,7 +650,7 @@ export default function StatsModal({
                       {stats.top_domains.slice(0, 8).map((_, idx) => (
                         <Cell
                           key={`cell-${idx}`}
-                          fill={idx === 0 ? "#ff7759" : idx === 1 ? "#17171c" : "#eeece7"}
+                          fill={idx === 0 ? tokens.color.coral : idx === 1 ? tokens.color.nearBlack : tokens.color.softStone}
                         />
                       ))}
                     </Bar>
@@ -629,13 +662,13 @@ export default function StatsModal({
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ color: "#75758a", fontSize: "11px", fontFamily: "ui-monospace, monospace", borderBottom: "1px solid #e5e7eb", py: 0.5 }}>
+                    <TableCell sx={{ color: tokens.color.textMuted, fontSize: "11px", fontFamily: tokens.font.mono, borderBottom: tokens.border.subtle, py: 0.5 }}>
                       DOMINIO
                     </TableCell>
-                    <TableCell align="right" sx={{ color: "#75758a", fontSize: "11px", fontFamily: "ui-monospace, monospace", borderBottom: "1px solid #e5e7eb", py: 0.5 }}>
+                    <TableCell align="right" sx={{ color: tokens.color.textMuted, fontSize: "11px", fontFamily: tokens.font.mono, borderBottom: tokens.border.subtle, py: 0.5 }}>
                       POST
                     </TableCell>
-                    <TableCell align="right" sx={{ color: "#75758a", fontSize: "11px", fontFamily: "ui-monospace, monospace", borderBottom: "1px solid #e5e7eb", py: 0.5 }}>
+                    <TableCell align="right" sx={{ color: tokens.color.textMuted, fontSize: "11px", fontFamily: tokens.font.mono, borderBottom: tokens.border.subtle, py: 0.5 }}>
                       %
                     </TableCell>
                   </TableRow>
@@ -648,24 +681,24 @@ export default function StatsModal({
                         : "0.0";
                     return (
                       <TableRow key={d.domain} sx={{ "&:hover": { backgroundColor: "#fafaf8" } }}>
-                        <TableCell sx={{ color: "#212121", fontSize: "12px", borderBottom: "1px solid #f2f2f2", py: 0.8 }}>
+                        <TableCell sx={{ color: tokens.color.textPrimary, fontSize: "12px", borderBottom: "1px solid #f2f2f2", py: 0.8 }}>
                           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                             {idx === 0 && (
-                              <Box sx={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#ff7759", flexShrink: 0 }} />
+                              <Box sx={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: tokens.color.coral, flexShrink: 0 }} />
                             )}
                             {idx === 1 && (
-                              <Box sx={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#17171c", flexShrink: 0 }} />
+                              <Box sx={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: tokens.color.nearBlack, flexShrink: 0 }} />
                             )}
                             {idx > 1 && (
-                              <Box sx={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#d9d9dd", flexShrink: 0 }} />
+                              <Box sx={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: tokens.color.borderStrong, flexShrink: 0 }} />
                             )}
                             {d.domain}
                           </Box>
                         </TableCell>
-                        <TableCell align="right" sx={{ fontFamily: "ui-monospace, monospace", fontSize: "12px", fontWeight: 600, color: "#17171c", borderBottom: "1px solid #f2f2f2", py: 0.8 }}>
+                        <TableCell align="right" sx={{ fontFamily: tokens.font.mono, fontSize: "12px", fontWeight: 600, color: tokens.color.nearBlack, borderBottom: "1px solid #f2f2f2", py: 0.8 }}>
                           {d.count.toLocaleString("it-IT")}
                         </TableCell>
-                        <TableCell align="right" sx={{ fontFamily: "ui-monospace, monospace", fontSize: "12px", color: "#75758a", borderBottom: "1px solid #f2f2f2", py: 0.8 }}>
+                        <TableCell align="right" sx={{ fontFamily: tokens.font.mono, fontSize: "12px", color: tokens.color.textMuted, borderBottom: "1px solid #f2f2f2", py: 0.8 }}>
                           {pct}%
                         </TableCell>
                       </TableRow>
@@ -681,7 +714,7 @@ export default function StatsModal({
         <Box
           sx={{
             pt: 3,
-            borderTop: "1px solid #e5e7eb",
+            borderTop: tokens.border.subtle,
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -689,22 +722,22 @@ export default function StatsModal({
             gap: 2,
           }}
         >
-          <Typography variant="caption" sx={{ color: "#75758a" }}>
+          <Typography variant="caption" sx={{ color: tokens.color.textMuted }}>
             Generato automaticamente · SNM Intelligence · Detector: <strong>{detectorLabel}</strong>
           </Typography>
           <Box
             component="button"
             onClick={onClose}
             sx={{
-              background: "#17171c",
-              color: "#ffffff",
+              background: tokens.color.nearBlack,
+              color: tokens.color.canvas,
               border: "none",
-              borderRadius: "32px",
+              borderRadius: tokens.radius.pill,
               px: 3.5,
               py: 1.2,
               fontSize: "14px",
               fontWeight: 500,
-              fontFamily: "Inter, sans-serif",
+              fontFamily: tokens.font.body,
               cursor: "pointer",
               transition: "background-color 0.15s ease",
               "&:hover": { backgroundColor: "#2e2e38" },

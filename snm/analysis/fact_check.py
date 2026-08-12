@@ -61,7 +61,16 @@ WIKIPEDIA_SEARCH_URL = "https://en.wikipedia.org/w/api.php"
 # della pipeline (dominato da Ollama, ~1-3 post/s con 10 worker) non lo satura
 # piu' - il rate limiter e circuit breaker sotto restano come rete di
 # sicurezza, non piu' come strategia principale.
-WIKIPEDIA_USER_AGENT = "SNM-Project-FactCheck/1.0 (giovanni.lodari@gmail.com) requests/2.x"
+# Wikipedia richiede un contatto nello user-agent per alzare il rate limit
+# (policy User-Agent delle sue API). L'indirizzo si imposta con la variabile
+# d'ambiente WIKIPEDIA_CONTACT invece di stare scritto nel sorgente: senza,
+# si resta sul limite anonimo, piu' basso ma funzionante.
+_WIKIPEDIA_CONTACT = os.environ.get("WIKIPEDIA_CONTACT", "").strip()
+WIKIPEDIA_USER_AGENT = (
+    f"SNM-Project-FactCheck/1.0 ({_WIKIPEDIA_CONTACT}) requests/2.x"
+    if _WIKIPEDIA_CONTACT
+    else "SNM-Project-FactCheck/1.0 requests/2.x"
+)
 GOOGLE_FACTCHECK_URL = "https://factchecktools.googleapis.com/v1alpha1/claims:search"
 
 # scala di veridicita': valori bassi = vero, alti = falso.

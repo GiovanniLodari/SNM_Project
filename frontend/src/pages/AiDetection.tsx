@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Typography,
   Box,
@@ -18,8 +18,8 @@ import {
   ToggleButtonGroup,
   ToggleButton,
 } from "@mui/material";
-import { Link } from "react-router-dom";
-import { api, AiDetectionResponse } from "../api/client.ts";
+import { Link, useParams } from "react-router-dom";
+import { useAiDetectionQuery } from "../api/queries.ts";
 import {
   ArrowBack as PrevIcon,
   ArrowForward as NextIcon,
@@ -30,37 +30,55 @@ import {
   Analytics as AnalyticsIcon,
 } from "@mui/icons-material";
 import StatsModal from "../components/StatsModal.tsx";
+import { tokens } from "../theme.ts";
+import { EmptyState, LoadingState } from "../components/States.tsx";
 
-export default function AiDetection() {
-  const [data, setData] = useState<AiDetectionResponse | null>(null);
+interface AiDetectionProps {
+  detectorKey?: string;
+}
+
+const DETECTOR_CONFIGS: Record<string, { title: string; subtitle: string; label: string }> = {
+  fastdetect: {
+    title: "Rilevamento IA (FastDetectGPT)",
+    subtitle: "Analisi della probabilità di testo generato da IA basata su FastDetectGPT (GPT-Neo 2.7B) tramite perturbazioni della curvatura probabilistica.",
+    label: "FastDetectGPT (GPT-Neo 2.7B)",
+  },
+  binoculars: {
+    title: "Rilevamento IA (Binoculars)",
+    subtitle: "Analisi zero-shot della probabilità di testo generato da IA mediante confronto del rapporto di perplessità tra Qwen2.5-0.5B (observer) e Qwen2.5-0.5B-Instruct (performer).",
+    label: "Binoculars (Qwen2.5 0.5B)",
+  },
+  desklib: {
+    title: "Rilevamento IA (Desklib Detector)",
+    subtitle: "Rilevamento basato su Desklib AI Detector (Local Model) per identificazione di testo sintetico.",
+    label: "Desklib AI Detector",
+  },
+  ada: {
+    title: "Rilevamento IA (AdaDetectGPT)",
+    subtitle: "Analisi di rilevamento IA mediante AdaDetectGPT Local Model.",
+    label: "AdaDetectGPT Local",
+  },
+};
+
+export default function AiDetection({ detectorKey }: AiDetectionProps = {}) {
+  const params = useParams<{ detector?: string }>();
+  const activeDetectorKey = detectorKey || params.detector || "fastdetect";
+  const config = DETECTOR_CONFIGS[activeDetectorKey] || DETECTOR_CONFIGS.fastdetect;
+
   const [selectedBuckets, setSelectedBuckets] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<string>("id");
   const [page, setPage] = useState(1);
   const [bucketPages, setBucketPages] = useState<Record<string, number>>({});
   const [statsModalOpen, setStatsModalOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
 
   const ITEMS_PER_BUCKET_PAGE = 2;
 
-  const fetchAiData = (buckets: string[], pg: number, sort: string) => {
-    setLoading(true);
-    api.aiDetection(buckets, pg, sort)
-      .then((res) => {
-        setData(res);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setError("Impossibile caricare le analisi di rilevamento IA.");
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    fetchAiData(selectedBuckets, page, sortBy);
-  }, [page, selectedBuckets, sortBy]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { data, isLoading: loading, isError } = useAiDetectionQuery(
+    selectedBuckets, page, sortBy, activeDetectorKey,
+  );
+  const error = isError
+    ? `Impossibile caricare le analisi di rilevamento IA (${config.label}).`
+    : null;
 
   const handleBucketChange = (bucket: string) => {
     const nextBuckets = selectedBuckets.includes(bucket)
@@ -68,14 +86,12 @@ export default function AiDetection() {
       : [...selectedBuckets, bucket];
     setSelectedBuckets(nextBuckets);
     setPage(1);
-    // fetchAiData verrà chiamato dall'useEffect al cambio di selectedBuckets
   };
 
   const handleSortChange = (_: any, newSort: string | null) => {
     if (!newSort) return;
     setSortBy(newSort);
     setPage(1);
-    // fetchAiData verrà chiamato dall'useEffect al cambio di sortBy
   };
 
   const getBucketPage = (bName: string) => bucketPages[bName] || 1;
@@ -88,9 +104,7 @@ export default function AiDetection() {
 
   if (loading && !data) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh" }}>
-        <CircularProgress color="primary" />
-      </Box>
+      <LoadingState />
     );
   }
 
@@ -103,19 +117,19 @@ export default function AiDetection() {
         <Typography
           variant="h2"
           sx={{
-            fontFamily: "Space Grotesk, Inter, sans-serif",
+            fontFamily: tokens.font.display,
             fontWeight: 400,
             fontSize: { xs: "32px", md: "48px" },
-            color: "#17171c",
+            color: tokens.color.nearBlack,
             letterSpacing: "-0.48px",
             lineHeight: 1.2,
             mb: 1,
           }}
         >
-          Rilevamento IA (FastDetectGPT)
+          {config.title}
         </Typography>
-        <Typography variant="body1" sx={{ color: "#75758a" }}>
-          Analisi della probabilità di testo generato da IA basata su <strong>FastDetectGPT (GPT-Neo 2.7B)</strong> tramite perturbazioni della curvatura probabilistica.
+        <Typography variant="body1" sx={{ color: tokens.color.textMuted }}>
+          {config.subtitle}
         </Typography>
 
       </Box>
@@ -127,31 +141,31 @@ export default function AiDetection() {
             <Box
               sx={{
                 p: 4,
-                borderRadius: "22px",
-                backgroundColor: "#eeece7",
+                borderRadius: tokens.radius.xl,
+                backgroundColor: tokens.color.softStone,
                 height: "100%",
               }}
             >
-              <Typography variant="caption" sx={{ color: "#75758a", mb: 2, display: "block" }}>
+              <Typography variant="caption" sx={{ color: tokens.color.textMuted, mb: 2, display: "block" }}>
                 PROCESSED STATUSES
               </Typography>
               <Typography
                 variant="h1"
                 sx={{
-                  fontFamily: "Space Grotesk, Inter, sans-serif",
+                  fontFamily: tokens.font.display,
                   fontWeight: 400,
                   fontSize: "56px",
-                  color: "#17171c",
+                  color: tokens.color.nearBlack,
                   lineHeight: 1.0,
                   mb: 2,
                 }}
               >
                 {data.done.toLocaleString()}
               </Typography>
-              <Typography variant="body2" sx={{ color: "#75758a" }}>
+              <Typography variant="body2" sx={{ color: tokens.color.textMuted }}>
                 Out of <strong>{data.eligible.toLocaleString()}</strong> eligible English statuses.
               </Typography>
-              <Typography variant="caption" sx={{ color: "#75758a", display: "block", mt: 2, mb: 2 }}>
+              <Typography variant="caption" sx={{ color: tokens.color.textMuted, display: "block", mt: 2, mb: 2 }}>
                 Threshold for AI flag: &ge; {data.ai_threshold * 100}%
               </Typography>
 
@@ -163,14 +177,14 @@ export default function AiDetection() {
                 sx={{
                   mt: 1,
                   width: "100%",
-                  borderRadius: "32px",
+                  borderRadius: tokens.radius.pill,
                   py: 1.2,
                   px: 2.5,
                   fontWeight: 500,
                   fontSize: "14px",
                   textTransform: "none",
-                  backgroundColor: "#17171c",
-                  color: "#ffffff",
+                  backgroundColor: tokens.color.nearBlack,
+                  color: tokens.color.canvas,
                   transition: "background-color 0.15s ease",
                   "&:hover": {
                     backgroundColor: "#2e2e38",
@@ -188,13 +202,13 @@ export default function AiDetection() {
             <Box
               sx={{
                 p: 4,
-                borderRadius: "22px",
-                border: "1px solid #e5e7eb",
-                backgroundColor: "#ffffff",
+                borderRadius: tokens.radius.xl,
+                border: tokens.border.subtle,
+                backgroundColor: tokens.color.canvas,
                 height: "100%",
               }}
             >
-              <Typography variant="h6" sx={{ fontWeight: 600, color: "#17171c", mb: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: tokens.color.nearBlack, mb: 3 }}>
                 Probability Range Distribution
               </Typography>
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -202,7 +216,7 @@ export default function AiDetection() {
                   const percent = (count / maxHistVal) * 100;
                   return (
                     <Box key={bucket} sx={{ display: "flex", alignItems: "center" }}>
-                      <Typography variant="caption" sx={{ minWidth: 70, color: "#75758a" }}>
+                      <Typography variant="caption" sx={{ minWidth: 70, color: tokens.color.textMuted }}>
                         {bucket}
                       </Typography>
                       <Box sx={{ flexGrow: 1, mx: 2 }}>
@@ -212,12 +226,12 @@ export default function AiDetection() {
                           sx={{
                             height: 14,
                             borderRadius: 7,
-                            backgroundColor: "#eeece7",
-                            "& .MuiLinearProgress-bar": { backgroundColor: "#ff7759" }, // Coral fill
+                            backgroundColor: tokens.color.softStone,
+                            "& .MuiLinearProgress-bar": { backgroundColor: tokens.color.coral }, // Coral fill
                           }}
                         />
                       </Box>
-                      <Typography variant="body2" sx={{ minWidth: 60, textAlign: "right", fontWeight: 600, color: "#17171c" }}>
+                      <Typography variant="body2" sx={{ minWidth: 60, textAlign: "right", fontWeight: 600, color: tokens.color.nearBlack }}>
                         {count.toLocaleString()}
                       </Typography>
                     </Box>
@@ -235,8 +249,8 @@ export default function AiDetection() {
           sx={{
             p: 4,
             mb: 6,
-            borderRadius: "22px",
-            border: "1px solid #e5e7eb",
+            borderRadius: tokens.radius.xl,
+            border: tokens.border.subtle,
             backgroundColor: "#fafaf8",
           }}
         >
@@ -245,18 +259,18 @@ export default function AiDetection() {
               label="TIER EXPLORER"
               size="small"
               sx={{
-                fontFamily: "ui-monospace, monospace",
+                fontFamily: tokens.font.mono,
                 fontSize: "10px",
-                color: "#ff7759",
-                backgroundColor: "#fff0ec",
+                color: tokens.color.coral,
+                backgroundColor: tokens.color.surfaceCoral,
                 fontWeight: 700,
                 mb: 1,
               }}
             />
-            <Typography variant="h5" sx={{ fontWeight: 600, color: "#17171c" }}>
+            <Typography variant="h5" sx={{ fontWeight: 600, color: tokens.color.nearBlack }}>
               Esplorazione Post per Scaglione di Probabilità AI
             </Typography>
-            <Typography variant="body2" sx={{ color: "#75758a", mt: 0.5 }}>
+            <Typography variant="body2" sx={{ color: tokens.color.textMuted, mt: 0.5 }}>
               Campioni estratti direttamente da <code>ai_scores.jsonl</code> per ciascuna fascia di confidenza del modello Fast-DetectGPT.
             </Typography>
           </Box>
@@ -274,9 +288,9 @@ export default function AiDetection() {
                     elevation={0}
                     sx={{
                       p: 2.5,
-                      borderRadius: "16px",
+                      borderRadius: tokens.radius.lg,
                       border: "1px solid #e2e4e8",
-                      backgroundColor: "#ffffff",
+                      backgroundColor: tokens.color.canvas,
                       height: "100%",
                       display: "flex",
                       flexDirection: "column",
@@ -291,15 +305,15 @@ export default function AiDetection() {
                           fontSize: "11px",
                           backgroundColor:
                             bucketName.startsWith("0.8") || bucketName.startsWith("0.6")
-                              ? "#ff7759"
-                              : "#eeece7",
+                              ? tokens.color.coral
+                              : tokens.color.softStone,
                           color:
                             bucketName.startsWith("0.8") || bucketName.startsWith("0.6")
-                              ? "#ffffff"
-                              : "#17171c",
+                              ? tokens.color.canvas
+                              : tokens.color.nearBlack,
                         }}
                       />
-                      <Typography variant="caption" sx={{ color: "#75758a", fontWeight: 600 }}>
+                      <Typography variant="caption" sx={{ color: tokens.color.textMuted, fontWeight: 600 }}>
                         {samples.length} post
                       </Typography>
                     </Box>
@@ -313,7 +327,7 @@ export default function AiDetection() {
                         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, flexGrow: 1 }}>
                           {paginatedSamples.map(({ post, probability }) => {
                             const isHighProb = probability >= 0.5;
-                            const probColor = isHighProb ? "#ff7759" : "#3b82f6";
+                            const probColor = isHighProb ? tokens.color.coral : "#3b82f6";
                             const probBg = isHighProb ? "#fff1ef" : "#eff6ff";
                             return (
                               <Paper
@@ -321,13 +335,13 @@ export default function AiDetection() {
                                 elevation={0}
                                 sx={{
                                   p: 2,
-                                  borderRadius: "12px",
-                                  backgroundColor: "#fafafa",
-                                  border: "1px solid #e5e7eb",
+                                  borderRadius: tokens.radius.md,
+                                  backgroundColor: tokens.color.tableHead,
+                                  border: tokens.border.subtle,
                                   transition: "all 0.15s ease",
                                   "&:hover": {
-                                    backgroundColor: "#ffffff",
-                                    borderColor: isHighProb ? "#ff7759" : "#3b82f6",
+                                    backgroundColor: tokens.color.canvas,
+                                    borderColor: isHighProb ? tokens.color.coral : "#3b82f6",
                                     boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
                                   },
                                 }}
@@ -337,7 +351,7 @@ export default function AiDetection() {
                                     variant="caption"
                                     sx={{
                                       fontWeight: 600,
-                                      color: "#17171c",
+                                      color: tokens.color.nearBlack,
                                       overflow: "hidden",
                                       textOverflow: "ellipsis",
                                       whiteSpace: "nowrap",
@@ -367,7 +381,7 @@ export default function AiDetection() {
                                     WebkitLineClamp: 4,
                                     WebkitBoxOrient: "vertical",
                                     overflow: "hidden",
-                                    color: "#212121",
+                                    color: tokens.color.textPrimary,
                                     fontSize: "13px",
                                     lineHeight: 1.5,
                                     mb: 1.5,
@@ -377,7 +391,7 @@ export default function AiDetection() {
                                 </Typography>
 
                                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                  <Typography variant="caption" sx={{ color: "#75758a", fontSize: "10px", fontFamily: "monospace" }}>
+                                  <Typography variant="caption" sx={{ color: tokens.color.textMuted, fontSize: "10px", fontFamily: "monospace" }}>
                                     #{post.id}
                                   </Typography>
                                   <Button
@@ -392,9 +406,9 @@ export default function AiDetection() {
                                       textTransform: "none",
                                       py: 0.3,
                                       px: 1.5,
-                                      borderRadius: "16px",
-                                      backgroundColor: "#1863dc",
-                                      color: "#ffffff",
+                                      borderRadius: tokens.radius.lg,
+                                      backgroundColor: tokens.color.actionBlue,
+                                      color: tokens.color.canvas,
                                       "&:hover": { backgroundColor: "#114cb0" },
                                     }}
                                   >
@@ -413,11 +427,11 @@ export default function AiDetection() {
                             variant="outlined"
                             disabled={currentPage <= 1}
                             onClick={() => setBucketPage(bucketName, currentPage - 1)}
-                            sx={{ minWidth: "32px", px: 1, py: 0.2, fontSize: "11px", borderRadius: "8px" }}
+                            sx={{ minWidth: "32px", px: 1, py: 0.2, fontSize: "11px", borderRadius: tokens.radius.sm }}
                           >
                             &larr; Indietro
                           </Button>
-                          <Typography variant="caption" sx={{ color: "#64748b", fontSize: "11px", fontWeight: 600 }}>
+                          <Typography variant="caption" sx={{ color: tokens.color.darkSlateDeep, fontSize: "11px", fontWeight: 600 }}>
                             {currentPage} / {totalPages}
                           </Typography>
                           <Button
@@ -425,7 +439,7 @@ export default function AiDetection() {
                             variant="outlined"
                             disabled={currentPage >= totalPages}
                             onClick={() => setBucketPage(bucketName, currentPage + 1)}
-                            sx={{ minWidth: "32px", px: 1, py: 0.2, fontSize: "11px", borderRadius: "8px" }}
+                            sx={{ minWidth: "32px", px: 1, py: 0.2, fontSize: "11px", borderRadius: tokens.radius.sm }}
                           >
                             Avanti &rarr;
                           </Button>
@@ -447,8 +461,8 @@ export default function AiDetection() {
 
         <Grid item xs={12} md={3}>
 
-          <Paper sx={{ p: 3, borderRadius: "16px", border: "1px solid #e5e7eb", backgroundColor: "#ffffff", mb: 3 }}>
-            <Typography variant="caption" sx={{ color: "#75758a", mb: 1.5, display: "block" }}>
+          <Paper sx={{ p: 3, borderRadius: tokens.radius.lg, border: tokens.border.subtle, backgroundColor: tokens.color.canvas, mb: 3 }}>
+            <Typography variant="caption" sx={{ color: tokens.color.textMuted, mb: 1.5, display: "block" }}>
               SORT PROBABILITIES
             </Typography>
             <ToggleButtonGroup
@@ -459,14 +473,14 @@ export default function AiDetection() {
               fullWidth
               sx={{
                 "& .MuiToggleButton-root": {
-                  borderRadius: "8px",
+                  borderRadius: tokens.radius.sm,
                   fontSize: "12px",
                   fontWeight: 600,
                   textTransform: "none",
                   py: 0.8,
                   "&.Mui-selected": {
-                    backgroundColor: "#ff7759",
-                    color: "#ffffff",
+                    backgroundColor: tokens.color.coral,
+                    color: tokens.color.canvas,
                     "&:hover": { backgroundColor: "#e66043" },
                   },
                 },
@@ -484,8 +498,8 @@ export default function AiDetection() {
             </ToggleButtonGroup>
           </Paper>
 
-          <Paper sx={{ p: 3, borderRadius: "16px", border: "1px solid #e5e7eb", backgroundColor: "#ffffff" }}>
-            <Typography variant="caption" sx={{ color: "#75758a", mb: 2, display: "block" }}>
+          <Paper sx={{ p: 3, borderRadius: tokens.radius.lg, border: tokens.border.subtle, backgroundColor: tokens.color.canvas }}>
+            <Typography variant="caption" sx={{ color: tokens.color.textMuted, mb: 2, display: "block" }}>
               SCORE QUARTILES
             </Typography>
             {data && data.prob_buckets ? (
@@ -498,13 +512,13 @@ export default function AiDetection() {
                         checked={selectedBuckets.includes(bucket)}
                         onChange={() => handleBucketChange(bucket)}
                         sx={{
-                          color: "#93939f",
-                          "&.Mui-checked": { color: "#ff7759" },
+                          color: tokens.color.textFaint,
+                          "&.Mui-checked": { color: tokens.color.coral },
                         }}
                       />
                     }
                     label={
-                      <Typography sx={{ fontFamily: "Inter, sans-serif", fontSize: "14px", color: "#212121" }}>
+                      <Typography sx={{ fontFamily: tokens.font.body, fontSize: "14px", color: tokens.color.textPrimary }}>
                         Quartile {bucket}%
                       </Typography>
                     }
@@ -512,7 +526,7 @@ export default function AiDetection() {
                 ))}
               </FormGroup>
             ) : (
-              <Typography variant="body2" sx={{ color: "#75758a" }}>
+              <Typography variant="body2" sx={{ color: tokens.color.textMuted }}>
                 No filters available.
               </Typography>
             )}
@@ -527,12 +541,10 @@ export default function AiDetection() {
               <CircularProgress />
             </Box>
           ) : error || !data || data.page_rows.length === 0 ? (
-            <Paper sx={{ p: 6, textAlign: "center", borderRadius: "16px", border: "1px solid #e5e7eb" }}>
-              <Typography variant="body1" sx={{ color: "#75758a" }}>No posts matched the AI score range filters.</Typography>
-            </Paper>
+            <EmptyState message="Nessun post corrisponde agli intervalli di probabilità selezionati." />
           ) : (
             <Box>
-              <Paper sx={{ borderRadius: "16px", border: "1px solid #e5e7eb", overflow: "hidden", mb: 4, backgroundColor: "#ffffff" }}>
+              <Paper sx={{ borderRadius: tokens.radius.lg, border: tokens.border.subtle, overflow: "hidden", mb: 4, backgroundColor: tokens.color.canvas }}>
                 <List sx={{ p: 0 }}>
                   {data.page_rows.map(({ post, probability }, idx) => (
                     <div key={post.id}>
@@ -541,33 +553,33 @@ export default function AiDetection() {
                           p: 3,
                           alignItems: "flex-start",
                           transition: "background-color 0.15s ease",
-                          "&:hover": { backgroundColor: "#f1f5ff" },
+                          "&:hover": { backgroundColor: tokens.color.surfaceBlue },
                         }}
                       >
                         <ListItemText
                           primary={
                             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.5 }}>
                               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#17171c" }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: tokens.color.nearBlack }}>
                                   {post.acct}
                                 </Typography>
-                                <Chip label={post.domain} size="small" sx={{ borderRadius: "12px", backgroundColor: "#eeece7" }} />
+                                <Chip label={post.domain} size="small" sx={{ borderRadius: tokens.radius.md, backgroundColor: tokens.color.softStone }} />
                                 {post.bot && (
                                   <Chip
-                                    icon={<BotIcon style={{ fontSize: 14, color: "#ffffff" }} />}
+                                    icon={<BotIcon style={{ fontSize: 14, color: tokens.color.canvas }} />}
                                     label="BOT"
                                     size="small"
-                                    sx={{ borderRadius: "12px", backgroundColor: "#17171c", color: "#ffffff" }}
+                                    sx={{ borderRadius: tokens.radius.md, backgroundColor: tokens.color.nearBlack, color: tokens.color.canvas }}
                                   />
                                 )}
                               </Box>
                               <Chip
                                 label={`AI Prob: ${(probability * 100).toFixed(0)}%`}
                                 sx={{
-                                  borderRadius: "30px",
+                                  borderRadius: tokens.radius.chip,
                                   fontSize: "12px",
-                                  backgroundColor: probability >= 0.5 ? "#ff7759" : "#eeece7",
-                                  color: probability >= 0.5 ? "#ffffff" : "#17171c",
+                                  backgroundColor: probability >= 0.5 ? tokens.color.coral : tokens.color.softStone,
+                                  color: probability >= 0.5 ? tokens.color.canvas : tokens.color.nearBlack,
                                   fontWeight: 600,
                                 }}
                                 size="small"
@@ -585,7 +597,7 @@ export default function AiDetection() {
                                   WebkitLineClamp: 3,
                                   WebkitBoxOrient: "vertical",
                                   overflow: "hidden",
-                                  color: "#212121",
+                                  color: tokens.color.textPrimary,
                                 }}
                               >
                                 {post.content}
@@ -593,7 +605,7 @@ export default function AiDetection() {
                               <Link
                                 to={`/posts/${post.id}`}
                                 style={{
-                                  color: "#1863dc",
+                                  color: tokens.color.actionBlue,
                                   textDecoration: "underline",
                                   fontSize: "14px",
                                   fontWeight: 500,
@@ -605,7 +617,7 @@ export default function AiDetection() {
                           }
                         />
                       </ListItem>
-                      {idx < data.page_rows.length - 1 && <Divider sx={{ borderColor: "#e5e7eb" }} />}
+                      {idx < data.page_rows.length - 1 && <Divider sx={{ borderColor: tokens.color.border }} />}
                     </div>
                   ))}
                 </List>
@@ -618,11 +630,11 @@ export default function AiDetection() {
                   startIcon={<PrevIcon />}
                   disabled={page <= 1}
                   onClick={() => setPage(page - 1)}
-                  sx={{ borderRadius: "32px" }}
+                  sx={{ borderRadius: tokens.radius.pill }}
                 >
                   Previous
                 </Button>
-                <Typography variant="caption" sx={{ color: "#75758a" }}>
+                <Typography variant="caption" sx={{ color: tokens.color.textMuted }}>
                   Page {page}
                 </Typography>
                 <Button
@@ -630,7 +642,7 @@ export default function AiDetection() {
                   endIcon={<NextIcon />}
                   disabled={!data.has_next}
                   onClick={() => setPage(page + 1)}
-                  sx={{ borderRadius: "32px" }}
+                  sx={{ borderRadius: tokens.radius.pill }}
                 >
                   Next
                 </Button>
@@ -645,7 +657,7 @@ export default function AiDetection() {
         open={statsModalOpen}
         onClose={() => setStatsModalOpen(false)}
         stats={data?.stats}
-        detectorLabel="FastDetectGPT (GPT-Neo 2.7B)"
+        detectorLabel={config.label}
       />
     </Box>
   );

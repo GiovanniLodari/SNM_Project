@@ -1,6 +1,12 @@
+# Credenziali: sia .env che env (senza punto) contengono i token Mastodon.
+# Lo slash iniziale ancora il pattern alla root, cosi' non esclude per sbaglio
+# eventuali directory chiamate env/ piu' in basso nell'albero.
 .env
 .env.*
-.env.example
+/env
+# env.example / .env.example sono template a valori vuoti: vanno tracciati.
+!env.example
+!.env.example
 venv/
 .venv/
 __pycache__/

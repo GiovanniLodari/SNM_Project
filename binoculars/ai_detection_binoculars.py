@@ -28,6 +28,7 @@ import argparse
 import json
 import math
 import os
+from pathlib import Path
 import statistics
 import sys
 import time
@@ -43,7 +44,10 @@ os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 # =========================================================================== #
 #  >>> CONFIGURA QUI <<<  (poi lancia:  python ai_detection_binoculars.py)
 # =========================================================================== #
-INPUT_URL = "C:\\Users\\antoc\\Desktop\\SNM_Project\\post_texts.jsonl"   # <-- URL o path locale del JSONL
+# Default: il post_texts.jsonl nella root del progetto (questo file sta in
+# binoculars/, quindi si risale di un livello). Sovrascrivibile con --input,
+# che accetta anche un URL.
+INPUT_URL = str(Path(__file__).resolve().parent.parent / "post_texts.jsonl")
 
 # Coppia di modelli: observer = base, performer = instruct dello STESSO modello.
 # Default LEGGERO e MULTILINGUE (en+it), per 8 GB di VRAM (~2 GB totali):
@@ -64,7 +68,6 @@ MIN_WORDS  = 50        # sotto tot parole il testo è marcato poco affidabile
 OUTPUT       = "ai_scores_binoculars.jsonl"
 REPORT       = "ai_detection_report.md"
 CHECKPOINT   = "ai_scores_binoculars.ckpt.json"   # file di checkpoint per il resume
-SAVE_EVERY   = 100     # (non più critico: il checkpoint viene salvato a ogni batch)
 # Comportamento resume: di DEFAULT riprende sempre dall'output esistente e NON lo
 # cancella mai. Per ricominciare da zero azzerando l'output lancia con --fresh.
 DETECTOR     = "binoculars"   # "binoculars" (reale) oppure "mock" (test senza GPU/modelli)
@@ -203,7 +206,7 @@ class MockDetector:
 # --------------------------------------------------------------------------- #
 #  Checkpoint
 # --------------------------------------------------------------------------- #
-def save_checkpoint(path, input_id, count, _unused=None):
+def save_checkpoint(path, input_id, count):
     """Salva il checkpoint (solo informativo: il resume usa il file di output).
     Su Windows os.replace può fallire se il file è bloccato (OneDrive/antivirus/editor):
     quindi riprovo qualche volta e, se proprio non riesco, proseguo senza crashare."""
@@ -313,7 +316,7 @@ def process(args):
         out.flush()
         os.fsync(out.fileno())   # forza la scrittura su disco: niente perdite se crasha
         buffer.clear()
-        save_checkpoint(args.checkpoint, args.input, done, done)
+        save_checkpoint(args.checkpoint, args.input, done)
         print(f"[progress] totale nel file: {done}  (+{new_this_run} in questo run)",
               file=sys.stderr)
 
@@ -327,7 +330,7 @@ def process(args):
         if args.limit and new_this_run >= args.limit:
             break
     flush()
-    save_checkpoint(args.checkpoint, args.input, done, done)
+    save_checkpoint(args.checkpoint, args.input, done)
     out.close()
     print(f"\n[fine run] nuovi in questo run: {new_this_run} | totale nel file: {done}",
           file=sys.stderr)
@@ -444,14 +447,10 @@ def main():
     p.add_argument("--max-tokens", type=int, default=MAX_TOKENS)
     p.add_argument("--min-words", type=int, default=MIN_WORDS)
     p.add_argument("--batch-size", type=int, default=BATCH)
-    p.add_argument("--save-every", type=int, default=SAVE_EVERY)
     p.add_argument("--limit", type=int, default=0, help="0 = tutti; N = solo N nuovi (per test)")
     p.add_argument("--fresh", action="store_true",
                    help="ricomincia da zero AZZERANDO l'output (di default invece riprende e non cancella)")
     args = p.parse_args()
-
-    if "INCOLLA-QUI" in args.input:
-        sys.exit("ERRORE: incolla il tuo URL/percorso in INPUT_URL (sezione CONFIGURA QUI), poi rilancia.")
 
     try:
         total = process(args)

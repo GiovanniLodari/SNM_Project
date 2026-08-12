@@ -11,11 +11,15 @@ attivamente, cosa che bloccherebbe la richiesta HTTP per ore)."""
 import os
 import re
 import subprocess
+import sys
 import threading
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent.parent
-PYTHON_EXE = str(PROJECT_ROOT / "venv" / "Scripts" / "python.exe")
+# L'interprete che esegue uvicorn e' gia' quello del venv giusto: ricostruire
+# il path a mano puntava a "venv/" mentre sul disco la cartella e' ".venv/",
+# e ogni avvio di pipeline falliva con OSError.
+PYTHON_EXE = sys.executable
 PIDS_DIR = PROJECT_ROOT / ".pids"
 LOGS_DIR = PROJECT_ROOT / ".logs"
 

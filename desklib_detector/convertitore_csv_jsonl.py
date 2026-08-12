@@ -2,8 +2,8 @@
 # ============================================================
 #  INCOLLA QUI I 2 PATH E PREMI RUN. NIENT'ALTRO.
 # ============================================================
-PATH_CSV = r"C:\Users\antoc\Desktop\SNM_Project\desklib_detector\risultati.csv"          # il csv da convertire
-PATH_OUT = r"C:\Users\antoc\Desktop\SNM_Project\desklib_detector\risultati.jsonl"        # il jsonl in uscita
+PATH_CSV = str(Path(__file__).resolve().parent / "risultati.csv")          # il csv da convertire
+PATH_OUT = str(Path(__file__).resolve().parent / "risultati.jsonl")        # il jsonl in uscita
 # ============================================================
 
 import csv, json

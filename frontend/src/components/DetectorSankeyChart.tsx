@@ -1,5 +1,6 @@
 import { ResponsiveSankey } from "@nivo/sankey";
 import { Box, Paper, Typography } from "@mui/material";
+import { tokens } from "../theme.ts";
 
 export interface SankeyData {
   nodes: { id: string; nodeColor?: string }[];
@@ -12,15 +13,15 @@ interface DetectorSankeyChartProps {
 
 const defaultSankeyData: SankeyData = {
   nodes: [
-    { id: "FastDetectGPT", nodeColor: "#17171c" },
-    { id: "Binoculars", nodeColor: "#ff7759" },
-    { id: "Desklib AI", nodeColor: "#003c33" },
-    { id: "AdaDetectGPT", nodeColor: "#1863dc" },
-    { id: "Unanime IA (4/4)", nodeColor: "#7c3aed" },
-    { id: "Maggioranza IA (3/4)", nodeColor: "#003c33" },
-    { id: "Misto IA (2/4)", nodeColor: "#ff7759" },
-    { id: "Single Detector (1/4)", nodeColor: "#1863dc" },
-    { id: "Unanime Umano (0/4)", nodeColor: "#75758a" },
+    { id: "FastDetectGPT", nodeColor: tokens.color.nearBlack },
+    { id: "Binoculars", nodeColor: tokens.color.coral },
+    { id: "Desklib AI", nodeColor: tokens.color.deepGreen },
+    { id: "AdaDetectGPT", nodeColor: tokens.color.actionBlue },
+    { id: "Unanime IA (4/4)", nodeColor: tokens.color.purple },
+    { id: "Maggioranza IA (3/4)", nodeColor: tokens.color.deepGreen },
+    { id: "Misto IA (2/4)", nodeColor: tokens.color.coral },
+    { id: "Single Detector (1/4)", nodeColor: tokens.color.actionBlue },
+    { id: "Unanime Umano (0/4)", nodeColor: tokens.color.textMuted },
   ],
   links: [
     { source: "FastDetectGPT", target: "Unanime IA (4/4)", value: 1011 },
@@ -51,9 +52,9 @@ export function DetectorSankeyChart({ data = defaultSankeyData }: DetectorSankey
       elevation={0}
       sx={{
         p: 3.5,
-        borderRadius: "22px",
-        border: "1px solid #e5e7eb",
-        backgroundColor: "#ffffff",
+        borderRadius: tokens.radius.xl,
+        border: tokens.border.subtle,
+        backgroundColor: tokens.color.canvas,
         height: 480,
         display: "flex",
         flexDirection: "column",
@@ -63,16 +64,16 @@ export function DetectorSankeyChart({ data = defaultSankeyData }: DetectorSankey
         <Typography
           variant="h6"
           sx={{
-            fontFamily: "Space Grotesk, Inter, sans-serif",
+            fontFamily: tokens.font.display,
             fontWeight: 600,
             fontSize: "20px",
-            color: "#17171c",
+            color: tokens.color.nearBlack,
             letterSpacing: "-0.32px",
           }}
         >
           Flusso di Consenso Multi-Modello (Sankey Flow Diagram)
         </Typography>
-        <Typography variant="body2" sx={{ color: "#75758a", mt: 0.5 }}>
+        <Typography variant="body2" sx={{ color: tokens.color.textMuted, mt: 0.5 }}>
           Visualizzazione Nivo dei volumi di accordo e divergenza tra i modelli di detection sui post analizzati.
         </Typography>
       </Box>
@@ -82,7 +83,7 @@ export function DetectorSankeyChart({ data = defaultSankeyData }: DetectorSankey
           data={data}
           margin={{ top: 20, right: 140, bottom: 20, left: 140 }}
           align="justify"
-          colors={(node: any) => node.nodeColor || "#17171c"}
+          colors={(node: any) => node.nodeColor || tokens.color.nearBlack}
           nodeOpacity={1}
           nodeHoverOthersOpacity={0.35}
           nodeThickness={18}
@@ -99,7 +100,7 @@ export function DetectorSankeyChart({ data = defaultSankeyData }: DetectorSankey
           theme={{
             labels: {
               text: {
-                fontFamily: "Space Grotesk, Inter, sans-serif",
+                fontFamily: tokens.font.display,
                 fontSize: 12,
                 fontWeight: 600,
               },

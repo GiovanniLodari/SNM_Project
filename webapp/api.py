@@ -1,9 +1,9 @@
-"""API JSON consumida por el frontend React (frontend/).
+"""API JSON consumata dal frontend React (frontend/).
 
-Espejo de las rutas server-rendered de webapp/main.py pero devolviendo JSON
-en lugar de plantillas Jinja2. La capa visual (React+MUI) vive en frontend/
-y habla solo con estos endpoints /api/*. Las rutas template de main.py se
-conservan para no romper el acceso directo ni los tests smoke existentes.
+Unica superficie applicativa del progetto: la parte visuale (React + MUI) vive
+in frontend/ e parla solo con questi endpoint /api/*. Fino alla rimozione del
+layer Jinja2 questo modulo ne era il gemello in JSON, con la stessa logica
+scritta due volte.
 """
 from pathlib import Path
 
@@ -427,7 +427,11 @@ def account_graph_topology(account_id: int, limit: int = 40, conn=Depends(get_db
         target_row = cur.fetchone()
 
     if not target_row:
-        return graph_topology(limit, conn)
+        # Argomenti nominati obbligatori: la firma e' (limit, mode, conn), quindi
+        # la vecchia chiamata posizionale graph_topology(limit, conn) legava la
+        # connessione a `mode` e lasciava `conn` come oggetto Depends non
+        # risolto, con 500 garantito su ogni account_id sconosciuto.
+        return graph_topology(limit=limit, mode="all", conn=conn)
 
     t_id, t_acct, t_bot, t_domain = target_row
     t_label = t_acct if t_acct.startswith("@") else f"@{t_acct}"
@@ -628,30 +632,39 @@ def fact_check_results(
     if verdict:
         all_checked = [(status_id, row) for status_id, row in all_checked if row["verdict"] in verdict]
 
+    # La ricerca va applicata PRIMA di affettare la pagina. Filtrando dopo lo
+    # slice si otteneva una ricerca inutilizzabile: le corrispondenze sparse su
+    # centinaia di pagine restavano irraggiungibili (le 29 occorrenze di
+    # "vaccino" cadevano nelle pagine 15, 19, 131, 306... su 716), e has_next
+    # veniva calcolato sulla lista non filtrata, quindi restava sempre True
+    # anche su pagine vuote.
+    if search:
+        termine = search.lower()
+        id_per_contenuto = queries.status_ids_matching_content(conn, search)
+        all_checked = [
+            (status_id, row)
+            for status_id, row in all_checked
+            if status_id in id_per_contenuto or termine in (row.get("reasoning") or "").lower()
+        ]
+
+    total_count = len(all_checked)
     page = max(page, 1)
     offset = (page - 1) * PAGE_SIZE
     page_ids = all_checked[offset:offset + PAGE_SIZE]
-    
-    ids_to_fetch = [status_id for status_id, _ in page_ids]
-    posts_by_id = queries.get_posts_by_ids(conn, ids_to_fetch)
-    
+
+    posts_by_id = queries.get_posts_by_ids(conn, [status_id for status_id, _ in page_ids])
+
     page_rows = []
     for status_id, row in page_ids:
-        post_data = posts_by_id.get(status_id)
-        if not post_data:
-            post_data = {
-                "id": status_id,
-                "language": "en",
-                "content": f"Status #{status_id}",
-                "created_at": None,
-                "acct": "status_archive",
-                "bot": False,
-                "domain": "fediverse",
-            }
-        
-        if search and search.lower() not in post_data.get("content", "").lower() and search.lower() not in row.get("reasoning", "").lower():
-            continue
-
+        post_data = posts_by_id.get(status_id) or {
+            "id": status_id,
+            "language": "en",
+            "content": f"Status #{status_id}",
+            "created_at": None,
+            "acct": "status_archive",
+            "bot": False,
+            "domain": "fediverse",
+        }
         page_rows.append({"post": post_data, "row": row})
 
     return {
@@ -661,7 +674,8 @@ def fact_check_results(
         "page_rows": page_rows,
         "page": page,
         "page_size": PAGE_SIZE,
-        "has_next": len(all_checked) > (offset + PAGE_SIZE),
+        "total_count": total_count,
+        "has_next": total_count > (offset + PAGE_SIZE),
         "verdict_options": ["vero", "perlopiù vero", "misto", "perlopiù falso", "falso", "non verificabile"],
         "selected_verdicts": verdict,
     }
@@ -752,8 +766,83 @@ def db_sync_download():
     return FileResponse(EXPORT_ZIP_PATH, filename=EXPORT_ZIP_PATH.name, media_type="application/zip")
 
 
+def _ai_probability(score: dict, detector: str) -> float | None:
+    """Probabilita' IA normalizzata in [0,1] per un detector, o None se il post
+    non e' stato valutato.
+
+    I quattro file usano chiavi e scale diverse: Binoculars salva una
+    percentuale 0-100 sotto `ai_probability_pct`, Desklib una frazione sotto
+    `ai_probability`, gli altri due sotto `probability`. Qualunque detector puo'
+    aver scritto NaN su un post andato storto: `raw != raw` lo intercetta (NaN
+    e' l'unico valore diverso da se stesso) e lo tratta come non valutato,
+    perche' altrimenti finirebbe nel denominatore senza mai stare al numeratore,
+    abbassando la percentuale di un detector per i suoi stessi fallimenti."""
+    chiave = {
+        "binoculars": "ai_probability_pct",
+        "desklib": "ai_probability",
+    }.get(detector, "probability")
+
+    raw = score.get(chiave)
+    if raw is None or raw != raw:
+        return None
+    valore = float(raw)
+    return valore / 100.0 if detector == "binoculars" else valore
+
+
+def _compute_bot_investigation(conn, fastdetect_scores, bino_scores, desk_scores, ada_scores):
+    """Quanti post di account dichiarati bot ciascun detector classifica come IA.
+
+    Calcolato incrociando gli id degli status di account con bot = true con le
+    valutazioni di ogni detector: prima era un dizionario di costanti, con la
+    voce `ada` estrapolata da un denominatore fisso e presentata come misura.
+    Restituisce None se il DB non e' raggiungibile, cosi' il frontend puo'
+    dichiarare il dato mancante invece di mostrarne uno inventato."""
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT s.id FROM statuses s JOIN accounts a ON a.id = s.account_id "
+                "WHERE s.deleted_at IS NULL AND a.bot = true"
+            )
+            bot_ids = {row[0] for row in cur.fetchall()}
+            cur.execute(
+                "SELECT COUNT(*) FROM statuses s JOIN accounts a ON a.id = s.account_id "
+                "WHERE s.deleted_at IS NULL AND a.bot = false"
+            )
+            human_total = cur.fetchone()[0]
+    except Exception:
+        # Il DB puo' non essere configurato su un clone fresco: e' una
+        # condizione prevista, non un errore da propagare come 500.
+        return None
+
+    modelli = {}
+    for nome, scores, detector in (
+        ("fastdetectgpt", fastdetect_scores, "fastdetectgpt"),
+        ("binoculars", bino_scores, "binoculars"),
+        ("desklib", desk_scores, "desklib"),
+        ("ada", ada_scores, "ada"),
+    ):
+        probabilita = [
+            p
+            for sid in bot_ids & scores.keys()
+            if (p := _ai_probability(scores[sid], detector)) is not None
+        ]
+        scored = len(probabilita)
+        ai_count = sum(1 for p in probabilita if p >= AI_CLASSIFICATION_THRESHOLD)
+        modelli[nome] = {
+            "scored": scored,
+            "ai_count": ai_count,
+            "ai_percentage": round((ai_count / scored) * 100, 2) if scored else None,
+        }
+
+    return {
+        "total_bot_statuses": len(bot_ids),
+        "total_human_statuses": human_total,
+        "models": modelli,
+    }
+
+
 @router.get("/detector-comparison/summary")
-def detector_comparison_summary():
+def detector_comparison_summary(conn=Depends(get_db)):
     fastdetect_scores = results.load_ai_scores(AI_SCORES_PATH)
     bino_scores = results.load_binoculars_scores(BINOCULARS_SCORES_PATH)
     desk_scores = results.load_desklib_scores(DESKLIB_SCORES_PATH)
@@ -762,18 +851,28 @@ def detector_comparison_summary():
     comp_report = results.compute_four_detector_comparison(fastdetect_scores, bino_scores, desk_scores, ada_scores)
     bino_report = results.load_binoculars_report(BINOCULAR_ALL_DIR)
 
-    fastdetect_ai_count = sum(1 for s in fastdetect_scores.values() if s.get("probability") is not None and s["probability"] >= 0.5)
-    fastdetect_total = len(fastdetect_scores) or 192822
+    # Nessun denominatore di ripiego: se un file di score manca, il conteggio e'
+    # 0 e la percentuale diventa None, cosi' il frontend dichiara il dato
+    # mancante. In precedenza si ripiegava su conteggi di corpus congelati
+    # (192822, 200042, ...) che rendevano ogni percentuale plausibile ma falsa.
+    fastdetect_ai_count = sum(1 for s in fastdetect_scores.values() if s.get("probability") is not None and s["probability"] >= AI_CLASSIFICATION_THRESHOLD)
+    fastdetect_total = len(fastdetect_scores)
 
     bino_counts = bino_report.get("counts", {})
-    bino_ai_count = bino_counts.get("ai_generated", 6834)
-    bino_total = bino_counts.get("scored", 200042)
+    bino_ai_count = bino_counts.get("ai_generated", 0)
+    bino_total = bino_counts.get("scored", 0)
 
-    desklib_total = len(desk_scores) or 200042
-    desklib_ai_count = sum(1 for s in desk_scores.values() if s.get("ai_probability") is not None and s["ai_probability"] >= 0.5)
+    desklib_total = len(desk_scores)
+    desklib_ai_count = sum(1 for s in desk_scores.values() if s.get("ai_probability") is not None and s["ai_probability"] >= AI_CLASSIFICATION_THRESHOLD)
 
-    ada_ai_count = sum(1 for s in ada_scores.values() if s.get("probability") is not None and s["probability"] == s["probability"] and s["probability"] >= 0.5)
-    ada_total = len(ada_scores) or 192823
+    ada_probabilita = [p for s in ada_scores.values() if (p := _ai_probability(s, "ada")) is not None]
+    ada_ai_count = sum(1 for p in ada_probabilita if p >= AI_CLASSIFICATION_THRESHOLD)
+    ada_total = len(ada_scores)
+
+    def percentuale(ai_count: int, totale: int) -> float | None:
+        """None invece di 0.0 quando non c'e' nulla da misurare: uno 0% e un
+        dato assente sono affermazioni diverse."""
+        return round((ai_count / totale) * 100, 2) if totale else None
 
     models_info = [
         {
@@ -782,7 +881,7 @@ def detector_comparison_summary():
             "type": "Zero-shot Likelihood & Curvature",
             "scored_count": fastdetect_total,
             "ai_detected_count": fastdetect_ai_count,
-            "ai_percentage": round((fastdetect_ai_count / max(1, fastdetect_total)) * 100, 2),
+            "ai_percentage": percentuale(fastdetect_ai_count, fastdetect_total),
             "description": "Metodo zero-shot basato sulla perturba-curvatura dello spazio delle probabilita' condizionate con GPT-Neo 2.7B.",
         },
         {
@@ -791,7 +890,7 @@ def detector_comparison_summary():
             "type": "Cross-Perplexity Ratio",
             "scored_count": bino_total,
             "ai_detected_count": bino_ai_count,
-            "ai_percentage": round((bino_ai_count / max(1, bino_total)) * 100, 2),
+            "ai_percentage": percentuale(bino_ai_count, bino_total),
             "description": "Algoritmo ICML 2024 basato sulla ratio tra Perplessita' e Cross-Perplessita' tra Qwen2.5-0.5B (observer) e Qwen2.5-0.5B-Instruct (performer).",
         },
         {
@@ -800,7 +899,7 @@ def detector_comparison_summary():
             "type": "Fine-Tuned Classifier",
             "scored_count": desklib_total,
             "ai_detected_count": desklib_ai_count,
-            "ai_percentage": round((desklib_ai_count / max(1, desklib_total)) * 100, 2),
+            "ai_percentage": percentuale(desklib_ai_count, desklib_total),
             "description": "Classificatore supervisionato fine-tuned (desklib/ai-text-detector-v1.01) specializzato su testi in lingua inglese.",
         },
         {
@@ -809,37 +908,14 @@ def detector_comparison_summary():
             "type": "Adaptive Curvature Detection",
             "scored_count": ada_total,
             "ai_detected_count": ada_ai_count,
-            "ai_percentage": round((ada_ai_count / max(1, ada_total)) * 100, 2),
+            "ai_percentage": percentuale(ada_ai_count, ada_total),
             "description": "Metodo zero-shot AdaDetectGPT con perturba-curvatura adattiva del modello GPT-Neo 2.7B.",
         },
     ]
 
-    bot_investigation = {
-        "total_bot_statuses": 88256,
-        "total_human_statuses": 111786,
-        "models": {
-            "fastdetectgpt": {
-                "scored": 12402,
-                "ai_count": 1169,
-                "ai_percentage": 9.43,
-            },
-            "binoculars": {
-                "scored": 12876,
-                "ai_count": 728,
-                "ai_percentage": 5.65,
-            },
-            "desklib": {
-                "scored": 12877,
-                "ai_count": 7007,
-                "ai_percentage": 54.41,
-            },
-            "ada": {
-                "scored": 12402,
-                "ai_count": round((ada_ai_count / max(1, ada_total)) * 12402),
-                "ai_percentage": round((ada_ai_count / max(1, ada_total)) * 100, 2),
-            },
-        },
-    }
+    bot_investigation = _compute_bot_investigation(
+        conn, fastdetect_scores, bino_scores, desk_scores, ada_scores
+    )
 
     return {
         "models": models_info,
@@ -918,8 +994,24 @@ def detector_comparison_posts(
 
     # Ordiniamo per id
     filtered_items.sort(key=lambda x: x[0])
+
+    # La ricerca precede la paginazione, altrimenti total_count e la pagina
+    # mostrata si riferiscono a insiemi diversi. Il testo di un post puo' stare
+    # nel DB oppure, per i post non importati, nei file di score: qui si guarda
+    # in entrambi i posti, come fa il ramo di rendering piu' sotto.
+    if search:
+        termine = search.lower()
+        id_corrispondenti = queries.status_ids_matching_content(conn, search)
+        filtered_items = [
+            item
+            for item in filtered_items
+            if item[0] in id_corrispondenti
+            or termine in (bino_scores.get(item[0], {}).get("text") or "").lower()
+            or termine in (desklib_scores.get(item[0], {}).get("text") or "").lower()
+        ]
+
     total_count = len(filtered_items)
-    
+
     offset = (page - 1) * page_size
     page_items = filtered_items[offset : offset + page_size]
     
@@ -944,9 +1036,6 @@ def detector_comparison_posts(
         elif sid in desklib_scores:
             text_content = desklib_scores[sid].get("text", "")
             lang = desklib_scores[sid].get("lang", "en")
-
-        if search and search.lower() not in text_content.lower():
-            continue
 
         results_list.append({
             "id": sid,
@@ -1012,4 +1101,4 @@ def influence_nodes(
 def influence_comparison():
     return influence_service.get_algo_comparison()
 
-
+

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
 import { Snackbar, Alert, AlertColor, Typography, Box } from "@mui/material";
+import { tokens } from "../theme.ts";
 
 interface NotificationContextType {
   notify: (message: string, severity?: AlertColor) => void;
@@ -37,24 +38,24 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           severity={severity}
           variant="filled"
           sx={{
-            backgroundColor: "#17171c",
-            color: "#ffffff",
-            borderRadius: "12px",
+            backgroundColor: tokens.color.nearBlack,
+            color: tokens.color.canvas,
+            borderRadius: tokens.radius.md,
             border: "1px solid rgba(255, 255, 255, 0.12)",
             boxShadow: "0 10px 30px rgba(0, 0, 0, 0.35)",
-            fontFamily: "Inter, sans-serif",
+            fontFamily: tokens.font.body,
             fontSize: "14px",
             alignItems: "center",
             "& .MuiAlert-icon": {
-              color: severity === "error" ? "#ff7759" : severity === "success" ? "#10b981" : "#1863dc",
+              color: severity === "error" ? tokens.color.coral : severity === "success" ? tokens.color.success : tokens.color.actionBlue,
             },
           }}
         >
           <Box sx={{ display: "flex", flexDirection: "column" }}>
-            <Typography variant="caption" sx={{ fontFamily: "ui-monospace, monospace", color: "#93939f", fontSize: "11px", textTransform: "uppercase" }}>
+            <Typography variant="caption" sx={{ fontFamily: tokens.font.mono, color: tokens.color.textFaint, fontSize: "11px", textTransform: "uppercase" }}>
               SNM System Notification
             </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 500, color: "#ffffff", mt: 0.2 }}>
+            <Typography variant="body2" sx={{ fontWeight: 500, color: tokens.color.canvas, mt: 0.2 }}>
               {message}
             </Typography>
           </Box>

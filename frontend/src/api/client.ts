@@ -40,6 +40,8 @@ export interface FactCheckResponse {
   page_rows: { post: Post; row: FactCheck }[];
   page: number;
   page_size: number;
+  /** Righe che soddisfano verdetto e ricerca, non solo quelle della pagina. */
+  total_count: number;
   has_next: boolean;
   verdict_options: string[];
   selected_verdicts: string[];
@@ -131,18 +133,6 @@ export interface AiDetectionResponse {
 
 
 
-
-export interface FactCheckResponse {
-  done: number;
-  eligible: number;
-  verdicts: Record<string, number>;
-  page_rows: { post: Post; row: FactCheck }[];
-  page: number;
-  page_size: number;
-  has_next: boolean;
-  verdict_options: string[];
-  selected_verdicts: string[];
-}
 
 export interface JobRow {
   name: string;
@@ -317,18 +307,25 @@ export interface DetectorComparisonSummaryResponse {
     histogram_pct?: Record<string, number>;
     by_lang?: Record<string, { n: number; ai: number }>;
   };
-  bot_investigation?: {
-    total_bot_statuses: number;
-    total_human_statuses: number;
-    models: {
-      fastdetectgpt: { scored: number; ai_count: number; ai_percentage: number };
-      binoculars: { scored: number; ai_count: number; ai_percentage: number };
-      desklib: { scored: number; ai_count: number; ai_percentage: number };
-      ada?: { scored: number; ai_count: number; ai_percentage: number };
-    };
-  };
+  // null quando il DB non e' raggiungibile; ai_percentage e' null quando il
+  // detector non ha valutato nessun post di account bot.
+  bot_investigation?: BotInvestigation | null;
 }
 
+
+export interface BotDetectorStats {
+  scored: number;
+  ai_count: number;
+  ai_percentage: number | null;
+}
+
+export type BotDetectorId = "binoculars" | "fastdetectgpt" | "desklib" | "ada";
+
+export interface BotInvestigation {
+  total_bot_statuses: number;
+  total_human_statuses: number;
+  models: Partial<Record<BotDetectorId, BotDetectorStats>>;
+}
 
 export interface ComparisonPostRow {
   id: number;

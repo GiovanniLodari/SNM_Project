@@ -14,11 +14,14 @@ import time
 import psycopg2
 import psycopg2.extras
 from dotenv import load_dotenv
+from pathlib import Path
 
 load_dotenv(override=True)
 
 DB_URL = os.environ["DATABASE_URL"]
-JSONL_DIR = r"C:\Users\paolo\Downloads\DB"
+# Cartella dei .jsonl da importare. Varia per macchina: si imposta con la
+# variabile d'ambiente JSONL_DIR, altrimenti si usa imports/ nella root.
+JSONL_DIR = os.environ.get("JSONL_DIR", str(Path(__file__).resolve().parent / "imports"))
 
 BATCH_SIZE = 5000
 

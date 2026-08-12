@@ -1,15 +1,41 @@
 import csv
 import json
+import os
+import threading
+import time
+from collections import OrderedDict
 from pathlib import Path
 
 # Cache in memoria per file che vengono riletti a ogni richiesta (ai_scores.jsonl,
 # fact_check_report.csv, post_texts.jsonl - fino a centinaia di MB, crescono per
-# append durante le pipeline in corso). Chiave = (path, extra); valore = (mtime,
-# size, risultato). Un nuovo batch scritto dalla pipeline cambia mtime/size e
-# invalida da solo la cache alla richiesta successiva - nessun refresh manuale,
-# i numeri restano sempre aggiornati come richiesto, solo senza rileggere l'intero
-# file quando non e' cambiato nulla dall'ultima richiesta.
-_file_cache: dict[tuple, tuple[tuple[float, int], object]] = {}
+# append durante le pipeline in corso). Chiave = (path, extra); valore =
+# (impronta, istante d'uso, risultato). Un nuovo batch scritto dalla pipeline
+# cambia mtime/size e invalida da solo la cache alla richiesta successiva -
+# nessun refresh manuale, i numeri restano sempre aggiornati come richiesto,
+# solo senza rileggere l'intero file quando non e' cambiato nulla.
+#
+# Le voci scadono: parsati in memoria questi file pesano molto piu' che su disco
+# (misurato: ai_scores.jsonl 27 MB -> ~123 MB di heap, ada_scores 29 MB -> ~245
+# MB), e senza scadenza i quattro detector restavano residenti per sempre anche
+# quando nessuno stava piu' guardando la pagina che li usa. Il TTL li libera
+# quando si smette di consultarli; il tetto sul numero di voci e' una seconda
+# rete di sicurezza. Entrambi si regolano da ambiente.
+_CACHE_TTL_SECONDS = float(os.environ.get("SNM_CACHE_TTL_SECONDS", 600))
+_CACHE_MAX_ENTRIES = int(os.environ.get("SNM_CACHE_MAX_ENTRIES", 6))
+
+_file_cache: OrderedDict[tuple, tuple[tuple[float, int], float, object]] = OrderedDict()
+_cache_lock = threading.Lock()
+
+
+def _evict(adesso: float) -> None:
+    """Rimuove le voci scadute e, se necessario, le meno usate di recente.
+    Il chiamante deve gia' detenere _cache_lock."""
+    scadute = [k for k, (_, ultimo_uso, _) in _file_cache.items()
+               if adesso - ultimo_uso > _CACHE_TTL_SECONDS]
+    for k in scadute:
+        del _file_cache[k]
+    while len(_file_cache) > _CACHE_MAX_ENTRIES:
+        _file_cache.popitem(last=False)
 
 
 def _cached_load(path: Path, extra_key, loader):
@@ -18,11 +44,26 @@ def _cached_load(path: Path, extra_key, loader):
     stat = path.stat()
     fingerprint = (stat.st_mtime, stat.st_size)
     cache_key = (path, extra_key)
-    cached = _file_cache.get(cache_key)
-    if cached is not None and cached[0] == fingerprint:
-        return cached[1]
+    adesso = time.monotonic()
+
+    with _cache_lock:
+        _evict(adesso)
+        cached = _file_cache.get(cache_key)
+        if cached is not None and cached[0] == fingerprint:
+            _file_cache[cache_key] = (fingerprint, adesso, cached[2])
+            _file_cache.move_to_end(cache_key)
+            return cached[2]
+
+    # Il caricamento sta fuori dal lock: rileggere un file da centinaia di MB
+    # bloccherebbe ogni altra richiesta. Due richieste in parallelo sullo stesso
+    # file possono caricarlo entrambe - spreco raro e innocuo, il risultato e'
+    # identico e l'ultimo che scrive vince.
     result = loader()
-    _file_cache[cache_key] = (fingerprint, result)
+
+    with _cache_lock:
+        _file_cache[cache_key] = (fingerprint, time.monotonic(), result)
+        _file_cache.move_to_end(cache_key)
+        _evict(time.monotonic())
     return result
 
 
@@ -514,14 +555,6 @@ def compute_four_detector_comparison(
     }
 
 
-def load_comparison_report(base_dir: Path) -> dict:
-    report_file = base_dir / "comparison_report.json"
-    if not report_file.exists():
-        return {}
-    def _load():
-        with report_file.open("r", encoding="utf-8") as f:
-            return json.load(f)
-    return _cached_load(report_file, "comparison_report", _load)
 
 
 

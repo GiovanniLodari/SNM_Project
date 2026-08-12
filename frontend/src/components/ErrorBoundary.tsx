@@ -1,6 +1,7 @@
 import { Component, ErrorInfo, ReactNode } from "react";
 import { Box, Typography, Button, Paper } from "@mui/material";
 import { Warning as AlertIcon } from "@mui/icons-material";
+import { tokens } from "../theme.ts";
 
 interface Props {
   children: ReactNode;
@@ -39,8 +40,8 @@ export default class ErrorBoundary extends Component<Props, State> {
               p: 5,
               textAlign: "center",
               borderRadius: "24px",
-              backgroundColor: "#ffffff",
-              border: "1px solid #e5e7eb",
+              backgroundColor: tokens.color.canvas,
+              border: tokens.border.subtle,
               maxWidth: 500,
             }}
           >
@@ -50,7 +51,7 @@ export default class ErrorBoundary extends Component<Props, State> {
                 height: 60,
                 borderRadius: "50%",
                 backgroundColor: "rgba(255, 119, 89, 0.12)",
-                color: "#ff7759",
+                color: tokens.color.coral,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -60,10 +61,10 @@ export default class ErrorBoundary extends Component<Props, State> {
             >
               <AlertIcon sx={{ fontSize: 32 }} />
             </Box>
-            <Typography variant="h5" sx={{ fontFamily: "Space Grotesk, Inter, sans-serif", fontWeight: 700, mb: 1, color: "#17171c" }}>
+            <Typography variant="h5" sx={{ fontFamily: tokens.font.display, fontWeight: 700, mb: 1, color: tokens.color.nearBlack }}>
               Si è verificato un errore inaspettato
             </Typography>
-            <Typography variant="body2" sx={{ color: "#75758a", mb: 3 }}>
+            <Typography variant="body2" sx={{ color: tokens.color.textMuted, mb: 3 }}>
               {this.state.error?.message || "Si è verificato un problema di caricamento nell'interfaccia utente."}
             </Typography>
             <Button
@@ -71,12 +72,12 @@ export default class ErrorBoundary extends Component<Props, State> {
               disableElevation
               onClick={this.handleReset}
               sx={{
-                borderRadius: "32px",
-                backgroundColor: "#17171c",
-                color: "#ffffff",
+                borderRadius: tokens.radius.pill,
+                backgroundColor: tokens.color.nearBlack,
+                color: tokens.color.canvas,
                 px: 3,
                 py: 1.2,
-                "&:hover": { backgroundColor: "#000000" },
+                "&:hover": { backgroundColor: tokens.color.black },
               }}
             >
               Ricarica Pagina
