@@ -52,9 +52,10 @@ export default function EsitoCascata({ meta, stepStats, demografia }: Props) {
           color: tokens.color.nearBlack,
         }}
       >
-        Da {formatNumber(meta.seeds)} seed, la cascata raggiunge{" "}
-        {formatNumber(meta.reached_nodes)} nodi su {formatNumber(meta.nodes)}{" "}
-        nella rete: il {formatPercent(meta.reached_pct)} del totale.
+        Da {formatNumber(meta.seeds, { useGrouping: true })} seed, la cascata
+        raggiunge {formatNumber(meta.reached_nodes, { useGrouping: true })} nodi
+        su {formatNumber(meta.nodes, { useGrouping: true })} nella rete: il{" "}
+        {formatPercent(meta.reached_pct)} del totale.
       </Typography>
 
       {/* L'avvertenza sta qui, accanto al numero che qualifica, non in fondo
@@ -94,9 +95,10 @@ export default function EsitoCascata({ meta, stepStats, demografia }: Props) {
           sx={{ color: tokens.color.textPrimary, lineHeight: 1.6 }}
         >
           Chi viene raggiunto e' quasi sempre umano: il{" "}
-          {formatPercent(quotaUmani * 100)} dei {formatNumber(demografia.activated_total)}{" "}
-          nodi attivati e' un account umano, anche se tutti i seed di partenza
-          sono account IA.
+          {formatPercent(quotaUmani * 100)} dei{" "}
+          {formatNumber(demografia.activated_total, { useGrouping: true })} nodi
+          attivati e' un account umano, anche se tutti i seed di partenza sono
+          account IA.
         </Typography>
       </Box>
     </Box>

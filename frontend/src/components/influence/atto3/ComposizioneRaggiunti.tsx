@@ -57,7 +57,8 @@ export default function ComposizioneRaggiunti({ demografia }: Props) {
             }}
           />
           <Typography sx={{ fontFamily: tokens.font.mono, fontSize: "13px", color: tokens.color.textPrimary }}>
-            umani: {formatNumber(demografia.activated_human)} ({formatPercent(quotaUmani * 100)})
+            umani: {formatNumber(demografia.activated_human, { useGrouping: true })} (
+            {formatPercent(quotaUmani * 100)})
           </Typography>
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -70,7 +71,8 @@ export default function ComposizioneRaggiunti({ demografia }: Props) {
             }}
           />
           <Typography sx={{ fontFamily: tokens.font.mono, fontSize: "13px", color: tokens.color.textPrimary }}>
-            IA: {formatNumber(demografia.activated_ai)} ({formatPercent(quotaIa * 100)})
+            IA: {formatNumber(demografia.activated_ai, { useGrouping: true })} (
+            {formatPercent(quotaIa * 100)})
           </Typography>
         </Box>
       </Box>

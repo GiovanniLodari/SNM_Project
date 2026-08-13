@@ -73,7 +73,9 @@ export default function AndamentoStep({ stepStats }: Props) {
           />
           <Tooltip
             formatter={(valore, nome) => [
-              typeof valore === "number" ? formatNumber(valore) : String(valore),
+              typeof valore === "number"
+                ? formatNumber(valore, { useGrouping: true })
+                : String(valore),
               String(nome),
             ]}
           />
