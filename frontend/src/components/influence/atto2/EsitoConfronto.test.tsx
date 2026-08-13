@@ -14,7 +14,11 @@ const ALGORITMI: Record<string, InfluenceAlgorithmInfo> = {
 describe("EsitoConfronto", () => {
   it("nomina il vincitore e subito quanto poco vince", () => {
     // Il difetto originale: un badge "vincitore CELF++" tecnicamente vero ma
-    // fuorviante, perche' il margine e' dello 0,3% a fronte di 961 volte il tempo.
+    // fuorviante, perche' costa 961 volte il tempo di PMIA per un margine
+    // reale, sul secondo classificato (PMIA), dello 0,2%. Lo 0,3% verificato
+    // qui sotto e' un fatto distinto: e' il margine di CELF++ su un ordinamento
+    // per grado (`degree`), non sul secondo classificato — vedi il commento
+    // di testa di EsitoConfronto.tsx per il calcolo completo.
     render(<EsitoConfronto algoritmi={ALGORITMI} vincitore="CELF++" />);
     expect(screen.getByText(/CELF\+\+/)).toBeInTheDocument();
     expect(screen.getByText(/0,3\s*%/)).toBeInTheDocument();

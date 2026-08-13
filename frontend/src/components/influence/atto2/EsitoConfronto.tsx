@@ -22,19 +22,24 @@ interface Props {
  * e' `nearBlack` come ovunque nella pagina.
  *
  * Oltre al margine sul secondo classificato (che qui e' PMIA), la frase
- * aggiunge un secondo fatto, altrettanto calcolato: anche l'euristica piu'
- * povera del confronto (`degree`, che non stima nulla e costa tempo
- * trascurabile) resta a una distanza di spread comparabile. Rincara la stessa
- * tesi da un angolo diverso, senza inventare un secondo posto che i dati non
- * assegnano a `degree`.
+ * aggiunge un secondo fatto, altrettanto calcolato: anche `degree` — un
+ * ordinamento per grado che non richiede alcuna simulazione ne' stima, quindi
+ * a costo pressoche' nullo — resta a una distanza di spread comparabile.
+ * Rincara la stessa tesi da un angolo diverso (il costo, non il rango: sui
+ * dati reali `degree` e' il migliore dei non-vincitori dopo PMIA, non il piu'
+ * povero — quello e' `SKIM`, staccato di oltre 22 punti), senza inventare un
+ * secondo posto che i dati non assegnano a `degree`.
  */
 export default function EsitoConfronto({ algoritmi, vincitore }: Props) {
   const righe = rapportoCostoBeneficio(algoritmi);
   const vincitoreRiga = righe.find((r) => r.nome === vincitore) ?? righe[0];
   const secondoRiga = righe.find((r) => r.nome !== vincitoreRiga?.nome);
   const pmiaRiga = righe.find((r) => r.nome === "PMIA");
-  // Baseline piu' povera del confronto: nessuna stima, tempo trascurabile.
-  // Se non e' presente nella run la frase la salta, senza inventare un valore.
+  // Ordinamento per grado: nessuna simulazione, nessuna stima, costo
+  // pressoche' nullo. Non e' il piu' debole per spread fra i non-vincitori
+  // (quello e' SKIM, staccato di oltre 22 punti percentuali): interessa qui
+  // solo perche' e' gratuito, non perche' sia in fondo alla classifica. Se
+  // non e' presente nella run la frase la salta, senza inventare un valore.
   const baselineRiga = righe.find((r) => r.nome === "degree");
 
   if (!vincitoreRiga || !secondoRiga || !pmiaRiga) {
@@ -85,9 +90,9 @@ export default function EsitoConfronto({ algoritmi, vincitore }: Props) {
         {formatPercent(margineSulSecondo)}
         {margineSullaBaseline !== null && (
           <>
-            : persino {baselineRiga!.nome}, l'euristica piu' povera del
-            confronto, resta a un margine dello {formatPercent(margineSullaBaseline)}
-            , pur non stimando nulla e costando un tempo trascurabile
+            : persino un ordinamento per grado ({baselineRiga!.nome}), che non
+            richiede alcuna simulazione ne' stima, resta a un margine dello{" "}
+            {formatPercent(margineSullaBaseline)}, a un costo pressoche' nullo
           </>
         )}
         {rapportoTempoSuPmia !== null && (

@@ -15,6 +15,7 @@ import {
   rapportoCostoBeneficio,
 } from "../../../utils/influenceAnalysis.ts";
 import { tokens } from "../../../theme.ts";
+import { formatDecimal } from "../../../utils/format.ts";
 
 interface Props {
   algoritmi: Record<string, InfluenceAlgorithmInfo>;
@@ -108,8 +109,8 @@ export default function GraficoCostoBeneficio({ algoritmi }: Props) {
           {nonMisurati.length === 1 ? " risulta" : " risultano"} a 0,00 s nei dati:
           lo zero non e' rappresentabile su scala logaritmica, quindi
           {nonMisurati.length === 1 ? " e' collocato" : " sono collocati"} al valore
-          convenzionale di {PAVIMENTO_TEMPO_LOG} s e resi con contorno tratteggiato.
-          Il tempo reale e' inferiore a 0,1 s, non pari a quel valore.
+          convenzionale di {formatDecimal(PAVIMENTO_TEMPO_LOG, 2)} s e resi con contorno
+          tratteggiato. Il tempo reale e' inferiore a 0,1 s, non pari a quel valore.
         </Typography>
       )}
     </Box>
