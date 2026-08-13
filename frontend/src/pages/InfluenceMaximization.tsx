@@ -11,7 +11,7 @@ import {
 import AccountDetailModal from "../components/AccountDetailModal.tsx";
 import IndiceAtti from "../components/influence/IndiceAtti.tsx";
 import IntestazioneAtto from "../components/influence/IntestazioneAtto.tsx";
-import { ATTI, type Atto } from "../components/influence/influenceContent.ts";
+import { ATTI, OFFSET_INDICE_PX, type Atto } from "../components/influence/influenceContent.ts";
 import { useAttoInVista } from "../components/influence/useAttoInVista.ts";
 import SchedaProblema from "../components/influence/atto1/SchedaProblema.tsx";
 import ConfrontoGrafi from "../components/influence/atto1/ConfrontoGrafi.tsx";
@@ -39,8 +39,9 @@ const SEEDS_PER_PAGINA = 10;
 const ALTEZZA_SEGNAPOSTO = 300;
 
 // Aria lasciata sopra il titolo quando si atterra su un'ancora dell'indice.
-// Vale quanto il `top` sticky di IndiceAtti, cosi' voce e sezione si allineano.
-const OFFSET_ANCORA = "96px";
+// Vale quanto il `top` sticky di IndiceAtti (OFFSET_INDICE_PX, definito una
+// sola volta in influenceContent.ts), cosi' voce e sezione si allineano.
+const OFFSET_ANCORA = `${OFFSET_INDICE_PX}px`;
 
 // I quattro atti nell'ordine in cui si leggono. Destrutturarli qui evita di
 // indicizzare ATTI con numeri sparsi nel JSX.

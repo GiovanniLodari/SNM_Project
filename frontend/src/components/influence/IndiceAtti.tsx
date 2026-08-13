@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import { ATTI } from "./influenceContent.ts";
+import { ATTI, OFFSET_INDICE_PX } from "./influenceContent.ts";
 import { tokens } from "../../theme.ts";
 
 interface Props {
@@ -24,7 +24,7 @@ export default function IndiceAtti({ attivo }: Props) {
       sx={{
         display: { xs: "none", md: "block" },
         position: "sticky",
-        top: 96,
+        top: OFFSET_INDICE_PX,
       }}
     >
       <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>

@@ -79,6 +79,7 @@ export default function SchedaProblema({ params }: SchedaProblemaProps) {
       </Box>
 
       <Typography
+        component="h3"
         variant="h6"
         sx={{ fontFamily: tokens.font.display, fontSize: "16px", color: tokens.color.nearBlack, mb: 1 }}
       >

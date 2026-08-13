@@ -79,6 +79,7 @@ export default function ClassificheSeed({
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3, flexWrap: "wrap", gap: 2 }}>
             <Box>
               <Typography
+                component="h3"
                 variant="h6"
                 sx={{ fontFamily: tokens.font.display, fontWeight: 600, fontSize: "18px", color: tokens.color.nearBlack }}
               >
@@ -221,6 +222,7 @@ export default function ClassificheSeed({
           }}
         >
           <Typography
+            component="h3"
             variant="h6"
             sx={{ fontFamily: tokens.font.display, fontWeight: 600, fontSize: "18px", color: tokens.color.nearBlack, mb: 1 }}
           >

@@ -66,7 +66,7 @@ export default function CanvasCascata({
           mb: 1,
         }}
       >
-        La cascata sul grafo reale
+        Estratto del grafo: primi {SEED_DISEGNATI} seed e fino a {BERSAGLI_PER_SEED} bersagli ciascuno
       </Typography>
 
       <Typography
