@@ -16,14 +16,20 @@ const FASCIA_DI_LETTURA = "-33% 0px -67% 0px";
  * rendering, quindi l'evidenziazione non costa un reflow a ogni pixel di
  * scorrimento.
  *
+ * `sezioniMontate` esiste perche' l'osservatore va agganciato a nodi che
+ * esistono: finche' la pagina mostra lo scheletro di caricamento le quattro
+ * sezioni non sono nel DOM, e un effetto lanciato allora una volta sola non
+ * troverebbe mai nulla da osservare.
+ *
  * Se `IntersectionObserver` non esiste (jsdom nei test, browser molto vecchi)
  * la funzione non fallisce: resta attivo il primo atto e l'indice continua a
  * funzionare come lista di ancore, che e' il suo compito principale.
  */
-export function useAttoInVista(): string {
+export function useAttoInVista(sezioniMontate: boolean): string {
   const [attivo, setAttivo] = useState<string>(ATTI[0].id);
 
   useEffect(() => {
+    if (!sezioniMontate) return;
     if (typeof IntersectionObserver === "undefined") return;
 
     const sezioni = ATTI.map((atto) => document.getElementById(atto.id)).filter(
@@ -46,7 +52,7 @@ export function useAttoInVista(): string {
 
     for (const sezione of sezioni) osservatore.observe(sezione);
     return () => osservatore.disconnect();
-  }, []);
+  }, [sezioniMontate]);
 
   return attivo;
 }

@@ -92,7 +92,9 @@ export default function InfluenceMaximization() {
     seedsSearch,
   );
 
-  const attoAttivo = useAttoInVista();
+  // Le sezioni entrano nel DOM solo quando la summary e' arrivata: prima di
+  // allora non c'e' niente da osservare per l'indice.
+  const attoAttivo = useAttoInVista(Boolean(summary));
 
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [modalAccount, setModalAccount] = useState<AccountDetail | null>(null);
