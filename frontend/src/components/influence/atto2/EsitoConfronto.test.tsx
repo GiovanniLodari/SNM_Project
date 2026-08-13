@@ -33,4 +33,24 @@ describe("EsitoConfronto", () => {
     render(<EsitoConfronto algoritmi={ALGORITMI} vincitore="CELF++" />);
     expect(screen.getByTestId("algoritmo-scelto")).toHaveTextContent("PMIA");
   });
+
+  it("non calcola un margine sul secondo quando il vincitore dichiarato non e' il primo per spread reale", () => {
+    // Il backend ha un default scritto a mano ("CELF++") per winner_by_mc_spread
+    // quando il dato manca: se quel nome non e' davvero il primo per spread
+    // (qui il primo e' CELF++, non degree), "secondo classificato" punterebbe a
+    // chi in realta' vince, e il margine risulterebbe negativo pur presentato
+    // come il vantaggio del vincitore.
+    render(<EsitoConfronto algoritmi={ALGORITMI} vincitore="degree" />);
+    // La frase col margine calcolato inizia con "vince per spread Monte
+    // Carlo": deve mancare. La spiegazione dell'incoerenza menziona a parole
+    // "un margine sul secondo classificato" (per dire che non lo si riporta),
+    // quindi non basta cercare quella sottostringa per verificarne l'assenza.
+    expect(screen.queryByText(/vince per spread Monte Carlo/)).not.toBeInTheDocument();
+    expect(screen.getByText(/non e' il primo per spread Monte Carlo/)).toBeInTheDocument();
+  });
+
+  it("torna a calcolare il margine quando il vincitore dichiarato coincide col primo per spread", () => {
+    render(<EsitoConfronto algoritmi={ALGORITMI} vincitore="CELF++" />);
+    expect(screen.getByText(/vince per spread Monte Carlo/)).toBeInTheDocument();
+  });
 });

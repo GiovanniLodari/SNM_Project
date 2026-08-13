@@ -1,7 +1,7 @@
 import { Box, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
 import type { InfluenceAlgorithmInfo } from "../../../api/client.ts";
 import { rapportoCostoBeneficio } from "../../../utils/influenceAnalysis.ts";
-import { formatDecimal, formatNumber } from "../../../utils/format.ts";
+import { NON_DISPONIBILE, formatDecimal, formatNumber } from "../../../utils/format.ts";
 import { tokens } from "../../../theme.ts";
 
 interface Props {
@@ -103,9 +103,20 @@ export default function TabellaBenchmark({ algoritmi, kRichiesto }: Props) {
                 {formatNumber(riga.spreadMc)}
               </TableCell>
               <TableCell align="right" sx={{ fontFamily: tokens.font.mono, color: tokens.color.textPrimary }}>
-                {riga.tempoNonMisurato ? (
-                  <Box component="span" title="Tempo reale inferiore a 0,1 s, non misurabile su scala logaritmica.">
-                    {"< 0,1 s"}
+                {/* Tre casi distinti (vedi influenceAnalysis.ts): un tempo misurato si mostra
+                    cosi' com'e', un tempo sotto il pavimento si mostra con il suo valore reale
+                    (mai un "0,00 s" scritto a mano) e un tempo assente dichiara l'assenza invece
+                    di spacciarla per una misura sotto il decimo di secondo. */}
+                {riga.statoTempo === "assente" ? (
+                  <Box component="span" title="Tempo di esecuzione non registrato nei dati di questa run.">
+                    {NON_DISPONIBILE}
+                  </Box>
+                ) : riga.statoTempo === "sotto_pavimento" ? (
+                  <Box
+                    component="span"
+                    title="Tempo reale, sotto il pavimento rappresentabile su scala logaritmica."
+                  >
+                    {`${formatDecimal(riga.tempoS, 2)} s`}
                   </Box>
                 ) : (
                   `${formatDecimal(riga.tempoS, 2)} s`

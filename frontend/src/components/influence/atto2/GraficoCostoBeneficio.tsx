@@ -29,8 +29,13 @@ interface Props {
  */
 export default function GraficoCostoBeneficio({ algoritmi }: Props) {
   const righe = rapportoCostoBeneficio(algoritmi);
-  const misurati = righe.filter((r) => !r.tempoNonMisurato);
-  const nonMisurati = righe.filter((r) => r.tempoNonMisurato);
+  const misurati = righe.filter((r) => r.statoTempo === "misurato");
+  // Visivamente i punti "non affidabili" restano un unico stile (contorno
+  // tratteggiato): la distinzione fra "sotto il pavimento" e "assente" e'
+  // fatta a parole nella didascalia sotto, non nel grafico.
+  const nonMisurati = righe.filter((r) => r.statoTempo !== "misurato");
+  const sottoPavimento = nonMisurati.filter((r) => r.statoTempo === "sotto_pavimento");
+  const assenti = nonMisurati.filter((r) => r.statoTempo === "assente");
 
   return (
     <Box>
@@ -99,18 +104,36 @@ export default function GraficoCostoBeneficio({ algoritmi }: Props) {
         </ScatterChart>
       </ResponsiveContainer>
 
-      {nonMisurati.length > 0 && (
+      {/* Due didascalie distinte, non una: "sotto il pavimento" e "assente" sono
+          affermazioni diverse. Confonderle userebbe un dato mancante come se
+          fosse una misura sotto il decimo di secondo (vedi influenceAnalysis.ts). */}
+      {sottoPavimento.length > 0 && (
         <Typography
           variant="caption"
           data-testid="didascalia-pavimento"
           sx={{ display: "block", color: tokens.color.textMuted, mt: 1, maxWidth: "70ch" }}
         >
-          {nonMisurati.map((r) => r.nome).join(", ")}
-          {nonMisurati.length === 1 ? " risulta" : " risultano"} a 0,00 s nei dati:
-          lo zero non e' rappresentabile su scala logaritmica, quindi
-          {nonMisurati.length === 1 ? " e' collocato" : " sono collocati"} al valore
-          convenzionale di {formatDecimal(PAVIMENTO_TEMPO_LOG, 2)} s e resi con contorno
-          tratteggiato. Il tempo reale e' inferiore a 0,1 s, non pari a quel valore.
+          {sottoPavimento
+            .map((r) => `${r.nome} (${formatDecimal(r.tempoS, 2)} s)`)
+            .join(", ")}
+          {sottoPavimento.length === 1 ? " ha un tempo" : " hanno un tempo"} reale sotto il
+          pavimento rappresentabile su scala logaritmica ({formatDecimal(PAVIMENTO_TEMPO_LOG, 2)} s):
+          {sottoPavimento.length === 1 ? " e' collocato" : " sono collocati"} li' per convenzione
+          grafica e resi con contorno tratteggiato. Il tempo reale e' quello misurato fra
+          parentesi, non il valore convenzionale usato per il grafico.
+        </Typography>
+      )}
+      {assenti.length > 0 && (
+        <Typography
+          variant="caption"
+          data-testid="didascalia-assente"
+          sx={{ display: "block", color: tokens.color.textMuted, mt: 1, maxWidth: "70ch" }}
+        >
+          Per {assenti.map((r) => r.nome).join(", ")} il tempo di esecuzione non risulta
+          registrato nei dati di questa run: e' un dato mancante, non un tempo vicino allo zero.
+          {assenti.length === 1 ? " E' collocato" : " Sono collocati"} al valore convenzionale di{" "}
+          {formatDecimal(PAVIMENTO_TEMPO_LOG, 2)} s solo per motivi grafici, con contorno
+          tratteggiato.
         </Typography>
       )}
     </Box>

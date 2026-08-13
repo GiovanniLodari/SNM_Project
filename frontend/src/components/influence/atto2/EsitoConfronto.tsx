@@ -32,8 +32,19 @@ interface Props {
  */
 export default function EsitoConfronto({ algoritmi, vincitore }: Props) {
   const righe = rapportoCostoBeneficio(algoritmi);
-  const vincitoreRiga = righe.find((r) => r.nome === vincitore) ?? righe[0];
-  const secondoRiga = righe.find((r) => r.nome !== vincitoreRiga?.nome);
+  const primoPerSpread = righe[0];
+  const vincitoreRiga = righe.find((r) => r.nome === vincitore) ?? primoPerSpread;
+  // "Secondo classificato" ha senso solo se `vincitore` coincide col primo per
+  // spread reale (righe e' gia' ordinato decrescente). Il prop arriva dal
+  // backend (`winner_by_mc_spread`), che ha perfino un default scritto a mano
+  // ("CELF++") quando il dato manca: se non coincide, il presunto "secondo"
+  // sarebbe in realta' chi vince, e il margine risulterebbe negativo pur
+  // presentato come il vantaggio del vincitore. In quel caso la frase non va
+  // resa: si dichiara l'incoerenza invece di calcolare un margine falso.
+  const vincitoreCoincideConClassifica = vincitoreRiga?.nome === primoPerSpread?.nome;
+  const secondoRiga = vincitoreCoincideConClassifica
+    ? righe.find((r) => r.nome !== vincitoreRiga?.nome)
+    : undefined;
   const pmiaRiga = righe.find((r) => r.nome === "PMIA");
   // Ordinamento per grado: nessuna simulazione, nessuna stima, costo
   // pressoche' nullo. Non e' il piu' debole per spread fra i non-vincitori
@@ -42,23 +53,31 @@ export default function EsitoConfronto({ algoritmi, vincitore }: Props) {
   // non e' presente nella run la frase la salta, senza inventare un valore.
   const baselineRiga = righe.find((r) => r.nome === "degree");
 
-  if (!vincitoreRiga || !secondoRiga || !pmiaRiga) {
+  if (!vincitoreRiga || !pmiaRiga) {
     return null;
   }
 
   // Le quote sono frazioni 0-1 (vedi influenceAnalysis.ts): ogni margine va
   // moltiplicato per 100 prima di passare a formatPercent, che si aspetta la
-  // scala 0-100.
-  const margineSulSecondo =
-    (vincitoreRiga.quotaDelMigliore - secondoRiga.quotaDelMigliore) * 100;
+  // scala 0-100. null quando non c'e' un secondo classificato affidabile
+  // (vincitore non coincidente col primo per spread, vedi sopra).
+  const margineSulSecondo = secondoRiga
+    ? (vincitoreRiga.quotaDelMigliore - secondoRiga.quotaDelMigliore) * 100
+    : null;
   const margineSullaBaseline = baselineRiga
     ? (vincitoreRiga.quotaDelMigliore - baselineRiga.quotaDelMigliore) * 100
     : null;
 
   // Quante volte il tempo del vincitore sta nel tempo di PMIA: e' il costo che
-  // il badge "vincitore" da solo non dice mai.
+  // il badge "vincitore" da solo non dice mai. Nessun rapporto se uno dei due
+  // tempi manca dai dati (vedi influenceAnalysis.ts): un tempo assente non e'
+  // uno zero, e un rapporto costruito su un dato mancante sarebbe inventato.
   const rapportoTempoSuPmia =
-    pmiaRiga.tempoS > 0 ? Math.round(vincitoreRiga.tempoS / pmiaRiga.tempoS) : null;
+    typeof vincitoreRiga.tempoS === "number" &&
+    typeof pmiaRiga.tempoS === "number" &&
+    pmiaRiga.tempoS > 0
+      ? Math.round(vincitoreRiga.tempoS / pmiaRiga.tempoS)
+      : null;
 
   const quotaPmiaSulVincitore = pmiaRiga.quotaDelMigliore * 100;
   // Stessa relazione di "rapportoTempoSuPmia", ma capovolta ed espressa come
@@ -67,7 +86,11 @@ export default function EsitoConfronto({ algoritmi, vincitore }: Props) {
   // motiva comunque il blocco con un vero rapporto di tempo, non un rimando
   // generico alla frase precedente.
   const quotaTempoPmiaSulVincitore =
-    vincitoreRiga.tempoS > 0 ? (pmiaRiga.tempoS / vincitoreRiga.tempoS) * 100 : null;
+    typeof vincitoreRiga.tempoS === "number" &&
+    typeof pmiaRiga.tempoS === "number" &&
+    vincitoreRiga.tempoS > 0
+      ? (pmiaRiga.tempoS / vincitoreRiga.tempoS) * 100
+      : null;
 
   return (
     <Box
@@ -85,14 +108,25 @@ export default function EsitoConfronto({ algoritmi, vincitore }: Props) {
           color: tokens.color.nearBlack,
         }}
       >
-        {vincitoreRiga.nome} vince per spread Monte Carlo, ma il margine sul
-        secondo classificato, {secondoRiga.nome}, e' dello{" "}
-        {formatPercent(margineSulSecondo)}
-        {margineSullaBaseline !== null && (
+        {secondoRiga && margineSulSecondo !== null ? (
           <>
-            : persino un ordinamento per grado ({baselineRiga!.nome}), che non
-            richiede alcuna simulazione ne' stima, resta a un margine dello{" "}
-            {formatPercent(margineSullaBaseline)}, a un costo pressoche' nullo
+            {vincitoreRiga.nome} vince per spread Monte Carlo, ma il margine sul
+            secondo classificato, {secondoRiga.nome}, e' dello{" "}
+            {formatPercent(margineSulSecondo)}
+            {margineSullaBaseline !== null && (
+              <>
+                : persino un ordinamento per grado ({baselineRiga!.nome}), che non
+                richiede alcuna simulazione ne' stima, resta a un margine dello{" "}
+                {formatPercent(margineSullaBaseline)}, a un costo pressoche' nullo
+              </>
+            )}
+          </>
+        ) : (
+          <>
+            {vincitoreRiga.nome} e' indicato come vincitore, ma non e' il primo per spread Monte
+            Carlo misurato in questa run{primoPerSpread ? ` (lo e' ${primoPerSpread.nome})` : ""}:
+            qui non si riporta un margine sul secondo classificato, perche' sarebbe calcolato
+            rispetto al posto sbagliato
           </>
         )}
         {rapportoTempoSuPmia !== null && (

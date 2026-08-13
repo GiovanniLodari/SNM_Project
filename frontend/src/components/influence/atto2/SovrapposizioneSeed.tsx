@@ -27,9 +27,13 @@ export default function SovrapposizioneSeed({ jaccard }: Props) {
     new Set(Object.keys(jaccard).flatMap((chiave) => chiave.split("|"))),
   ).sort();
 
-  const punteggio = (a: string, b: string): number => {
+  // Le coppie assenti dalla matrice non hanno un indice di Jaccard pari a 0:
+  // semplicemente non e' stato calcolato. "0,00" significherebbe "nessun seed
+  // in comune", un'affermazione forte che i dati non fanno: il ripiego deve
+  // dichiarare l'assenza (vedi formatDecimal, che rende null come NON_DISPONIBILE).
+  const punteggio = (a: string, b: string): number | null => {
     if (a === b) return 1;
-    return jaccard[`${a}|${b}`] ?? jaccard[`${b}|${a}`] ?? 0;
+    return jaccard[`${a}|${b}`] ?? jaccard[`${b}|${a}`] ?? null;
   };
 
   /** Unisce una lista di nomi in una frase italiana ("A, B e C"). */

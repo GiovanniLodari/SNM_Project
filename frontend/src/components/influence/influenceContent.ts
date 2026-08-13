@@ -91,7 +91,8 @@ export const LIMITI: Limite[] = [
     testo:
       "Gli algoritmi sono confrontati su un sottografo snowball che rappresenta circa il 3% " +
       "dei nodi. I tempi e gli spread misurati li' non si trasferiscono automaticamente alla " +
-      "scala piena, dove anzi il piu' costoso non sarebbe eseguibile.",
+      "scala piena, dove anzi il piu' costoso — 4.228,67 s su un grafo circa 32 volte piu' " +
+      "piccolo di quello completo — avrebbe un tempo proibitivo, non dimostrabilmente infinito.",
   },
   {
     titolo: "Il vincolo di budget non e' mai attivo",

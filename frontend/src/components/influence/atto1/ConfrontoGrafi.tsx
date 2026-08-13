@@ -25,17 +25,26 @@ export default function ConfrontoGrafi({
   candidati,
   kRichiesto,
 }: ConfrontoGrafiProps) {
-  const rapporto = nodiSottografo / nodiCompleto;
-  // Il quadrato interno deve avere un'AREA proporzionale a `rapporto`, non un
-  // lato proporzionale a `rapporto`. Per un quadrato Area = lato^2, quindi se
-  // si vuole Area_interna / Area_esterna = rapporto occorre scalare il LATO
-  // di sqrt(rapporto): (sqrt(rapporto) * lato)^2 = rapporto * lato^2. Scalare
-  // il lato direttamente di `rapporto` (o, peggio, farlo su una sola
-  // dimensione come la larghezza di una barra ad altezza fissa) produce
-  // un'area proporzionale a rapporto^2 nel primo caso o a sqrt(rapporto) nel
-  // secondo: con questi dati (3,13%) una barra a larghezza sqrt(rapporto)
-  // occuperebbe visivamente il 17,7%, quasi sei volte il vero rapporto.
-  const latoPercentuale = Math.sqrt(rapporto) * 100;
+  const rapportoNodi = nodiSottografo / nodiCompleto;
+  // Il rapporto sugli ARCHI e' calcolato a parte perche' e' un'affermazione
+  // distinta da quella sui nodi, non la stessa cifra riformulata: in un
+  // problema di influence maximization sono gli archi a governare costo e
+  // propagazione, e sugli archi il sottografo pesa cinque volte di piu' che
+  // sui nodi (15,8% contro 3,1% con questi dati). Tacere la base del calcolo
+  // ("il 3,1% di che cosa?") lascerebbe credere che valga anche per gli archi.
+  const rapportoArchi = archiSottografo / archiCompleto;
+  // Il quadrato interno deve avere un'AREA proporzionale a `rapportoNodi`, non
+  // un lato proporzionale a `rapportoNodi`. Per un quadrato Area = lato^2,
+  // quindi se si vuole Area_interna / Area_esterna = rapportoNodi occorre
+  // scalare il LATO di sqrt(rapportoNodi): (sqrt(rapportoNodi) * lato)^2 =
+  // rapportoNodi * lato^2. Scalare il lato direttamente di `rapportoNodi` (o,
+  // peggio, farlo su una sola dimensione come la larghezza di una barra ad
+  // altezza fissa) produce un'area proporzionale a rapportoNodi^2 nel primo
+  // caso o a sqrt(rapportoNodi) nel secondo: con questi dati (3,13%) una
+  // barra a larghezza sqrt(rapportoNodi) occuperebbe visivamente il 17,7%,
+  // quasi sei volte il vero rapporto. Il quadrato resta calibrato sui nodi:
+  // e' la proporzione che la didascalia dichiara esplicitamente qui sotto.
+  const latoPercentuale = Math.sqrt(rapportoNodi) * 100;
   const budgetInsufficiente = candidati < kRichiesto;
 
   return (
@@ -135,9 +144,11 @@ export default function ConfrontoGrafi({
           />
         </Box>
         <Typography variant="body2" sx={{ color: tokens.color.textMuted }}>
-          Il quadrato blu, in scala, e' il sottografo: la sua area e'{" "}
-          {formatPercent(rapporto * 100)} di quella del quadrato grigio, il grafo completo. E'
-          l'area a rendere il rapporto, non il lato.
+          Il quadrato blu, in scala, e' il sottografo: la sua area rende il rapporto sui NODI dei
+          due grafi, il {formatPercent(rapportoNodi * 100)} del totale (e' l'area a rendere il
+          rapporto, non il lato). Sugli ARCHI — che nell'influence maximization governano costo e
+          propagazione — il sottografo pesa di piu': il {formatPercent(rapportoArchi * 100)} degli
+          archi totali.
         </Typography>
       </Box>
 

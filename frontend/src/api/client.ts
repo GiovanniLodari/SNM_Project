@@ -477,7 +477,13 @@ export interface InfluenceAlgorithmInfo {
   n_seeds: number;
   est_spread: number | null;
   mc_spread: number;
-  time_s: number;
+  /**
+   * null quando il backend non ha registrato il tempo per questa run:
+   * `webapp/influence.py` legge il campo con `algo_info.get("time_s")`, senza
+   * un valore di ripiego, quindi un dato mancante nella sorgente arriva qui
+   * come null e non deve mai essere confuso con un tempo prossimo a zero.
+   */
+  time_s: number | null;
   seeds_sample: string[];
 }
 

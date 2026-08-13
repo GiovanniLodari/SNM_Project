@@ -55,8 +55,18 @@ describe("rapportoCostoBeneficio", () => {
     const righe = rapportoCostoBeneficio(ALGORITMI);
     const perNome = Object.fromEntries(righe.map((r) => [r.nome, r]));
 
+    // tempoS e' number | null (F2: un tempo assente dai dati non e' uno
+    // zero). Nella fixture di questo test entrambi i valori sono presenti,
+    // ma la divisione va comunque scritta in modo che un futuro null faccia
+    // fallire il test in modo esplicito, non in silenzio con NaN o con un
+    // cast che nasconde l'assunzione.
+    expect(perNome["CELF++"].tempoS).not.toBeNull();
+    expect(perNome.PMIA.tempoS).not.toBeNull();
+    const tempoCelf = perNome["CELF++"].tempoS as number;
+    const tempoPmia = perNome.PMIA.tempoS as number;
+
     // L'affermazione della pagina: CELF++ costa 961 volte PMIA.
-    expect(perNome["CELF++"].tempoS / perNome.PMIA.tempoS).toBeCloseTo(961, 0);
+    expect(tempoCelf / tempoPmia).toBeCloseTo(961, 0);
   });
 
   it("ordina per spread decrescente", () => {
@@ -64,31 +74,60 @@ describe("rapportoCostoBeneficio", () => {
     expect(nomi).toEqual(["CELF++", "PMIA", "degree", "pagerank", "SKIM"]);
   });
 
-  it("segnala l'algoritmo il cui tempo non e' misurabile", () => {
+  it("distingue lo stato del tempo di ciascun algoritmo", () => {
     const righe = rapportoCostoBeneficio(ALGORITMI);
     const perNome = Object.fromEntries(righe.map((r) => [r.nome, r]));
 
-    expect(perNome.degree.tempoNonMisurato).toBe(true);
+    // degree ha time_s = 0.0 nei dati: e' un tempo reale, sotto il pavimento
+    // rappresentabile su scala log, non un dato mancante.
+    expect(perNome.degree.statoTempo).toBe("sotto_pavimento");
     expect(perNome.degree.tempoPerGrafico).toBe(PAVIMENTO_TEMPO_LOG);
-    expect(perNome.PMIA.tempoNonMisurato).toBe(false);
+    expect(perNome.PMIA.statoTempo).toBe("misurato");
     expect(perNome.PMIA.tempoPerGrafico).toBe(4.4);
+  });
+
+  it("dichiara assente il tempo che manca dalla sorgente, senza confonderlo con una misura", () => {
+    // Il backend legge time_s con `algo_info.get("time_s")`, senza un valore
+    // di ripiego: un tempo mancante arriva qui come null, non come 0.
+    const algoritmiConTempoAssente: Record<string, InfluenceAlgorithmInfo> = {
+      ...ALGORITMI,
+      SKIM: { ...ALGORITMI.SKIM, time_s: null },
+    };
+    const righe = rapportoCostoBeneficio(algoritmiConTempoAssente);
+    const perNome = Object.fromEntries(righe.map((r) => [r.nome, r]));
+
+    expect(perNome.SKIM.statoTempo).toBe("assente");
+    expect(perNome.SKIM.tempoS).toBeNull();
+    // Va comunque collocato al pavimento per essere disegnabile su scala log,
+    // ma senza perdere la distinzione da un tempo davvero misurato li' sotto.
+    expect(perNome.SKIM.tempoPerGrafico).toBe(PAVIMENTO_TEMPO_LOG);
   });
 });
 
 describe("tempoPerScalaLog", () => {
-  it("porta lo zero al pavimento e lo dichiara non misurato", () => {
+  it("porta lo zero al pavimento e lo dichiara sotto il pavimento, non assente", () => {
     // Su scala logaritmica lo zero non esiste: va sostituito, ma senza
-    // spacciare il sostituto per una misura.
-    expect(tempoPerScalaLog(0)).toEqual({ valore: PAVIMENTO_TEMPO_LOG, nonMisurato: true });
+    // spacciare il sostituto per un dato mancante o per una misura vera.
+    expect(tempoPerScalaLog(0)).toEqual({ valore: PAVIMENTO_TEMPO_LOG, stato: "sotto_pavimento" });
   });
 
   it("lascia intatti i tempi misurati", () => {
-    expect(tempoPerScalaLog(0.11)).toEqual({ valore: 0.11, nonMisurato: false });
-    expect(tempoPerScalaLog(4228.67)).toEqual({ valore: 4228.67, nonMisurato: false });
+    expect(tempoPerScalaLog(0.11)).toEqual({ valore: 0.11, stato: "misurato" });
+    expect(tempoPerScalaLog(4228.67)).toEqual({ valore: 4228.67, stato: "misurato" });
   });
 
-  it("tratta come non misurato anche cio' che sta sotto il pavimento", () => {
-    expect(tempoPerScalaLog(0.01)).toEqual({ valore: PAVIMENTO_TEMPO_LOG, nonMisurato: true });
+  it("tratta come sotto il pavimento anche un tempo reale piu' piccolo di esso", () => {
+    // Un futuro time_s = 0.03 e' un tempo reale, non uno zero: non va
+    // descritto come "0,00 s" ne' come dato assente.
+    expect(tempoPerScalaLog(0.03)).toEqual({ valore: PAVIMENTO_TEMPO_LOG, stato: "sotto_pavimento" });
+  });
+
+  it("dichiara assente un tempo null, undefined o NaN, senza trattarlo come una misura", () => {
+    // In JavaScript `null < 0.05` vale true: senza un controllo esplicito, un
+    // tempo assente verrebbe presentato come una misura sotto il pavimento.
+    expect(tempoPerScalaLog(null)).toEqual({ valore: PAVIMENTO_TEMPO_LOG, stato: "assente" });
+    expect(tempoPerScalaLog(undefined)).toEqual({ valore: PAVIMENTO_TEMPO_LOG, stato: "assente" });
+    expect(tempoPerScalaLog(NaN)).toEqual({ valore: PAVIMENTO_TEMPO_LOG, stato: "assente" });
   });
 });
 

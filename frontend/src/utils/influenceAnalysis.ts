@@ -14,32 +14,51 @@ import type {
  */
 
 /**
- * Valore sostitutivo per i tempi non misurabili sull'asse logaritmico.
- *
- * `degree` ha `time_s = 0.0` e lo zero su scala logaritmica non esiste. Il
- * sostituto non va mai presentato come una misura: chi lo usa deve accompagnarlo
- * con l'etichetta "< 0,1 s" (vedi `tempoPerScalaLog`).
+ * Valore sostitutivo per i tempi non rappresentabili sull'asse logaritmico
+ * (zero, sotto il pavimento, o assenti dai dati). Lo zero su scala
+ * logaritmica non esiste, quindi serve comunque un punto dove disegnare
+ * questi casi; il sostituto pero' non va mai presentato come una misura: chi
+ * lo usa deve accompagnarlo con l'etichetta corretta per lo `statoTempo`
+ * della riga (vedi `tempoPerScalaLog`).
  */
 export const PAVIMENTO_TEMPO_LOG = 0.05;
+
+/**
+ * Stato del tempo di un algoritmo ai fini della rappresentazione:
+ * - "misurato": il valore in `tempoS` e' una misura affidabile, usabile cosi' com'e';
+ * - "sotto_pavimento": il tempo e' stato misurato (non e' assente) ma e' troppo
+ *   piccolo per la scala logaritmica — puo' anche essere 0,0 s, come `degree`,
+ *   o un futuro tempo piccolo ma diverso da zero (es. 0,03 s): in entrambi i
+ *   casi il valore reale resta quello di `tempoS`, non "0,00 s" scritto a mano;
+ * - "assente": il backend non ha registrato alcun tempo per questa run
+ *   (`time_s` e' null/undefined/NaN nella sorgente). Non e' un tempo vicino
+ *   allo zero: e' un dato mancante, e va dichiarato come tale.
+ */
+export type StatoTempo = "misurato" | "sotto_pavimento" | "assente";
 
 export interface RigaCostoBeneficio {
   nome: string;
   spreadMc: number;
   /** Spread rispetto al migliore, fra 0 e 1. */
   quotaDelMigliore: number;
-  /** Tempo misurato, cosi' com'e' nei dati. */
-  tempoS: number;
+  /** Tempo misurato, cosi' com'e' nei dati. null quando il dato manca dalla sorgente. */
+  tempoS: number | null;
   /** Tempo utilizzabile su asse logaritmico. */
   tempoPerGrafico: number;
-  /** Vero quando il tempo era zero o sotto il pavimento. */
-  tempoNonMisurato: boolean;
+  /** Vedi `StatoTempo`: distingue un tempo misurato da uno sotto il pavimento e da uno assente. */
+  statoTempo: StatoTempo;
 }
 
-export function tempoPerScalaLog(tempoS: number): { valore: number; nonMisurato: boolean } {
-  if (tempoS < PAVIMENTO_TEMPO_LOG) {
-    return { valore: PAVIMENTO_TEMPO_LOG, nonMisurato: true };
+export function tempoPerScalaLog(
+  tempoS: number | null | undefined,
+): { valore: number; stato: StatoTempo } {
+  if (tempoS === null || tempoS === undefined || Number.isNaN(tempoS)) {
+    return { valore: PAVIMENTO_TEMPO_LOG, stato: "assente" };
   }
-  return { valore: tempoS, nonMisurato: false };
+  if (tempoS < PAVIMENTO_TEMPO_LOG) {
+    return { valore: PAVIMENTO_TEMPO_LOG, stato: "sotto_pavimento" };
+  }
+  return { valore: tempoS, stato: "misurato" };
 }
 
 export function rapportoCostoBeneficio(
@@ -52,14 +71,14 @@ export function rapportoCostoBeneficio(
 
   return voci
     .map(([nome, a]) => {
-      const { valore, nonMisurato } = tempoPerScalaLog(a.time_s);
+      const { valore, stato } = tempoPerScalaLog(a.time_s);
       return {
         nome,
         spreadMc: a.mc_spread,
         quotaDelMigliore: migliore > 0 ? a.mc_spread / migliore : 0,
         tempoS: a.time_s,
         tempoPerGrafico: valore,
-        tempoNonMisurato: nonMisurato,
+        statoTempo: stato,
       };
     })
     .sort((x, y) => y.spreadMc - x.spreadMc);
