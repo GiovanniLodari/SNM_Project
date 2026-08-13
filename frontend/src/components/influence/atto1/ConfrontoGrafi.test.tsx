@@ -36,4 +36,17 @@ describe("ConfrontoGrafi", () => {
     render(<ConfrontoGrafi {...props} candidati={1500} />);
     expect(screen.queryByTestId("avviso-budget")).not.toBeInTheDocument();
   });
+
+  it("scala il lato del quadrato interno di sqrt(rapporto), non di rapporto", () => {
+    // Il difetto del round 1: un lato proporzionale a `rapporto` (o una
+    // larghezza sola, ad altezza fissa) fa un'area che non e' il rapporto
+    // reale. Qui si legge lo stile inline, non solo l'etichetta testuale,
+    // cosi' un futuro regresso sulla geometria fa fallire il test anche se
+    // il numero scritto accanto resta corretto.
+    render(<ConfrontoGrafi {...props} />);
+    const quadrato = screen.getByTestId("quadrato-interno");
+    const latoAtteso = Math.sqrt(props.nodiSottografo / props.nodiCompleto) * 100;
+    expect(parseFloat(quadrato.style.width)).toBeCloseTo(latoAtteso, 5);
+    expect(parseFloat(quadrato.style.height)).toBeCloseTo(latoAtteso, 5);
+  });
 });

@@ -26,10 +26,16 @@ export default function ConfrontoGrafi({
   kRichiesto,
 }: ConfrontoGrafiProps) {
   const rapporto = nodiSottografo / nodiCompleto;
-  // L'area del rettangolo, non il lato, deve rendere il rapporto fra i due
-  // grafi: un rettangolo con lato proporzionale a `rapporto` esagererebbe
-  // visivamente quanto e' piccolo il sottografo.
-  const larghezzaPercentuale = Math.sqrt(rapporto) * 100;
+  // Il quadrato interno deve avere un'AREA proporzionale a `rapporto`, non un
+  // lato proporzionale a `rapporto`. Per un quadrato Area = lato^2, quindi se
+  // si vuole Area_interna / Area_esterna = rapporto occorre scalare il LATO
+  // di sqrt(rapporto): (sqrt(rapporto) * lato)^2 = rapporto * lato^2. Scalare
+  // il lato direttamente di `rapporto` (o, peggio, farlo su una sola
+  // dimensione come la larghezza di una barra ad altezza fissa) produce
+  // un'area proporzionale a rapporto^2 nel primo caso o a sqrt(rapporto) nel
+  // secondo: con questi dati (3,13%) una barra a larghezza sqrt(rapporto)
+  // occuperebbe visivamente il 17,7%, quasi sei volte il vero rapporto.
+  const latoPercentuale = Math.sqrt(rapporto) * 100;
   const budgetInsufficiente = candidati < kRichiesto;
 
   return (
@@ -101,45 +107,37 @@ export default function ConfrontoGrafi({
         </Box>
       </Box>
 
-      <Box sx={{ mt: 3 }}>
+      <Box sx={{ mt: 3, display: "flex", alignItems: "center", gap: 3 }}>
         <Box
           sx={{
             position: "relative",
-            height: 96,
+            width: 140,
+            height: 140,
+            flexShrink: 0,
             backgroundColor: tokens.color.softStone,
             borderRadius: tokens.radius.md,
-            overflow: "hidden",
           }}
         >
+          {/* L'etichetta resta fuori dal quadrato interno: al 3,1% il lato e'
+              circa il 17,7% del contenitore, troppo piccolo per ospitare
+              testo leggibile. */}
           <Box
+            data-testid="quadrato-interno"
+            style={{ width: `${latoPercentuale}%`, height: `${latoPercentuale}%` }}
             sx={{
               position: "absolute",
-              top: 0,
-              left: 0,
-              bottom: 0,
-              width: `${larghezzaPercentuale}%`,
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
               backgroundColor: tokens.color.actionBlue,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              borderRadius: "2px",
             }}
-          >
-            <Typography
-              variant="caption"
-              sx={{
-                color: tokens.color.canvas,
-                fontFamily: tokens.font.mono,
-                fontWeight: 600,
-                px: 1,
-              }}
-            >
-              {formatPercent(rapporto * 100)}
-            </Typography>
-          </Box>
+          />
         </Box>
-        <Typography variant="body2" sx={{ color: tokens.color.textMuted, mt: 1 }}>
-          L'area colorata e' proporzionale ai nodi del sottografo rispetto al grafo completo,
-          cosi' la differenza di scala si vede oltre che si legge.
+        <Typography variant="body2" sx={{ color: tokens.color.textMuted }}>
+          Il quadrato blu, in scala, e' il sottografo: la sua area e'{" "}
+          {formatPercent(rapporto * 100)} di quella del quadrato grigio, il grafo completo. E'
+          l'area a rendere il rapporto, non il lato.
         </Typography>
       </Box>
 
