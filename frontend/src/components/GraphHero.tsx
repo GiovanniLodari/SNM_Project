@@ -20,9 +20,13 @@ import AccountDetailModal from "./AccountDetailModal.tsx";
 import { GraphToolbar } from "./graph/GraphToolbar.tsx";
 import { tokens } from "../theme.ts";
 import {
+  ALPHA_RISCALDAMENTO,
+  PAD_CANVAS,
   centraSimulazione,
   configuraForze,
   creaSimulazione,
+  riscaldaSimulazione,
+  simulazioneFerma,
 } from "../utils/graphSimulation.ts";
 
 interface PhysicsNode extends GraphNode, SimulationNodeDatum {
@@ -71,7 +75,24 @@ export default function GraphHero() {
   // Simulazione d3: creata una volta e riconfigurata quando l'insieme dei nodi
   // visibili cambia, cioe' a ogni passo della rivelazione progressiva.
   const simulazioneRef = useRef<Simulation<PhysicsNode, GraphLink> | null>(null);
-  const contaNodiSimulatiRef = useRef<number>(0);
+
+  // Versione dell'insieme dei nodi: la incrementa l'effect di sincronizzazione
+  // ogni volta che aggiunge o rimuove un nodo. Prima si confrontava la sola
+  // lunghezza dell'array, e cercando un account o cambiando filtro i nodi
+  // vengono sostituiti in blocco: se il conteggio coincideva, la simulazione
+  // restava agganciata a oggetti nodo non piu' sullo schermo.
+  const versioneNodiRef = useRef<number>(0);
+  const versioneApplicataRef = useRef<number>(-1);
+
+  // Vero quando il grafo e' stato sostituito da capo (caricamento, ricerca,
+  // cambio filtro) e non semplicemente accresciuto di qualche nodo.
+  const rilancioPienoRef = useRef<boolean>(true);
+
+  // Ultime dimensioni del canvas viste dal loop, per accorgersi di un resize.
+  const dimensioniRef = useRef<{ larghezza: number; altezza: number }>({
+    larghezza: 0,
+    altezza: 0,
+  });
 
   /**
    * Allinea la simulazione ai nodi visibili. La configurazione delle forze sta
@@ -79,7 +100,7 @@ export default function GraphHero() {
    * canvas; qui resta solo il quando, non il come.
    */
   const aggiornaSimulazione = useCallback(
-    (nodi: PhysicsNode[], archi: GraphLink[], centroX: number, centroY: number) => {
+    (nodi: PhysicsNode[], archi: GraphLink[], larghezza: number, altezza: number) => {
       let sim = simulazioneRef.current;
       if (!sim) {
         sim = creaSimulazione<PhysicsNode>();
@@ -88,11 +109,30 @@ export default function GraphHero() {
 
       // Riconfigurare a ogni fotogramma azzererebbe il quadtree e il grafo
       // sobbalzerebbe: si interviene solo quando i nodi cambiano davvero.
-      if (nodi.length !== contaNodiSimulatiRef.current) {
-        contaNodiSimulatiRef.current = nodi.length;
+      // A insieme vuoto non si tocca nulla: fra lo svuotamento della mappa e
+      // l'effect che la ripopola passa un fotogramma, e configurare li'
+      // consumerebbe il rilancio pieno sul nulla, lasciando al grafo vero un
+      // riscaldamento da semplice aggiunta incrementale.
+      if (nodi.length > 0 && versioneNodiRef.current !== versioneApplicataRef.current) {
+        versioneApplicataRef.current = versioneNodiRef.current;
         configuraForze(sim, nodi, archi);
+
+        // La rivelazione progressiva aggiunge due nodi per volta: il
+        // riscaldamento pieno deciso da configuraForze rimescolerebbe un
+        // layout gia' assestato, quindi le aggiunte ripartono piu' tiepide.
+        if (!rilancioPienoRef.current) sim.alpha(ALPHA_RISCALDAMENTO);
+        rilancioPienoRef.current = false;
       }
-      centraSimulazione(sim, centroX, centroY);
+
+      centraSimulazione(sim, larghezza, altezza);
+
+      // Il canvas ha cambiato forma (resize della finestra, toggle fullscreen):
+      // la gravita' e' cambiata con lui e il layout va rifatto.
+      const precedenti = dimensioniRef.current;
+      if (precedenti.larghezza !== larghezza || precedenti.altezza !== altezza) {
+        if (precedenti.larghezza !== 0) riscaldaSimulazione(sim);
+        dimensioniRef.current = { larghezza, altezza };
+      }
     },
     [],
   );
@@ -123,6 +163,11 @@ export default function GraphHero() {
           setAllLinks(data.links);
           // Reset progressive render to start animation for new graph network
           physicsNodesRef.current.clear();
+          // Il grafo e' un altro: la simulazione va riconfigurata da zero, non
+          // accresciuta. Il conteggio dei nodi da solo non lo direbbe, perche'
+          // due grafi diversi possono avere lo stesso numero di nodi visibili.
+          versioneNodiRef.current += 1;
+          rilancioPienoRef.current = true;
           setVisibleCount(Math.min(5, data.nodes.length));
           setIsPlaying(true);
         } else {
@@ -224,9 +269,14 @@ export default function GraphHero() {
 
     const visibleSlice = allNodes.slice(0, visibleCount);
 
+    // Traccia se l'insieme dei nodi e' davvero cambiato: e' il segnale che fa
+    // riconfigurare la simulazione nel loop di animazione.
+    let insiemeCambiato = false;
+
     // Add newly revealed nodes
     visibleSlice.forEach((node) => {
       if (!currentMap.has(node.id)) {
+        insiemeCambiato = true;
         const angle = Math.random() * Math.PI * 2;
         const dist = 40 + Math.random() * 140;
         const radius = node.bot ? 10 : node.group === "instance" ? 14 : 9;
@@ -247,8 +297,11 @@ export default function GraphHero() {
     Array.from(currentMap.keys()).forEach((id) => {
       if (!visibleSlice.some((n) => n.id === id)) {
         currentMap.delete(id);
+        insiemeCambiato = true;
       }
     });
+
+    if (insiemeCambiato) versioneNodiRef.current += 1;
   }, [visibleCount, allNodes]);
 
   // Interval for progressive streaming ("pochi nodi alla volta")
@@ -297,8 +350,6 @@ export default function GraphHero() {
       const rect = canvas.getBoundingClientRect();
       const width = rect.width;
       const height = rect.height;
-      const centerX = width / 2;
-      const centerY = height / 2;
 
       ctx.clearRect(0, 0, width, height);
 
@@ -316,16 +367,40 @@ export default function GraphHero() {
       // costo veniva contenuto ignorando le coppie oltre i 220px - un rimedio
       // che falsa il campo di forze. forceManyBody usa un quadtree
       // (Barnes-Hut) e scende a O(n log n) senza troncare nulla.
-      aggiornaSimulazione(nodes, activeLinks, centerX, centerY);
-      simulazioneRef.current?.tick();
+      aggiornaSimulazione(nodes, activeLinks, width, height);
 
-      // Il nodo trascinato resta dove lo tiene il puntatore: `fx`/`fy` sono la
-      // convenzione d3 per fissare una posizione durante il drag.
-      const pad = 24;
-      nodes.forEach((n) => {
-        n.x = Math.max(pad, Math.min(width - pad, n.x));
-        n.y = Math.max(pad, Math.min(height - pad, n.y));
-      });
+      // A rete assestata non si calcola piu' nulla: si ferma solo la fisica,
+      // il disegno (archi, particelle, hover, onda di comparsa) continua.
+      const sim = simulazioneRef.current;
+      if (sim && !simulazioneFerma(sim)) sim.tick();
+
+      // Rete di sicurezza sui bordi. Azzerare la velocita' e' la parte che
+      // conta: correggendo solo la posizione, il nodo continuava a spingere
+      // verso l'esterno a ogni tick e restava incollato al bordo.
+      const xMin = PAD_CANVAS;
+      const xMax = width - PAD_CANVAS;
+      const yMin = PAD_CANVAS;
+      const yMax = height - PAD_CANVAS;
+
+      if (xMax > xMin && yMax > yMin) {
+        nodes.forEach((n) => {
+          if (n.x < xMin) {
+            n.x = xMin;
+            n.vx = 0;
+          } else if (n.x > xMax) {
+            n.x = xMax;
+            n.vx = 0;
+          }
+
+          if (n.y < yMin) {
+            n.y = yMin;
+            n.vy = 0;
+          } else if (n.y > yMax) {
+            n.y = yMax;
+            n.vy = 0;
+          }
+        });
+      }
 
       // 2. RENDER EDGES
       const activeHovered = hoveredNodeRef.current;
@@ -482,6 +557,10 @@ export default function GraphHero() {
       nodo.y = my;
       nodo.fx = mx;
       nodo.fy = my;
+      // Ora che la rete si ferma da sola, trascinare su una rete fredda non
+      // muoverebbe nient'altro: si tiene calda finche' il puntatore si muove,
+      // cosi' al rilascio il gruppo si riassesta e poi torna fermo.
+      if (simulazioneRef.current) riscaldaSimulazione(simulazioneRef.current);
       return;
     }
 
