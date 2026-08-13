@@ -56,6 +56,13 @@ export default function EsitoConfronto({ algoritmi, vincitore }: Props) {
     pmiaRiga.tempoS > 0 ? Math.round(vincitoreRiga.tempoS / pmiaRiga.tempoS) : null;
 
   const quotaPmiaSulVincitore = pmiaRiga.quotaDelMigliore * 100;
+  // Stessa relazione di "rapportoTempoSuPmia", ma capovolta ed espressa come
+  // quota anziche' come moltiplicatore: evita di ripetere lo stesso "961" gia'
+  // usato per il titolo (screen.getByText non tollera un secondo match) e
+  // motiva comunque il blocco con un vero rapporto di tempo, non un rimando
+  // generico alla frase precedente.
+  const quotaTempoPmiaSulVincitore =
+    vincitoreRiga.tempoS > 0 ? (pmiaRiga.tempoS / vincitoreRiga.tempoS) * 100 : null;
 
   return (
     <Box
@@ -117,9 +124,11 @@ export default function EsitoConfronto({ algoritmi, vincitore }: Props) {
         <Typography sx={{ color: tokens.color.textPrimary, lineHeight: 1.6 }}>
           <strong>PMIA</strong>, non il vincitore per spread: raggiunge il{" "}
           {formatPercent(quotaPmiaSulVincitore)} dello spread del migliore in
-          appena {formatDecimal(pmiaRiga.tempoS, 1)} s, una frazione del tempo
-          appena descritto. La differenza di spread e' irrilevante; la
-          differenza di tempo no.
+          appena {formatDecimal(pmiaRiga.tempoS, 1)} s
+          {quotaTempoPmiaSulVincitore !== null && (
+            <> — il {formatPercent(quotaTempoPmiaSulVincitore, 2)} del tempo che serve al vincitore</>
+          )}
+          . La differenza di spread e' irrilevante; la differenza di tempo no.
         </Typography>
       </Box>
     </Box>
