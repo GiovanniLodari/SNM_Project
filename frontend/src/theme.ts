@@ -50,6 +50,7 @@ const color = {
     darkSurface: "#0b0f19",
     darkSlate: "#94a3b8",
     darkSlateDeep: "#64748b",
+    darkSlateDarker: "#475569",
     darkSlateLight: "#cbd5e1",
     accentCyan: "#00e5ff",
 

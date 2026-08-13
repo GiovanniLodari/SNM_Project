@@ -29,7 +29,7 @@ const LEGENDA = [
   { colore: tokens.color.coral, etichetta: "seed bot di origine" },
   { colore: tokens.color.activated, etichetta: "nodo appena attivato nello step corrente" },
   { colore: tokens.color.accentCyan, etichetta: "nodo attivo, contagiato in uno step precedente" },
-  { colore: tokens.color.darkSlateDeep, etichetta: "nodo non ancora raggiunto" },
+  { colore: tokens.color.darkSlateDarker, etichetta: "nodo non ancora raggiunto" },
 ];
 
 /**

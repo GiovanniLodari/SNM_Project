@@ -107,7 +107,7 @@ export default function InfluenceGraphCanvas({
       { name: "1. SEED BOT FOCUS", itemStyle: { color: tokens.color.coral } },
       { name: "2. NUOVO INFETTO", itemStyle: { color: tokens.color.activated } },
       { name: "3. ATTIVO CONTAGIATO", itemStyle: { color: tokens.color.accentCyan } },
-      { name: "4. INATTIVO", itemStyle: { color: "#475569" } },
+      { name: "4. INATTIVO", itemStyle: { color: tokens.color.darkSlateDarker } },
     ];
 
     // Group nodes for concentric radial layout
