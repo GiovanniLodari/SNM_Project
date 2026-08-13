@@ -96,7 +96,14 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
               color: tokens.color.canvas,
             }}
           >
-            Fediverse Intelligence Command Center
+            Rete dei follow
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{ color: tokens.color.darkSlate, mt: 1, maxWidth: "58ch" }}
+          >
+            Cerca un account per isolarne le connessioni, oppure lascia scorrere la rivelazione
+            progressiva dei nodi.
           </Typography>
         </Box>
 
