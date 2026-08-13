@@ -58,6 +58,7 @@ const InfluenceMaximization = lazy(() => import("./pages/InfluenceMaximization.t
 import { NotificationProvider } from "./context/NotificationContext.tsx";
 import ErrorBoundary from "./components/ErrorBoundary.tsx";
 import { tokens } from "./theme.ts";
+import { isRouteActive } from "./utils/navigation.ts";
 
 const drawerWidth = 270;
 
@@ -107,16 +108,13 @@ function NavigationContent() {
             mt: 0.5,
           }}
         >
-          Enterprise AI Command
+          Analisi del Fediverso
         </Typography>
       </Box>
 
       <List sx={{ p: 0 }}>
         {menuItems.map((item) => {
-          const isSelected =
-            item.path === "/"
-              ? location.pathname === "/"
-              : location.pathname.startsWith(item.path);
+          const isSelected = isRouteActive(location.pathname, item.path);
           return (
             <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
               <ListItemButton
@@ -216,7 +214,7 @@ export default function App() {
                   color: tokens.color.nearBlack,
                 }}
               >
-                Information Analysis Platform
+                Piattaforma di analisi dell'informazione
               </Typography>
 
 
@@ -310,7 +308,7 @@ export default function App() {
             >
               <Container maxWidth="xl" sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
                 <Typography variant="body2" sx={{ color: tokens.color.textMuted, fontWeight: 500 }}>
-                  SNM Project — Fediverse Social Network & AI Analysis
+                  SNM Project — Analisi del Fediverso: testo sintetico, bot e influenza
                 </Typography>
                 <Typography variant="caption" sx={{ color: tokens.color.textFaint, fontFamily: tokens.font.mono }}>
                   © {new Date().getFullYear()}
