@@ -53,8 +53,9 @@ export default function FactChecking() {
     const nextVerdicts = selectedVerdicts.includes(verdict)
       ? selectedVerdicts.filter((v) => v !== verdict)
       : [...selectedVerdicts, verdict];
-    setSelectedVerdicts(nextVerdicts);
-    setPage(1);
+    // Reset di pagina nella stessa scrittura del filtro: due setter URL
+    // separati si sovrascriverebbero (vedi OpzioniScrittura in useUrlState).
+    setSelectedVerdicts(nextVerdicts, { azzera: ["page"] });
   };
 
   const getVerdictBgColor = (verdict: string) => {
@@ -281,10 +282,7 @@ export default function FactChecking() {
               fullWidth
               placeholder="Cerca per parola chiave o motivazione..."
               value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) => setSearchTerm(e.target.value, { azzera: ["page"] })}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">

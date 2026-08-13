@@ -53,8 +53,9 @@ export default function Posts() {
     const next = selectedLangs.includes(langCode)
       ? selectedLangs.filter((l) => l !== langCode)
       : [...selectedLangs, langCode];
-    setSelectedLangs(next);
-    setPage(1);
+    // Reset di pagina nella stessa scrittura del filtro: due setter URL
+    // separati si sovrascriverebbero (vedi OpzioniScrittura in useUrlState).
+    setSelectedLangs(next, { azzera: ["page"] });
   };
 
   const formatTime = formatDateTime;
@@ -167,10 +168,7 @@ export default function Posts() {
                   <Button
                     size="small"
                     variant="text"
-                    onClick={() => {
-                      setSelectedLangs([]);
-                      setPage(1);
-                    }}
+                    onClick={() => setSelectedLangs([], { azzera: ["page"] })}
                     sx={{ color: tokens.color.coral, textTransform: "none", fontSize: "12px", alignSelf: "flex-start", mt: 1 }}
                   >
                     Reset filtri ({selectedLangs.length})
@@ -390,10 +388,7 @@ export default function Posts() {
                     </Typography>
                     <select
                       value={pageSize}
-                      onChange={(e) => {
-                        setPageSize(Number(e.target.value));
-                        setPage(1);
-                      }}
+                      onChange={(e) => setPageSize(Number(e.target.value), { azzera: ["page"] })}
                       style={{
                         padding: "4px 8px",
                         borderRadius: tokens.radius.sm,

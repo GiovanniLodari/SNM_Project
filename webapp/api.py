@@ -187,23 +187,27 @@ def post_detail(post_id: int, conn=Depends(get_db)):
 
 @router.get("/accounts")
 def accounts_stats(conn=Depends(get_db)):
-    bot_counts = queries.count_accounts_by_bot(conn)
     ai_scores = results.load_ai_scores(AI_SCORES_PATH)
-    status_ids = list(ai_scores.keys())
-    status_to_account = queries.get_account_ids_for_statuses(conn, status_ids)
-    ai_account_ids = results.accounts_producing_ai_content(ai_scores, status_to_account)
-    bot_flags = queries.get_account_bot_flags(conn, list(ai_account_ids))
+    fp = (len(ai_scores),)
 
-    ai_and_bot = sum(1 for is_bot in bot_flags.values() if is_bot)
-    ai_and_not_bot = sum(1 for is_bot in bot_flags.values() if not is_bot)
+    def _compute():
+        bot_counts = queries.count_accounts_by_bot(conn)
+        status_to_account = queries.get_all_active_status_account_mappings(conn)
+        ai_account_ids = results.accounts_producing_ai_content(ai_scores, status_to_account)
+        bot_flags = queries.get_account_bot_flags(conn, list(ai_account_ids))
 
-    return {
-        "bot_total": bot_counts[True],
-        "nonbot_total": bot_counts[False],
-        "ai_producers_total": len(ai_account_ids),
-        "ai_and_bot": ai_and_bot,
-        "ai_and_not_bot": ai_and_not_bot,
-    }
+        ai_and_bot = sum(1 for is_bot in bot_flags.values() if is_bot)
+        ai_and_not_bot = sum(1 for is_bot in bot_flags.values() if not is_bot)
+
+        return {
+            "bot_total": bot_counts.get(True, 0),
+            "nonbot_total": bot_counts.get(False, 0),
+            "ai_producers_total": len(ai_account_ids),
+            "ai_and_bot": ai_and_bot,
+            "ai_and_not_bot": ai_and_not_bot,
+        }
+
+    return results.get_cached_computation(("accounts_stats",), fp, _compute, ttl=300)
 
 
 @router.get("/graph")
@@ -593,8 +597,8 @@ def ai_detection(
         for status_id, probability in page_ids if status_id in posts_by_id
     ]
 
-    bucket_samples = results.sample_posts_by_probability_bucket(ai_scores, conn, samples_per_bucket=100)
-    stats = results.get_descriptive_stats(ai_scores, conn)
+    bucket_samples = results.sample_posts_by_probability_bucket(ai_scores, conn, samples_per_bucket=100, cache_key=detector)
+    stats = results.get_descriptive_stats(ai_scores, conn, cache_key=detector)
 
     return {
         "done": len(ai_scores),
@@ -941,9 +945,10 @@ def detector_comparison_posts(
     desklib_scores = results.load_desklib_scores(DESKLIB_SCORES_PATH)
     ada_scores = results.load_ada_scores(ADA_SCORES_PATH)
 
-    # Identifichiamo gli ID presenti in tutti e 4 o nei detector
-    all_ids = set(fastdetect_scores.keys()) | set(bino_scores.keys()) | set(desklib_scores.keys()) | set(ada_scores.keys())
-    
+    consolidated = results.get_consolidated_detector_items(
+        fastdetect_scores, bino_scores, desklib_scores, ada_scores
+    )
+
     # Se serve il filtro per bot, recuperiamo l'elenco dei post di bot dal DB
     bot_status_ids: set[int] = set()
     if filter_type == "bots_only":
@@ -952,24 +957,10 @@ def detector_comparison_posts(
             bot_status_ids = {row[0] for row in cur.fetchall()}
 
     filtered_items: list[tuple[int, float | None, float | None, float | None, float | None, int]] = []
-    
-    for sid in all_ids:
+
+    for sid, fd_p, bino_p, desk_p, ada_p, ai_votes, fd_ai, bino_ai, desk_ai, ada_ai in consolidated:
         if filter_type == "bots_only" and sid not in bot_status_ids:
             continue
-
-        fd_p = fastdetect_scores.get(sid, {}).get("probability", None)
-        bino_p = (bino_scores.get(sid, {}).get("ai_probability_pct") / 100.0) if sid in bino_scores and bino_scores[sid].get("ai_probability_pct") is not None else None
-        desk_p = desklib_scores.get(sid, {}).get("ai_probability", None)
-        
-        ada_raw = ada_scores.get(sid, {}).get("probability", None)
-        ada_p = float(ada_raw) if (ada_raw is not None and ada_raw == ada_raw) else None
-
-        fd_ai = (fd_p >= 0.5) if fd_p is not None else False
-        bino_ai = (bino_p >= 0.5) if bino_p is not None else False
-        desk_ai = (desk_p >= 0.5) if desk_p is not None else False
-        ada_ai = (ada_p >= 0.5) if ada_p is not None else False
-
-        ai_votes = sum([1 if fd_ai else 0, 1 if bino_ai else 0, 1 if desk_ai else 0, 1 if ada_ai else 0])
 
         if filter_type in ("unanimous_ai", "unanimous_4") and ai_votes != 4:
             continue
@@ -991,9 +982,6 @@ def detector_comparison_posts(
             continue
 
         filtered_items.append((sid, fd_p, bino_p, desk_p, ada_p, ai_votes))
-
-    # Ordiniamo per id
-    filtered_items.sort(key=lambda x: x[0])
 
     # La ricerca precede la paginazione, altrimenti total_count e la pagina
     # mostrata si riferiscono a insiemi diversi. Il testo di un post puo' stare

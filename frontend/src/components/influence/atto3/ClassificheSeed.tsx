@@ -95,10 +95,11 @@ export default function ClassificheSeed({
               placeholder="Cerca account o ID..."
               size="small"
               value={seedsSearch}
-              onChange={(e) => {
-                onSeedsSearchChange(e.target.value);
-                onSeedsPageChange(1);
-              }}
+              // Il ritorno a pagina 1 lo fa gia' onSeedsSearchChange nel
+              // chiamante, in un'unica scrittura URL: aggiungere qui un secondo
+              // onSeedsPageChange(1) creerebbe una navigazione che sovrascrive
+              // la ricerca (vedi OpzioniScrittura in useUrlState).
+              onChange={(e) => onSeedsSearchChange(e.target.value)}
               InputProps={{
                 startAdornment: <SearchIcon sx={{ color: tokens.color.textMuted, mr: 1, fontSize: 18 }} />,
               }}

@@ -39,19 +39,43 @@ function scriviParametro(
   }
 }
 
+/** Opzioni comuni ai setter di questo modulo. */
+export interface OpzioniScrittura {
+  /**
+   * Altri parametri da riportare al default (rimuovere) nella STESSA
+   * navigazione di questa scrittura. Serve per il caso ricorrente "cambia un
+   * filtro o la ricerca e torna a pagina 1".
+   *
+   * Farlo con un secondo setter separato non funziona: react-router calcola
+   * ogni scrittura dallo stesso snapshot corrente della URL (`location.search`
+   * non cambia fino al render successivo), quindi due chiamate sincrone a
+   * `setSearchParams` si sovrascrivono e sopravvive solo l'ultima. Il caso
+   * tipico `setFiltro(x); setPage(1)` perdeva il filtro e lasciava solo il
+   * reset di pagina — cioe' niente — e il controllo sembrava morto. Fondendo le
+   * due modifiche in un'unica navigazione entrambe restano.
+   */
+  azzera?: string[];
+}
+
+/** Rimuove i parametri elencati in `azzera`, riportandoli al loro default. */
+function azzeraParametri(params: URLSearchParams, opzioni?: OpzioniScrittura): void {
+  for (const chiave of opzioni?.azzera ?? []) params.delete(chiave);
+}
+
 export function useUrlString(
   chiave: string,
   predefinito = "",
-): [string, (valore: string) => void] {
+): [string, (valore: string, opzioni?: OpzioniScrittura) => void] {
   const [searchParams, setSearchParams] = useSearchParams();
   const valore = searchParams.get(chiave) ?? predefinito;
 
   const imposta = useCallback(
-    (nuovo: string) => {
+    (nuovo: string, opzioni?: OpzioniScrittura) => {
       setSearchParams(
         (precedenti) => {
           const successivi = new URLSearchParams(precedenti);
           scriviParametro(successivi, chiave, nuovo, predefinito);
+          azzeraParametri(successivi, opzioni);
           return successivi;
         },
         { replace: true },
@@ -69,7 +93,7 @@ type Aggiornamento<T> = T | ((precedente: T) => T);
 export function useUrlNumber(
   chiave: string,
   predefinito: number,
-): [number, (valore: Aggiornamento<number>) => void] {
+): [number, (valore: Aggiornamento<number>, opzioni?: OpzioniScrittura) => void] {
   const [grezzo, impostaGrezzo] = useUrlString(chiave, String(predefinito));
   // Una URL scritta a mano puo' contenere qualunque cosa: un valore non
   // numerico ricade sul predefinito invece di propagare NaN nei calcoli.
@@ -79,9 +103,9 @@ export function useUrlNumber(
   // Accetta anche la forma con funzione, `setPage(p => p + 1)`: e' il
   // contratto di useState, e i chiamanti la usano gia'.
   const imposta = useCallback(
-    (nuovo: Aggiornamento<number>) => {
+    (nuovo: Aggiornamento<number>, opzioni?: OpzioniScrittura) => {
       const risolto = typeof nuovo === "function" ? nuovo(valore) : nuovo;
-      impostaGrezzo(String(risolto));
+      impostaGrezzo(String(risolto), opzioni);
     },
     [impostaGrezzo, valore],
   );
@@ -91,7 +115,7 @@ export function useUrlNumber(
 
 export function useUrlList(
   chiave: string,
-): [string[], (valore: string[]) => void] {
+): [string[], (valore: string[], opzioni?: OpzioniScrittura) => void] {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // useMemo perche' getAll() crea un array nuovo a ogni render: senza, ogni
@@ -99,11 +123,12 @@ export function useUrlList(
   const valore = useMemo(() => searchParams.getAll(chiave), [searchParams, chiave]);
 
   const imposta = useCallback(
-    (nuovo: string[]) => {
+    (nuovo: string[], opzioni?: OpzioniScrittura) => {
       setSearchParams(
         (precedenti) => {
           const successivi = new URLSearchParams(precedenti);
           scriviParametro(successivi, chiave, nuovo, []);
+          azzeraParametri(successivi, opzioni);
           return successivi;
         },
         { replace: true },

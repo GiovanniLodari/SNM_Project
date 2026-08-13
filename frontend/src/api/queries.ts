@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData, type QueryClient } from "@tanstack/react-query";
 import { api } from "./client.ts";
 
 /**
@@ -168,4 +168,93 @@ export function usePipelineStopMutation() {
       queryClient.invalidateQueries({ queryKey: queryKeys.dbSync });
     },
   });
+}
+
+/**
+ * Pre-carica i dati delle query principali per una rotta al passaggio del mouse
+ * o focus sul link di navigazione.
+ */
+export function prefetchRouteData(queryClient: QueryClient, path: string) {
+  const staleTime = 5 * 60 * 1000;
+  if (path === "/") {
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.dashboard,
+      queryFn: () => api.dashboard(),
+      staleTime,
+    });
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.aiDetection([], 1, "id", "fastdetect"),
+      queryFn: () => api.aiDetection([], 1, "id", "fastdetect"),
+      staleTime,
+    });
+  } else if (path === "/posts") {
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.posts([], 1, 25),
+      queryFn: () => api.posts([], 1, 25),
+      staleTime,
+    });
+  } else if (path === "/ai-detection") {
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.aiDetection([], 1, "id", "fastdetect"),
+      queryFn: () => api.aiDetection([], 1, "id", "fastdetect"),
+      staleTime,
+    });
+  } else if (path === "/ai-detection-binoculars") {
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.aiDetection([], 1, "id", "binoculars"),
+      queryFn: () => api.aiDetection([], 1, "id", "binoculars"),
+      staleTime,
+    });
+  } else if (path === "/ai-detection-desklib") {
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.aiDetection([], 1, "id", "desklib"),
+      queryFn: () => api.aiDetection([], 1, "id", "desklib"),
+      staleTime,
+    });
+  } else if (path === "/ai-detection-ada") {
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.aiDetection([], 1, "id", "ada"),
+      queryFn: () => api.aiDetection([], 1, "id", "ada"),
+      staleTime,
+    });
+  } else if (path === "/detector-comparison") {
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.detectorComparisonSummary,
+      queryFn: () => api.detectorComparisonSummary(),
+      staleTime,
+    });
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.detectorComparisonPosts("all", 1, 25, ""),
+      queryFn: () => api.detectorComparisonPosts("all", 1, 25, ""),
+      staleTime,
+    });
+  } else if (path === "/fact-check") {
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.factCheck([], 1, ""),
+      queryFn: () => api.factCheck([], 1, ""),
+      staleTime,
+    });
+  } else if (path === "/accounts") {
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.accounts,
+      queryFn: () => api.accounts(),
+      staleTime,
+    });
+  } else if (path === "/influence-maximization") {
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.influenceSummary,
+      queryFn: () => api.influenceSummary(),
+      staleTime: 10 * 60 * 1000,
+    });
+  } else if (path === "/pipelines") {
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.pipelines,
+      queryFn: () => api.pipelines(),
+    });
+  } else if (path === "/db-sync") {
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.dbSync,
+      queryFn: () => api.dbSync(),
+    });
+  }
 }

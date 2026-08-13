@@ -130,9 +130,10 @@ export default function InfluenceMaximization() {
   };
 
   const handleSearchChange = (query: string) => {
-    setSeedsSearch(query);
-    // La pagina 3 di una ricerca precedente non esiste quasi mai nella nuova.
-    setSeedsPage(1);
+    // La pagina 3 di una ricerca precedente non esiste quasi mai nella nuova,
+    // quindi si torna a pagina 1 nella stessa scrittura: due setter URL
+    // separati si sovrascriverebbero (vedi OpzioniScrittura in useUrlState).
+    setSeedsSearch(query, { azzera: ["seedsPage"] });
   };
 
   if (loadingSummary) {

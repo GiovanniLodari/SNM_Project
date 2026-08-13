@@ -21,10 +21,39 @@ from pathlib import Path
 # quando si smette di consultarli; il tetto sul numero di voci e' una seconda
 # rete di sicurezza. Entrambi si regolano da ambiente.
 _CACHE_TTL_SECONDS = float(os.environ.get("SNM_CACHE_TTL_SECONDS", 600))
-_CACHE_MAX_ENTRIES = int(os.environ.get("SNM_CACHE_MAX_ENTRIES", 6))
+_CACHE_MAX_ENTRIES = int(os.environ.get("SNM_CACHE_MAX_ENTRIES", 32))
 
 _file_cache: OrderedDict[tuple, tuple[tuple[float, int], float, object]] = OrderedDict()
 _cache_lock = threading.Lock()
+
+_computed_cache: dict[tuple, tuple[tuple, float, object]] = {}
+_computed_lock = threading.Lock()
+
+
+def get_cached_computation(cache_key: tuple, fingerprint: tuple, compute_fn, ttl: float = 600):
+    """Memorizza in cache il risultato di calcoli costosi (es. statistiche, confronti a 4 modelli)
+    legandolo all'impronta (fingerprint) dei dati di input e a un TTL."""
+    adesso = time.monotonic()
+    with _computed_lock:
+        cached = _computed_cache.get(cache_key)
+        if cached is not None:
+            c_fp, c_time, c_val = cached
+            if c_fp == fingerprint and (adesso - c_time) < ttl:
+                return c_val
+
+    val = compute_fn()
+
+    with _computed_lock:
+        _computed_cache[cache_key] = (fingerprint, time.monotonic(), val)
+        if len(_computed_cache) > 64:
+            # Svuota le voci più vecchie se supera la capienza
+            vecchie = [k for k, (_, t, _) in _computed_cache.items() if time.monotonic() - t > ttl]
+            for k in vecchie:
+                _computed_cache.pop(k, None)
+            if len(_computed_cache) > 64:
+                _computed_cache.clear()
+                _computed_cache[cache_key] = (fingerprint, time.monotonic(), val)
+    return val
 
 
 def _evict(adesso: float) -> None:
@@ -241,61 +270,65 @@ def ai_probability_histogram(ai_scores: dict[int, dict]) -> dict[str, int]:
 
 
 def sample_posts_by_probability_bucket(
-    ai_scores: dict[int, dict], conn, samples_per_bucket: int = 100
+    ai_scores: dict[int, dict], conn, samples_per_bucket: int = 100, cache_key: str = "default"
 ) -> dict[str, list[dict]]:
     """Raggruppa gli status id nei 5 scaglioni dell'istogramma e seleziona fino a N
     post rappresentativi per ciascuno scaglione con la relativa probabilita'."""
-    from webapp import queries
+    fp = (len(ai_scores), samples_per_bucket)
 
-    buckets_status_ids: dict[str, list[tuple[int, float]]] = {b: [] for b in _HISTOGRAM_BUCKETS}
+    def _compute():
+        from webapp import queries
 
-    for status_id, row in ai_scores.items():
-        p = row.get("probability")
-        if p is None or p != p:  # NaN check
-            continue
-        idx = min(int(p * 5), 4)
-        b_name = _HISTOGRAM_BUCKETS[idx]
-        buckets_status_ids[b_name].append((status_id, float(p)))
+        buckets_status_ids: dict[str, list[tuple[int, float]]] = {b: [] for b in _HISTOGRAM_BUCKETS}
 
-    # Per ogni bucket, prendiamo fino a samples_per_bucket status_id distribuiti in modo uniforme o casuale/ordinato
-    all_needed_ids = set()
-    sampled_ids_per_bucket = {}
+        for status_id, row in ai_scores.items():
+            p = row.get("probability")
+            if p is None or p != p:  # NaN check
+                continue
+            idx = min(int(p * 5), 4)
+            b_name = _HISTOGRAM_BUCKETS[idx]
+            buckets_status_ids[b_name].append((status_id, float(p)))
 
-    for b_name, items in buckets_status_ids.items():
-        if not items:
-            sampled_ids_per_bucket[b_name] = []
-            continue
-        # Ordiniamo per id per avere risultati deterministici
-        items.sort(key=lambda x: x[0])
-        # Campionamento a passo regolare se gli elementi sono piu' del limite
-        if len(items) <= samples_per_bucket:
-            selected = items
-        else:
-            step = len(items) / samples_per_bucket
-            selected = [items[int(i * step)] for i in range(samples_per_bucket)]
+        # Per ogni bucket, prendiamo fino a samples_per_bucket status_id distribuiti in modo uniforme o casuale/ordinato
+        all_needed_ids = set()
+        sampled_ids_per_bucket = {}
 
-        sampled_ids_per_bucket[b_name] = selected
-    
-    # Raccogliamo tutti gli id necessari DOPO aver costruito sampled_ids_per_bucket
-    for b_items in sampled_ids_per_bucket.values():
-        for sid, _ in b_items:
-            all_needed_ids.add(sid)
-    
-    posts_by_id = queries.get_posts_by_ids(conn, list(all_needed_ids))
+        for b_name, items in buckets_status_ids.items():
+            if not items:
+                sampled_ids_per_bucket[b_name] = []
+                continue
+            # Ordiniamo per id per avere risultati deterministici
+            items.sort(key=lambda x: x[0])
+            # Campionamento a passo regolare se gli elementi sono piu' del limite
+            if len(items) <= samples_per_bucket:
+                selected = items
+            else:
+                step = len(items) / samples_per_bucket
+                selected = [items[int(i * step)] for i in range(samples_per_bucket)]
 
-    result = {}
-    for b_name, selected in sampled_ids_per_bucket.items():
-        result[b_name] = [
-            {"post": posts_by_id[sid], "probability": prob}
-            for sid, prob in selected
-            if sid in posts_by_id
-        ]
+            sampled_ids_per_bucket[b_name] = selected
+        
+        # Raccogliamo tutti gli id necessari DOPO aver costruito sampled_ids_per_bucket
+        for b_items in sampled_ids_per_bucket.values():
+            for sid, _ in b_items:
+                all_needed_ids.add(sid)
+        
+        posts_by_id = queries.get_posts_by_ids(conn, list(all_needed_ids))
 
-    return result
+        result = {}
+        for b_name, selected in sampled_ids_per_bucket.items():
+            result[b_name] = [
+                {"post": posts_by_id[sid], "probability": prob}
+                for sid, prob in selected
+                if sid in posts_by_id
+            ]
+
+        return result
+
+    return get_cached_computation(("sample_posts_by_probability_bucket", cache_key), fp, _compute, ttl=300)
 
 
-def get_descriptive_stats(ai_scores: dict[int, dict], conn) -> dict:
-
+def get_descriptive_stats(ai_scores: dict[int, dict], conn, cache_key: str = "default") -> dict:
     """Calcola statistiche descrittive avanzate sul dataset ai_scores e sui post associati:
     - Media, mediana, min, max della probabilita' e del criterio
     - Distribuzione per curva Gaussiana/KDE
@@ -303,121 +336,124 @@ def get_descriptive_stats(ai_scores: dict[int, dict], conn) -> dict:
     - Statistiche account (data iscrizione media/min/max, % bot, top account creatori)
     - Istogramma fine a 10 bucket per la curva di distribuzione
     """
-    from webapp import queries
+    fp = (len(ai_scores),)
 
-    valid_scores = [
-        row for row in ai_scores.values()
-        if row.get("probability") is not None and row["probability"] == row["probability"]
-    ]
+    def _compute():
+        from webapp import queries
 
-    if not valid_scores:
-        return {}
+        valid_scores = [
+            row for row in ai_scores.values()
+            if row.get("probability") is not None and row["probability"] == row["probability"]
+        ]
 
-    probs = [float(r["probability"]) for r in valid_scores]
-    criteria = [float(r["criterion"]) for r in valid_scores if r.get("criterion") is not None and r["criterion"] == r["criterion"]]
-    ntokens_list = [int(r["ntokens"]) for r in valid_scores if r.get("ntokens") is not None]
+        if not valid_scores:
+            return {}
 
-    probs.sort()
-    n = len(probs)
-    mean_prob = sum(probs) / n
-    median_prob = probs[n // 2] if n % 2 != 0 else (probs[n // 2 - 1] + probs[n // 2]) / 2.0
-    min_prob = probs[0]
-    max_prob = probs[-1]
+        probs = [float(r["probability"]) for r in valid_scores]
+        criteria = [float(r["criterion"]) for r in valid_scores if r.get("criterion") is not None and r["criterion"] == r["criterion"]]
+        ntokens_list = [int(r["ntokens"]) for r in valid_scores if r.get("ntokens") is not None]
 
-    # Variance and StdDev
-    variance_prob = sum((p - mean_prob) ** 2 for p in probs) / n
-    std_prob = variance_prob ** 0.5
+        probs.sort()
+        n = len(probs)
+        mean_prob = sum(probs) / n
+        median_prob = probs[n // 2] if n % 2 != 0 else (probs[n // 2 - 1] + probs[n // 2]) / 2.0
+        min_prob = probs[0]
+        max_prob = probs[-1]
 
-    # 10-bucket fine distribution curve
-    fine_buckets = [f"{i*10}-{(i+1)*10}%" for i in range(10)]
-    fine_counts = [0] * 10
-    for p in probs:
-        idx = min(int(p * 10), 9)
-        fine_counts[idx] += 1
+        # Variance and StdDev
+        variance_prob = sum((p - mean_prob) ** 2 for p in probs) / n
+        std_prob = variance_prob ** 0.5
 
-    distribution_curve = [
-        {"bucket": fine_buckets[i], "count": fine_counts[i], "percentage": round((fine_counts[i] / n) * 100, 1)}
-        for i in range(10)
-    ]
+        # 10-bucket fine distribution curve
+        fine_buckets = [f"{i*10}-{(i+1)*10}%" for i in range(10)]
+        fine_counts = [0] * 10
+        for p in probs:
+            idx = min(int(p * 10), 9)
+            fine_counts[idx] += 1
 
-    # Criteria stats
-    criteria_stats = {}
-    if criteria:
-        criteria.sort()
-        nc = len(criteria)
-        mean_crit = sum(criteria) / nc
-        median_crit = criteria[nc // 2]
-        criteria_stats = {
-            "mean": round(mean_crit, 4),
-            "median": round(median_crit, 4),
-            "min": round(criteria[0], 4),
-            "max": round(criteria[-1], 4),
+        distribution_curve = [
+            {"bucket": fine_buckets[i], "count": fine_counts[i], "percentage": round((fine_counts[i] / n) * 100, 1)}
+            for i in range(10)
+        ]
+
+        # Criteria stats
+        criteria_stats = {}
+        if criteria:
+            criteria.sort()
+            nc = len(criteria)
+            mean_crit = sum(criteria) / nc
+            median_crit = criteria[nc // 2]
+            criteria_stats = {
+                "mean": round(mean_crit, 4),
+                "median": round(median_crit, 4),
+                "min": round(criteria[0], 4),
+                "max": round(criteria[-1], 4),
+            }
+
+        # Uniform step sampling of 1000 status IDs across the full dataset
+        if len(valid_scores) <= 1000:
+            sample_scores = valid_scores
+        else:
+            step = len(valid_scores) / 1000.0
+            sample_scores = [valid_scores[int(i * step)] for i in range(1000)]
+
+        sample_status_ids = [r["id"] for r in sample_scores]
+        posts_by_id = queries.get_posts_by_ids(conn, sample_status_ids)
+
+        lengths = [len(p["content"]) for p in posts_by_id.values() if p.get("content")]
+        avg_char_length = round(sum(lengths) / len(lengths), 1) if lengths else 0
+        median_char_length = sorted(lengths)[len(lengths) // 2] if lengths else 0
+
+        if ntokens_list and (sum(ntokens_list) / len(ntokens_list)) > 5:
+            avg_tokens = round(sum(ntokens_list) / len(ntokens_list), 1)
+        else:
+            avg_tokens = round(avg_char_length / 4.2) if avg_char_length else 0
+
+        # Account bot breakdown & top domains derived from uniform sample and scaled to total analyzed (n)
+        sample_total = max(1, len(posts_by_id))
+        bot_counts = {True: 0, False: 0}
+        domain_counts: dict[str, int] = defaultdict(int)
+        for p in posts_by_id.values():
+            if p.get("bot") is not None:
+                bot_counts[bool(p["bot"])] += 1
+            if p.get("domain"):
+                domain_counts[p["domain"]] += 1
+
+        bot_pct = bot_counts.get(True, 0) / sample_total
+        est_bots = int(round(bot_pct * n))
+        est_humans = n - est_bots
+
+        sorted_domains = sorted(domain_counts.items(), key=lambda x: x[1], reverse=True)[:8]
+        top_domains = [
+            {"domain": dom, "count": int(round((cnt / sample_total) * n))}
+            for dom, cnt in sorted_domains
+        ]
+
+        return {
+            "total_analyzed": n,
+            "probability": {
+                "mean": round(mean_prob * 100, 2),
+                "median": round(median_prob * 100, 2),
+                "std": round(std_prob * 100, 2),
+                "min": round(min_prob * 100, 2),
+                "max": round(max_prob * 100, 2),
+            },
+            "criteria": criteria_stats,
+            "distribution_curve": distribution_curve,
+            "text_length": {
+                "avg_chars": avg_char_length,
+                "median_chars": median_char_length,
+                "avg_tokens": avg_tokens,
+            },
+            "bot_breakdown": {
+                "bots": est_bots,
+                "humans": est_humans,
+                "bot_percentage": round(bot_pct * 100, 1),
+            },
+            "top_domains": top_domains,
         }
 
-    # Uniform step sampling of 1000 status IDs across the full dataset
-    if len(valid_scores) <= 1000:
-        sample_scores = valid_scores
-    else:
-        step = len(valid_scores) / 1000.0
-        sample_scores = [valid_scores[int(i * step)] for i in range(1000)]
-
-    sample_status_ids = [r["id"] for r in sample_scores]
-    posts_by_id = queries.get_posts_by_ids(conn, sample_status_ids)
-
-    lengths = [len(p["content"]) for p in posts_by_id.values() if p.get("content")]
-    avg_char_length = round(sum(lengths) / len(lengths), 1) if lengths else 0
-    median_char_length = sorted(lengths)[len(lengths) // 2] if lengths else 0
-
-    if ntokens_list and (sum(ntokens_list) / len(ntokens_list)) > 5:
-        avg_tokens = round(sum(ntokens_list) / len(ntokens_list), 1)
-    else:
-        avg_tokens = round(avg_char_length / 4.2) if avg_char_length else 0
-
-    # Account bot breakdown & top domains derived from uniform sample and scaled to total analyzed (n)
-    sample_total = max(1, len(posts_by_id))
-    bot_counts = {True: 0, False: 0}
-    domain_counts: dict[str, int] = defaultdict(int)
-    for p in posts_by_id.values():
-        if p.get("bot") is not None:
-            bot_counts[bool(p["bot"])] += 1
-        if p.get("domain"):
-            domain_counts[p["domain"]] += 1
-
-    bot_pct = bot_counts.get(True, 0) / sample_total
-    est_bots = int(round(bot_pct * n))
-    est_humans = n - est_bots
-
-    sorted_domains = sorted(domain_counts.items(), key=lambda x: x[1], reverse=True)[:8]
-    top_domains = [
-        {"domain": dom, "count": int(round((cnt / sample_total) * n))}
-        for dom, cnt in sorted_domains
-    ]
-
-    return {
-        "total_analyzed": n,
-        "probability": {
-            "mean": round(mean_prob * 100, 2),
-            "median": round(median_prob * 100, 2),
-            "std": round(std_prob * 100, 2),
-            "min": round(min_prob * 100, 2),
-            "max": round(max_prob * 100, 2),
-        },
-        "criteria": criteria_stats,
-        "distribution_curve": distribution_curve,
-        "text_length": {
-            "avg_chars": avg_char_length,
-            "median_chars": median_char_length,
-            "avg_tokens": avg_tokens,
-        },
-        "bot_breakdown": {
-            "bots": est_bots,
-            "humans": est_humans,
-            "bot_percentage": round(bot_pct * 100, 1),
-        },
-        "top_domains": top_domains,
-    }
-
-
+    return get_cached_computation(("get_descriptive_stats", cache_key), fp, _compute, ttl=300)
 
 
 PROBABILITY_FILTER_BUCKETS = ["0-25", "25-50", "50-75", "75-100"]
@@ -448,13 +484,14 @@ def all_ai_scored_ids(ai_scores: dict[int, dict]) -> list[tuple[int, float]]:
 def verdict_counts(fact_checks: dict[int, dict]) -> dict[str, int]:
     counts: dict[str, int] = defaultdict(int)
     for row in fact_checks.values():
-        counts[row["verdict"]] += 1
-    return dict(counts)
+        v = row.get("verdict")
+        if v:
+            counts[v] += 1
+    return counts
 
 
 def all_fact_checked_ids(fact_checks: dict[int, dict]) -> list[tuple[int, dict]]:
-    """Tutti gli id fact-checkati (qualunque verdetto), ordinati per id
-    crescente - per la lista completa sfogliabile in /fact-check."""
+    """Tutti i post verificati, ordinati per id crescente."""
     items = list(fact_checks.items())
     items.sort(key=lambda kv: kv[0])
     return items
@@ -476,105 +513,150 @@ def compute_four_detector_comparison(
 ) -> dict:
     """Calcola in modo dinamico e completo il confronto tra tutti e 4 i modelli
     (FastDetectGPT, Binoculars, Desklib, AdaDetectGPT): consenso a 4 vie, accordi per coppia e copertura."""
-    thr = 0.5
-    all_ids = set(fastdetect_scores.keys()) | set(bino_scores.keys()) | set(desklib_scores.keys()) | set(ada_scores.keys())
+    fp = (len(fastdetect_scores), len(bino_scores), len(desklib_scores), len(ada_scores))
 
-    ai_hist = {4: 0, 3: 0, 2: 0, 1: 0, 0: 0}
-    pair_agreement = {
-        "bino-gpt": 0,
-        "bino-desk": 0,
-        "bino-ada": 0,
-        "desk-gpt": 0,
-        "desk-ada": 0,
-        "gpt-ada": 0,
-    }
-    considered_full = 0
-    full_agree = 0
+    def _compute():
+        thr = 0.5
+        all_ids = set(fastdetect_scores.keys()) | set(bino_scores.keys()) | set(desklib_scores.keys()) | set(ada_scores.keys())
 
-    # Flussi detector -> fascia di consenso: per ogni post, ciascun detector che
-    # lo etichetta come IA contribuisce alla fascia corrispondente al numero
-    # totale di voti IA ricevuti da quel post. E' il dato che serve al diagramma
-    # Sankey, e che non veniva calcolato: ai_hist dice *quanti* detector hanno
-    # votato, mai *quali*, quindi il grafico non aveva una sorgente reale.
-    flussi = {d: {4: 0, 3: 0, 2: 0, 1: 0} for d in ("gpt", "bino", "desk", "ada")}
+        ai_hist = {4: 0, 3: 0, 2: 0, 1: 0, 0: 0}
+        pair_agreement = {
+            "bino-gpt": 0,
+            "bino-desk": 0,
+            "bino-ada": 0,
+            "desk-gpt": 0,
+            "desk-ada": 0,
+            "gpt-ada": 0,
+        }
+        considered_full = 0
+        full_agree = 0
 
-    for _id in all_ids:
-        fd_row = fastdetect_scores.get(_id)
-        fd_p = fd_row["probability"] if (fd_row and fd_row.get("probability") is not None and fd_row["probability"] == fd_row["probability"]) else None
+        # Flussi detector -> fascia di consenso: per ogni post, ciascun detector che
+        # lo etichetta come IA contribuisce alla fascia corrispondente al numero
+        # totale di voti IA ricevuti da quel post. E' il dato che serve al diagramma
+        # Sankey, e che non veniva calcolato: ai_hist dice *quanti* detector hanno
+        # votato, mai *quali*, quindi il grafico non aveva una sorgente reale.
+        flussi = {d: {4: 0, 3: 0, 2: 0, 1: 0} for d in ("gpt", "bino", "desk", "ada")}
 
-        bino_row = bino_scores.get(_id)
-        bpct = bino_row.get("ai_probability_pct") if bino_row else None
-        bino_p = (bpct / 100.0) if bpct is not None else None
+        for _id in all_ids:
+            fd_row = fastdetect_scores.get(_id)
+            fd_p = fd_row["probability"] if (fd_row and fd_row.get("probability") is not None and fd_row["probability"] == fd_row["probability"]) else None
 
-        desk_row = desklib_scores.get(_id)
-        dp = desk_row.get("ai_probability") if desk_row else None
-        desk_p = float(dp) if (dp is not None and dp == dp) else None
+            bino_row = bino_scores.get(_id)
+            bpct = bino_row.get("ai_probability_pct") if bino_row else None
+            bino_p = (bpct / 100.0) if bpct is not None else None
 
-        ada_row = ada_scores.get(_id)
-        ap = ada_row.get("probability") if ada_row else None
-        ada_p = float(ap) if (ap is not None and ap == ap) else None
+            desk_row = desklib_scores.get(_id)
+            dp = desk_row.get("ai_probability") if desk_row else None
+            desk_p = float(dp) if (dp is not None and dp == dp) else None
 
-        lab = {
-            "gpt": (fd_p >= thr) if fd_p is not None else None,
-            "bino": (bino_p >= thr) if bino_p is not None else None,
-            "desk": (desk_p >= thr) if desk_p is not None else None,
-            "ada": (ada_p >= thr) if ada_p is not None else None,
+            ada_row = ada_scores.get(_id)
+            ap = ada_row.get("probability") if ada_row else None
+            ada_p = float(ap) if (ap is not None and ap == ap) else None
+
+            lab = {
+                "gpt": (fd_p >= thr) if fd_p is not None else None,
+                "bino": (bino_p >= thr) if bino_p is not None else None,
+                "desk": (desk_p >= thr) if desk_p is not None else None,
+                "ada": (ada_p >= thr) if ada_p is not None else None,
+            }
+
+            present = {k: v for k, v in lab.items() if v is not None}
+            if present:
+                ai_votes = sum(1 for v in present.values() if v)
+                ai_hist[ai_votes] += 1
+                if ai_votes > 0:
+                    for detector, ha_votato_ia in present.items():
+                        if ha_votato_ia:
+                            flussi[detector][ai_votes] += 1
+
+            pairs = [
+                ("bino", "gpt", "bino-gpt"),
+                ("bino", "desk", "bino-desk"),
+                ("bino", "ada", "bino-ada"),
+                ("desk", "gpt", "desk-gpt"),
+                ("desk", "ada", "desk-ada"),
+                ("gpt", "ada", "gpt-ada"),
+            ]
+            for m1, m2, key in pairs:
+                if lab[m1] is not None and lab[m2] is not None and lab[m1] == lab[m2]:
+                    pair_agreement[key] += 1
+
+            if len(present) == 4:
+                considered_full += 1
+                if len(set(present.values())) == 1:
+                    full_agree += 1
+
+        return {
+            "soglia_ai": thr,
+            "id_totali": len(all_ids),
+            "id_presenti_in_tutti_e_4": considered_full,
+            "conteggio_ai": {
+                "ai_per_tutti_e_4": ai_hist.get(4, 0),
+                "ai_per_esattamente_3": ai_hist.get(3, 0),
+                "ai_per_esattamente_2": ai_hist.get(2, 0),
+                "ai_per_esattamente_1": ai_hist.get(1, 0),
+                "ai_per_nessuno": ai_hist.get(0, 0),
+            },
+            "accordo": {
+                "tutti_e_4_stessa_etichetta": full_agree,
+                "coppie": pair_agreement,
+            },
+            # Chiavi in inglese perche' corrispondono agli id dei detector usati
+            # altrove nell'API; i valori sono conteggi per fascia di consenso.
+            "flussi_consenso": flussi,
+            "copertura": {
+                "fastdetectgpt": len(fastdetect_scores),
+                "binoculars": len(bino_scores),
+                "desklib": len(desklib_scores),
+                "adadetectgpt": len(ada_scores),
+            },
         }
 
-        present = {k: v for k, v in lab.items() if v is not None}
-        if present:
-            ai_votes = sum(1 for v in present.values() if v)
-            ai_hist[ai_votes] += 1
-            if ai_votes > 0:
-                for detector, ha_votato_ia in present.items():
-                    if ha_votato_ia:
-                        flussi[detector][ai_votes] += 1
-
-        pairs = [
-            ("bino", "gpt", "bino-gpt"),
-            ("bino", "desk", "bino-desk"),
-            ("bino", "ada", "bino-ada"),
-            ("desk", "gpt", "desk-gpt"),
-            ("desk", "ada", "desk-ada"),
-            ("gpt", "ada", "gpt-ada"),
-        ]
-        for m1, m2, key in pairs:
-            if lab[m1] is not None and lab[m2] is not None and lab[m1] == lab[m2]:
-                pair_agreement[key] += 1
-
-        if len(present) == 4:
-            considered_full += 1
-            if len(set(present.values())) == 1:
-                full_agree += 1
-
-    return {
-        "soglia_ai": thr,
-        "id_totali": len(all_ids),
-        "id_presenti_in_tutti_e_4": considered_full,
-        "conteggio_ai": {
-            "ai_per_tutti_e_4": ai_hist.get(4, 0),
-            "ai_per_esattamente_3": ai_hist.get(3, 0),
-            "ai_per_esattamente_2": ai_hist.get(2, 0),
-            "ai_per_esattamente_1": ai_hist.get(1, 0),
-            "ai_per_nessuno": ai_hist.get(0, 0),
-        },
-        "accordo": {
-            "tutti_e_4_stessa_etichetta": full_agree,
-            "coppie": pair_agreement,
-        },
-        # Chiavi in inglese perche' corrispondono agli id dei detector usati
-        # altrove nell'API; i valori sono conteggi per fascia di consenso.
-        "flussi_consenso": flussi,
-        "copertura": {
-            "fastdetectgpt": len(fastdetect_scores),
-            "binoculars": len(bino_scores),
-            "desklib": len(desklib_scores),
-            "adadetectgpt": len(ada_scores),
-        },
-    }
+    return get_cached_computation(("compute_four_detector_comparison",), fp, _compute, ttl=600)
 
 
+def get_consolidated_detector_items(
+    fastdetect_scores: dict[int, dict],
+    bino_scores: dict[int, dict],
+    desklib_scores: dict[int, dict],
+    ada_scores: dict[int, dict],
+) -> list[tuple[int, float | None, float | None, float | None, float | None, int, bool, bool, bool, bool]]:
+    """Restituisce l'elenco consolidato e ordinato per ID di tutti i post con i relativi punteggi
+    dei 4 detector, voti complessivi e flag boolean di classificazione IA."""
+    fp = (len(fastdetect_scores), len(bino_scores), len(desklib_scores), len(ada_scores))
 
+    def _compute():
+        all_ids = set(fastdetect_scores.keys()) | set(bino_scores.keys()) | set(desklib_scores.keys()) | set(ada_scores.keys())
+        items = []
+        for sid in all_ids:
+            fd_row = fastdetect_scores.get(sid)
+            fd_p = fd_row["probability"] if (fd_row and fd_row.get("probability") is not None and fd_row["probability"] == fd_row["probability"]) else None
+
+            bino_row = bino_scores.get(sid)
+            bpct = bino_row.get("ai_probability_pct") if bino_row else None
+            bino_p = (bpct / 100.0) if bpct is not None else None
+
+            desk_row = desklib_scores.get(sid)
+            dp = desk_row.get("ai_probability") if desk_row else None
+            desk_p = float(dp) if (dp is not None and dp == dp) else None
+
+            ada_row = ada_scores.get(sid)
+            ap = ada_row.get("probability") if ada_row else None
+            ada_p = float(ap) if (ap is not None and ap == ap) else None
+
+            fd_ai = (fd_p >= 0.5) if fd_p is not None else False
+            bino_ai = (bino_p >= 0.5) if bino_p is not None else False
+            desk_ai = (desk_p >= 0.5) if desk_p is not None else False
+            ada_ai = (ada_p >= 0.5) if ada_p is not None else False
+
+            ai_votes = sum([1 if fd_ai else 0, 1 if bino_ai else 0, 1 if desk_ai else 0, 1 if ada_ai else 0])
+            items.append((sid, fd_p, bino_p, desk_p, ada_p, ai_votes, fd_ai, bino_ai, desk_ai, ada_ai))
+
+        items.sort(key=lambda x: x[0])
+        return items
+
+    return get_cached_computation(("consolidated_detector_items",), fp, _compute, ttl=600)
 
 
 def load_binoculars_report(base_dir: Path) -> dict:

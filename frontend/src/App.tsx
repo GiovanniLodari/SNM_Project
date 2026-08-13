@@ -44,26 +44,65 @@ import {
   TrendingUp as InfluenceIcon,
 } from "@mui/icons-material";
 
-// Pagine in caricamento Lazy (Code-Splitting per prestazioni elevate)
-const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
-const Posts = lazy(() => import("./pages/Posts.tsx"));
-const PostDetail = lazy(() => import("./pages/PostDetail.tsx"));
-const AiDetection = lazy(() => import("./pages/AiDetection.tsx"));
-const FactChecking = lazy(() => import("./pages/FactChecking.tsx"));
-const Accounts = lazy(() => import("./pages/Accounts.tsx"));
-const Pipelines = lazy(() => import("./pages/Pipelines.tsx"));
-const DbSync = lazy(() => import("./pages/DbSync.tsx"));
-const DetectorComparison = lazy(() => import("./pages/DetectorComparison.tsx"));
-const InfluenceMaximization = lazy(() => import("./pages/InfluenceMaximization.tsx"));
+// Pagine in caricamento Lazy con loader tracciati per il prefetch istantaneo
+const loadDashboard = () => import("./pages/Dashboard.tsx");
+const loadPosts = () => import("./pages/Posts.tsx");
+const loadPostDetail = () => import("./pages/PostDetail.tsx");
+const loadAiDetection = () => import("./pages/AiDetection.tsx");
+const loadFactChecking = () => import("./pages/FactChecking.tsx");
+const loadAccounts = () => import("./pages/Accounts.tsx");
+const loadPipelines = () => import("./pages/Pipelines.tsx");
+const loadDbSync = () => import("./pages/DbSync.tsx");
+const loadDetectorComparison = () => import("./pages/DetectorComparison.tsx");
+const loadInfluenceMaximization = () => import("./pages/InfluenceMaximization.tsx");
+
+const Dashboard = lazy(loadDashboard);
+const Posts = lazy(loadPosts);
+const PostDetail = lazy(loadPostDetail);
+const AiDetection = lazy(loadAiDetection);
+const FactChecking = lazy(loadFactChecking);
+const Accounts = lazy(loadAccounts);
+const Pipelines = lazy(loadPipelines);
+const DbSync = lazy(loadDbSync);
+const DetectorComparison = lazy(loadDetectorComparison);
+const InfluenceMaximization = lazy(loadInfluenceMaximization);
+
+const routeLoaders: Record<string, () => Promise<unknown>> = {
+  "/": loadDashboard,
+  "/posts": loadPosts,
+  "/ai-detection": loadAiDetection,
+  "/ai-detection-binoculars": loadAiDetection,
+  "/ai-detection-desklib": loadAiDetection,
+  "/ai-detection-ada": loadAiDetection,
+  "/detector-comparison": loadDetectorComparison,
+  "/fact-check": loadFactChecking,
+  "/accounts": loadAccounts,
+  "/influence-maximization": loadInfluenceMaximization,
+  "/pipelines": loadPipelines,
+  "/db-sync": loadDbSync,
+};
+
 import { NotificationProvider } from "./context/NotificationContext.tsx";
 import ErrorBoundary from "./components/ErrorBoundary.tsx";
 import { tokens } from "./theme.ts";
 import { isRouteActive } from "./utils/navigation.ts";
+import { prefetchRouteData } from "./api/queries.ts";
+import { useQueryClient } from "@tanstack/react-query";
 
 const drawerWidth = 270;
 
 function NavigationContent() {
   const location = useLocation();
+  const queryClient = useQueryClient();
+
+  const handlePrefetch = (path: string) => {
+    // 1. Pre-scarica il bundle JS del componente lazy
+    if (routeLoaders[path]) {
+      routeLoaders[path]();
+    }
+    // 2. Pre-scarica i dati delle API via TanStack Query
+    prefetchRouteData(queryClient, path);
+  };
   
   const menuItems = [
     { text: "Dashboard", path: "/", icon: <DashboardIcon sx={{ fontSize: 20 }} /> },
@@ -121,6 +160,9 @@ function NavigationContent() {
                 component={Link}
                 to={item.path}
                 selected={isSelected}
+                onMouseEnter={() => handlePrefetch(item.path)}
+                onFocus={() => handlePrefetch(item.path)}
+                onTouchStart={() => handlePrefetch(item.path)}
                 sx={{
                   py: 1.2,
                   px: 2,

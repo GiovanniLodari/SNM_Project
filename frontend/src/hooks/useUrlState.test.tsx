@@ -75,3 +75,41 @@ describe("useUrlList", () => {
     expect(result.current[0]).toEqual(["en", "fr"]);
   });
 });
+
+describe("scrittura composta con `azzera`", () => {
+  // Regressione: cambiare un filtro e tornare a pagina 1 con due setter URL
+  // separati non funzionava — react-router calcola ogni scrittura dallo stesso
+  // snapshot corrente, quindi la seconda navigazione sovrascriveva la prima e
+  // il filtro andava perso (il controllo sembrava morto). `azzera` fonde le due
+  // modifiche in un'unica navigazione.
+
+  it("useUrlString scrive il valore e azzera un altro parametro insieme", () => {
+    const { result } = renderHook(
+      () => ({ q: useUrlString("q"), page: useUrlNumber("page", 1) }),
+      { wrapper: conUrl("?q=vecchio&page=5") },
+    );
+    act(() => result.current.q[1]("clima", { azzera: ["page"] }));
+    expect(result.current.q[0]).toBe("clima");
+    expect(result.current.page[0]).toBe(1); // page rimosso -> torna al default
+  });
+
+  it("useUrlList scrive la lista e azzera la pagina insieme", () => {
+    const { result } = renderHook(
+      () => ({ lang: useUrlList("lang"), page: useUrlNumber("page", 1) }),
+      { wrapper: conUrl("?lang=it&page=4") },
+    );
+    act(() => result.current.lang[1](["en"], { azzera: ["page"] }));
+    expect(result.current.lang[0]).toEqual(["en"]);
+    expect(result.current.page[0]).toBe(1);
+  });
+
+  it("useUrlNumber inoltra `azzera` (cambio dimensione pagina + reset pagina)", () => {
+    const { result } = renderHook(
+      () => ({ size: useUrlNumber("size", 10), page: useUrlNumber("page", 1) }),
+      { wrapper: conUrl("?size=10&page=7") },
+    );
+    act(() => result.current.size[1](50, { azzera: ["page"] }));
+    expect(result.current.size[0]).toBe(50);
+    expect(result.current.page[0]).toBe(1);
+  });
+});

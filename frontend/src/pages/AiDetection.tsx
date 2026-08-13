@@ -92,14 +92,14 @@ export default function AiDetection({ detectorKey }: AiDetectionProps = {}) {
     const nextBuckets = selectedBuckets.includes(bucket)
       ? selectedBuckets.filter((b) => b !== bucket)
       : [...selectedBuckets, bucket];
-    setSelectedBuckets(nextBuckets);
-    setPage(1);
+    // Il reset di pagina va nella stessa scrittura del filtro: due setter URL
+    // separati si sovrascriverebbero (vedi OpzioniScrittura in useUrlState).
+    setSelectedBuckets(nextBuckets, { azzera: ["page"] });
   };
 
   const handleSortChange = (_: React.SyntheticEvent, newSort: string | null) => {
     if (!newSort) return;
-    setSortBy(newSort);
-    setPage(1);
+    setSortBy(newSort, { azzera: ["page"] });
   };
 
   if (loading && !data) {
@@ -297,10 +297,7 @@ export default function AiDetection({ detectorKey }: AiDetectionProps = {}) {
               return (
                 <Button
                   key={nome}
-                  onClick={() => {
-                    setScaglioneAttivo(nome);
-                    setPaginaScaglione(1);
-                  }}
+                  onClick={() => setScaglioneAttivo(nome, { azzera: ["pscaglione"] })}
                   disableElevation
                   sx={{
                     textTransform: "none",

@@ -1,6 +1,11 @@
+import threading
+import time
 import psycopg2.extensions
 
 from snm.analysis.export_texts import clean_html
+
+_distinct_langs_cache: tuple[float, list[str]] = (0.0, [])
+_distinct_langs_lock = threading.Lock()
 
 
 def count_posts(conn: psycopg2.extensions.connection) -> int:
@@ -55,16 +60,22 @@ def list_posts(
 
 def distinct_languages(conn: psycopg2.extensions.connection) -> list[str]:
     """Lingue distinte tra i post non cancellati, per popolare le checkbox
-    filtro lingua nella webapp (evita di dover indovinare il codice lingua
-    esatto - es. 'it' non 'ita')."""
+    filtro lingua nella webapp. Risultato memorizzato in cache per 300 secondi."""
+    global _distinct_langs_cache
+    now = time.monotonic()
+    with _distinct_langs_lock:
+        ts, cached = _distinct_langs_cache
+        if cached and (now - ts) < 300:
+            return list(cached)
     with conn.cursor() as cur:
         cur.execute(
             "SELECT DISTINCT language FROM statuses "
             "WHERE deleted_at IS NULL AND language IS NOT NULL ORDER BY language"
         )
-        return [row[0] for row in cur.fetchall()]
-
-
+        langs = [row[0] for row in cur.fetchall()]
+    with _distinct_langs_lock:
+        _distinct_langs_cache = (now, langs)
+    return langs
 
 
 def get_post(conn: psycopg2.extensions.connection, post_id: int) -> dict | None:
@@ -88,15 +99,6 @@ def status_ids_matching_content(
 ) -> set[int]:
     """Id degli status il cui contenuto contiene `term` (senza distinzione di
     maiuscole).
-
-    Serve a filtrare *prima* di paginare. L'alternativa - scaricare i contenuti
-    di tutte le righe candidate e cercare in Python - non e' praticabile: gli
-    id da passare sarebbero decine di migliaia e su SQLite `= ANY(%s)` viene
-    espanso in un `IN (?, ?, ...)` che sfonda il limite di parametri. Qui la
-    query ha un solo parametro e il confronto lo fa il database.
-
-    I metacaratteri LIKE nel termine sono neutralizzati con ESCAPE, altrimenti
-    una ricerca di '_' o '%' scritta dall'utente si comporterebbe da jolly.
     """
     if not term.strip():
         return set()
@@ -119,11 +121,22 @@ def count_accounts_by_bot(conn: psycopg2.extensions.connection) -> dict[bool, in
     return counts
 
 
+def get_all_active_status_account_mappings(conn: psycopg2.extensions.connection) -> dict[int, int]:
+    """Mappatura id status -> account_id per tutti i post attivi nel database."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT id, account_id FROM statuses WHERE deleted_at IS NULL")
+        return dict(cur.fetchall())
+
+
 def get_account_ids_for_statuses(
     conn: psycopg2.extensions.connection, status_ids: list[int],
 ) -> dict[int, int]:
     if not status_ids:
         return {}
+    if len(status_ids) > 5000:
+        all_map = get_all_active_status_account_mappings(conn)
+        sid_set = set(status_ids)
+        return {sid: aid for sid, aid in all_map.items() if sid in sid_set}
     with conn.cursor() as cur:
         cur.execute(
             "SELECT id, account_id FROM statuses WHERE id = ANY(%s) AND deleted_at IS NULL", (status_ids,),
@@ -136,6 +149,12 @@ def get_account_bot_flags(
 ) -> dict[int, bool]:
     if not account_ids:
         return {}
+    if len(account_ids) > 5000:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, bot FROM accounts")
+            all_bots = dict(cur.fetchall())
+            aid_set = set(account_ids)
+            return {aid: all_bots[aid] for aid in aid_set if aid in all_bots}
     with conn.cursor() as cur:
         cur.execute(
             "SELECT id, bot FROM accounts WHERE id = ANY(%s)", (account_ids,),

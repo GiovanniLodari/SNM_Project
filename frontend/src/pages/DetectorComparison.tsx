@@ -68,8 +68,9 @@ export default function DetectorComparison() {
   const totalPosts = postsData?.total ?? 0;
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
-    setFilterType(newValue);
-    setPage(1);
+    // Reset di pagina nella stessa scrittura del filtro: due setter URL
+    // separati si sovrascriverebbero (vedi OpzioniScrittura in useUrlState).
+    setFilterType(newValue, { azzera: ["page"] });
   };
 
   const getVoteBadge = (votes: number) => {
@@ -657,10 +658,7 @@ export default function DetectorComparison() {
                 fullWidth
                 placeholder="Cerca nel testo..."
                 value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setPage(1);
-                }}
+                onChange={(e) => setSearchTerm(e.target.value, { azzera: ["page"] })}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
