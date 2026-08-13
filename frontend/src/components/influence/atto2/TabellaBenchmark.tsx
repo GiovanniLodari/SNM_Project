@@ -14,14 +14,17 @@ interface Props {
  * DESIGN.md — righe alte separate da filetti orizzontali, nessun bordo
  * verticale.
  *
- * Due avvertenze non sono cosmetiche, sono correttezza statistica:
- * - quando un algoritmo sceglie meno seed di `kRichiesto`, il budget non e'
- *   stato saturato (i candidati disponibili erano meno del k richiesto);
- * - quando un algoritmo sceglie meno seed degli altri della stessa run
- *   (qui SKIM, 405 contro 822), il suo spread non e' comparabile alla pari
- *   con quello di chi ha potuto scegliere fra piu' seed: uno spread piu'
- *   basso potrebbe dipendere solo dal budget piu' piccolo, non dalla qualita'
- *   dell'algoritmo.
+ * Due note distinte nella cella dei seed, e non vanno confuse:
+ * - "sotto il k richiesto" compare per ogni algoritmo che non raggiunge
+ *   `kRichiesto` (qui nessuno lo raggiunge: i candidati disponibili sono
+ *   meno del k richiesto) — e' solo un confronto col budget nominale;
+ * - l'avviso sulla comparabilita' compare invece solo per chi sceglie meno
+ *   seed *degli altri algoritmi della stessa run* (qui SKIM, 405 contro
+ *   822): il suo spread non e' comparabile alla pari con quello di chi ha
+ *   potuto scegliere fra piu' seed, perche' uno spread piu' basso potrebbe
+ *   dipendere solo dal budget piu' piccolo, non dalla qualita'
+ *   dell'algoritmo. Le due note possono comparire insieme (e' il caso di
+ *   SKIM) o solo la prima (e' il caso degli altri quattro algoritmi).
  */
 export default function TabellaBenchmark({ algoritmi, kRichiesto }: Props) {
   const righe = rapportoCostoBeneficio(algoritmi);
@@ -56,12 +59,14 @@ export default function TabellaBenchmark({ algoritmi, kRichiesto }: Props) {
           const info = algoritmi[riga.nome];
           if (!info) return null;
 
+          const sottoK = info.n_seeds < kRichiesto;
+          // Sceglie meno seed di quanti ne abbia scelti chi, nella stessa run,
+          // ne ha scelti di piu': confrontarne lo spread alla pari e' scorretto.
+          // Va tenuta distinta dalla nota "sotto il k richiesto" sopra: quella
+          // e' vera per ogni algoritmo di questa run (nessuno raggiunge k),
+          // questa riguarda solo chi sceglie meno seed *degli altri*, non solo
+          // meno del budget.
           const menoSeedDegliAltri = info.n_seeds < massimoSeed;
-          // "Candidati esauriti" e' vero solo per chi ha scelto il massimo di
-          // seed osservato in questa run (qui: tutti tranne SKIM): per SKIM,
-          // che ne sceglie meno degli altri di sua iniziativa, la stessa frase
-          // sarebbe falsa, quindi le due note non compaiono mai insieme.
-          const candidatiEsauriti = !menoSeedDegliAltri && info.n_seeds < kRichiesto;
 
           return (
             <TableRow key={riga.nome}>
@@ -72,13 +77,12 @@ export default function TabellaBenchmark({ algoritmi, kRichiesto }: Props) {
                 <Typography component="span" sx={{ fontFamily: tokens.font.mono, color: tokens.color.textPrimary }}>
                   {formatNumber(info.n_seeds, { useGrouping: true })}
                 </Typography>
-                {candidatiEsauriti && (
+                {sottoK && (
                   <Typography
                     variant="caption"
                     sx={{ display: "block", color: tokens.color.textMuted }}
                   >
-                    sotto il k richiesto ({formatNumber(kRichiesto, { useGrouping: true })}): ha
-                    selezionato tutti i candidati disponibili ({formatNumber(massimoSeed, { useGrouping: true })})
+                    sotto il k richiesto ({formatNumber(kRichiesto, { useGrouping: true })})
                   </Typography>
                 )}
                 {menoSeedDegliAltri && (
