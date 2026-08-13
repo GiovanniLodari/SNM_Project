@@ -3,7 +3,7 @@ import {
   Typography,
   Box,
   Button,
-  CircularProgress,
+  LinearProgress,
   Skeleton,
   Stack,
   List,
@@ -29,8 +29,19 @@ export default function Posts() {
   const [page, setPage] = useUrlNumber("page", 1);
   const [pageSize, setPageSize] = useUrlNumber("size", 10);
 
-  const { data, isLoading: loading, isError } = usePostsQuery(selectedLangs, page, pageSize);
+  const {
+    data,
+    isLoading: loading,
+    isError,
+    isFetching,
+    isPlaceholderData,
+  } = usePostsQuery(selectedLangs, page, pageSize);
   const error = isError ? "Impossibile caricare l'elenco dei post." : null;
+
+  // Vero mentre arriva una pagina nuova con quella vecchia ancora a schermo:
+  // basta un filetto di avanzamento e un velo, non uno spinner che sostituisce
+  // tutto (DESIGN.md non usa spinner: superfici piatte e filetti sottili).
+  const staAggiornando = isFetching && isPlaceholderData;
 
   // Lo scroll in cima e' un effetto collaterale del cambio pagina, non del
   // caricamento dei dati: resta un effect, ma non fa piu' da fetch.
@@ -48,16 +59,36 @@ export default function Posts() {
 
   const formatTime = formatDateTime;
 
+  // Lo scheletro ricalca le due colonne della pagina vera: cosi' al primo
+  // caricamento il contenuto si sostituisce senza far saltare il layout.
   if (loading && !data) {
     return (
-      <Box sx={{ p: 2 }}>
-        <Skeleton variant="text" width={180} height={28} sx={{ mb: 2, borderRadius: tokens.radius.md }} />
-        <Skeleton variant="rectangular" width="40%" height={40} sx={{ mb: 4, borderRadius: tokens.radius.md }} />
-        <Stack spacing={2}>
-          {[1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} variant="rectangular" height={100} sx={{ borderRadius: tokens.radius.lg, backgroundColor: "#f9f8f6" }} />
-          ))}
-        </Stack>
+      <Box>
+        <Box sx={{ mb: 6 }}>
+          <Skeleton variant="text" width={340} height={56} sx={{ mb: 1 }} />
+          <Skeleton variant="text" width={520} height={24} />
+        </Box>
+        <Grid container spacing={4}>
+          <Grid item xs={12} md={3}>
+            <Skeleton
+              variant="rectangular"
+              height={260}
+              sx={{ borderRadius: tokens.radius.lg, backgroundColor: "#f9f8f6" }}
+            />
+          </Grid>
+          <Grid item xs={12} md={9}>
+            <Stack spacing={0} sx={{ borderRadius: tokens.radius.lg, overflow: "hidden", border: tokens.border.subtle }}>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Box key={i} sx={{ p: 3, borderBottom: i < 5 ? tokens.border.subtle : "none" }}>
+                  <Skeleton variant="text" width="35%" height={22} sx={{ mb: 1.5 }} />
+                  <Skeleton variant="text" width="60%" height={18} sx={{ mb: 1.5 }} />
+                  <Skeleton variant="text" width="100%" height={18} />
+                  <Skeleton variant="text" width="80%" height={18} />
+                </Box>
+              ))}
+            </Stack>
+          </Grid>
+        </Grid>
       </Box>
     );
   }
@@ -76,10 +107,10 @@ export default function Posts() {
             mb: 1,
           }}
         >
-          Fediverse Status Archive
+          Archivio dei post
         </Typography>
         <Typography variant="body1" sx={{ color: tokens.color.textMuted }}>
-          Inspect raw posts collected from discovered Mastodon instances with language filtering.
+          I post raccolti dalle istanze Mastodon individuate, filtrabili per lingua.
         </Typography>
       </Box>
 
@@ -156,16 +187,31 @@ export default function Posts() {
 
         {/* Post list */}
         <Grid item xs={12} md={9}>
-          {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
-              <CircularProgress />
-            </Box>
-          ) : error || !data || data.posts.length === 0 ? (
+          {error || !data || data.posts.length === 0 ? (
             <EmptyState message="Nessun post corrisponde ai filtri selezionati." />
           ) : (
             <Box>
               <Paper sx={{ borderRadius: tokens.radius.lg, border: tokens.border.subtle, overflow: "hidden", mb: 4, backgroundColor: tokens.color.canvas }}>
-                <List sx={{ p: 0 }}>
+                {/* Filetto di avanzamento: occupa lo spazio anche da fermo, cosi'
+                    comparendo non fa scorrere l'elenco di due pixel. */}
+                <Box sx={{ height: 2 }}>
+                  {staAggiornando && (
+                    <LinearProgress
+                      sx={{
+                        height: 2,
+                        backgroundColor: "transparent",
+                        "& .MuiLinearProgress-bar": { backgroundColor: tokens.color.nearBlack },
+                      }}
+                    />
+                  )}
+                </Box>
+                <List
+                  sx={{
+                    p: 0,
+                    opacity: staAggiornando ? 0.55 : 1,
+                    transition: "opacity 0.15s ease",
+                  }}
+                >
                   {data.posts.map((post, idx) => (
                     <div key={post.id}>
                       <ListItem
@@ -310,7 +356,7 @@ export default function Posts() {
                                   fontWeight: 500,
                                 }}
                               >
-                                View Detailed Inspection &rarr;
+                                Vedi il dettaglio &rarr;
                               </Link>
                             </Box>
                           }

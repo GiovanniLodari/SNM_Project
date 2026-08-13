@@ -99,22 +99,6 @@ export default function FactChecking() {
       {/* Hero Header */}
       <Box sx={{ mb: 5, pt: 1, borderBottom: tokens.border.subtle, pb: 4 }}>
         <Typography
-          variant="caption"
-          sx={{
-            fontFamily: tokens.font.mono,
-            fontSize: "12px",
-            color: tokens.color.coral,
-            fontWeight: 600,
-            letterSpacing: "0.28px",
-            textTransform: "uppercase",
-            display: "block",
-            mb: 1,
-          }}
-        >
-          CLAIM VERIFICATION ARCHIVE
-          {totalAudited !== null && ` • ${formatNumber(totalAudited)} AUDITED POSTS`}
-        </Typography>
-        <Typography
           variant="h3"
           sx={{
             fontFamily: tokens.font.display,
@@ -126,7 +110,7 @@ export default function FactChecking() {
             mb: 2,
           }}
         >
-          LLM Truth Verification Index
+          Verifica dei fatti
         </Typography>
         <Typography
           variant="body1"

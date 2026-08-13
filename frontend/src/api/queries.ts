@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { api } from "./client.ts";
 
 /**
@@ -43,6 +43,11 @@ export function usePostsQuery(lang: string[], page: number, pageSize: number = 2
     queryKey: queryKeys.posts(lang, page, pageSize),
     queryFn: () => api.posts(lang, page, pageSize),
     staleTime: 5 * 60 * 1000,
+    // Cambiare pagina crea una chiave nuova: senza questo, l'elenco veniva
+    // smontato e sostituito da uno spinner a ogni clic, e i ~700ms della
+    // richiesta si sentivano tutti. Con i dati precedenti come segnaposto la
+    // pagina resta in piedi e si aggiorna quando arrivano quelli nuovi.
+    placeholderData: keepPreviousData,
   });
 }
 

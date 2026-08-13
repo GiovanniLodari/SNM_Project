@@ -15,6 +15,7 @@ import {
   Chip,
   LinearProgress,
   Grid,
+  Stack,
   ToggleButtonGroup,
   ToggleButton,
 } from "@mui/material";
@@ -70,10 +71,15 @@ export default function AiDetection({ detectorKey }: AiDetectionProps = {}) {
   const [selectedBuckets, setSelectedBuckets] = useUrlList("bucket");
   const [sortBy, setSortBy] = useUrlString("sort", "id");
   const [page, setPage] = useUrlNumber("page", 1);
-  const [bucketPages, setBucketPages] = useState<Record<string, number>>({});
+  // Scaglione aperto nell'esploratore. Sta nella URL come gli altri filtri:
+  // la vista diventa condivisibile e il tasto Indietro ripercorre le fasce.
+  const [scaglioneAttivo, setScaglioneAttivo] = useUrlString("scaglione", "");
+  const [paginaScaglione, setPaginaScaglione] = useUrlNumber("pscaglione", 1);
   const [statsModalOpen, setStatsModalOpen] = useState(false);
 
-  const ITEMS_PER_BUCKET_PAGE = 2;
+  // Con una fascia sola a piena larghezza c'e' spazio per righe leggibili:
+  // prima erano 2 per colonna perche' le colonne erano larghe ~200px.
+  const POST_PER_PAGINA_SCAGLIONE = 5;
 
   const { data, isLoading: loading, isError } = useAiDetectionQuery(
     selectedBuckets, page, sortBy, activeDetectorKey,
@@ -96,14 +102,6 @@ export default function AiDetection({ detectorKey }: AiDetectionProps = {}) {
     setPage(1);
   };
 
-  const getBucketPage = (bName: string) => bucketPages[bName] || 1;
-
-  const setBucketPage = (bName: string, newPg: number) => {
-    setBucketPages((prev) => ({ ...prev, [bName]: newPg }));
-  };
-
-
-
   if (loading && !data) {
     return (
       <LoadingState />
@@ -111,6 +109,24 @@ export default function AiDetection({ detectorKey }: AiDetectionProps = {}) {
   }
 
   const maxHistVal = data ? Math.max(...Object.values(data.histogram), 1) : 1;
+
+  // Scaglione corrente e sua paginazione. Lo stato in URL puo' contenere una
+  // fascia che questo detector non espone (link condiviso, cambio di dati):
+  // si ripiega sulla prima disponibile invece di mostrare il vuoto.
+  const nomiScaglioni = data?.bucket_samples ? Object.keys(data.bucket_samples) : [];
+  const scaglioneCorrente = nomiScaglioni.includes(scaglioneAttivo)
+    ? scaglioneAttivo
+    : nomiScaglioni[0] ?? "";
+  const campioniScaglione = data?.bucket_samples?.[scaglioneCorrente] ?? [];
+  const pagineScaglione = Math.max(
+    1,
+    Math.ceil(campioniScaglione.length / POST_PER_PAGINA_SCAGLIONE),
+  );
+  const paginaCorrente = Math.min(Math.max(1, paginaScaglione), pagineScaglione);
+  const campioniVisibili = campioniScaglione.slice(
+    (paginaCorrente - 1) * POST_PER_PAGINA_SCAGLIONE,
+    paginaCorrente * POST_PER_PAGINA_SCAGLIONE,
+  );
 
   return (
     <Box>
@@ -257,202 +273,182 @@ export default function AiDetection({ detectorKey }: AiDetectionProps = {}) {
           }}
         >
           <Box sx={{ mb: 3 }}>
-            <Chip
-              label="TIER EXPLORER"
-              size="small"
-              sx={{
-                fontFamily: tokens.font.mono,
-                fontSize: "10px",
-                color: tokens.color.coral,
-                backgroundColor: tokens.color.surfaceCoral,
-                fontWeight: 700,
-                mb: 1,
-              }}
-            />
             <Typography variant="h5" sx={{ fontWeight: 600, color: tokens.color.nearBlack }}>
-              Esplorazione Post per Scaglione di Probabilità AI
+              Esplorazione dei post per scaglione di probabilità
             </Typography>
-            <Typography variant="body2" sx={{ color: tokens.color.textMuted, mt: 0.5 }}>
-              Campioni estratti direttamente da <code>ai_scores.jsonl</code> per ciascuna fascia di confidenza del modello Fast-DetectGPT.
+            {/* Il detector va nominato dalla configurazione: questa pagina serve
+                tutti e quattro, e la dicitura fissa su Fast-DetectGPT era falsa
+                sulle altre tre. */}
+            <Typography variant="body2" sx={{ color: tokens.color.textMuted, mt: 0.5, maxWidth: "70ch" }}>
+              Campioni di post per ciascuna fascia di confidenza di{" "}
+              <strong>{config.label}</strong>. Scegli uno scaglione per leggerne i post.
             </Typography>
           </Box>
 
-          <Grid container spacing={3}>
-            {Object.entries(data.bucket_samples).map(([bucketName, samples]) => {
-              const currentPage = getBucketPage(bucketName);
-              const totalPages = Math.max(1, Math.ceil(samples.length / ITEMS_PER_BUCKET_PAGE));
-              const startIndex = (currentPage - 1) * ITEMS_PER_BUCKET_PAGE;
-              const paginatedSamples = samples.slice(startIndex, startIndex + ITEMS_PER_BUCKET_PAGE);
-
+          {/* Selettore dello scaglione. Prima le cinque fasce stavano
+              affiancate in colonne da ~200px: account troncato, testo del post
+              illeggibile e nessuna gerarchia. Una fascia alla volta a piena
+              larghezza rende leggibile il contenuto, che e' il motivo per cui
+              questa sezione esiste. */}
+          <Stack direction="row" sx={{ flexWrap: "wrap", gap: 1, mb: 3 }}>
+            {nomiScaglioni.map((nome) => {
+              const attivo = nome === scaglioneCorrente;
+              const quanti = data.bucket_samples?.[nome].length ?? 0;
               return (
-                <Grid item xs={12} md={2.4} key={bucketName}>
-                  <Paper
-                    elevation={0}
+                <Button
+                  key={nome}
+                  onClick={() => {
+                    setScaglioneAttivo(nome);
+                    setPaginaScaglione(1);
+                  }}
+                  disableElevation
+                  sx={{
+                    textTransform: "none",
+                    borderRadius: tokens.radius.xl,
+                    px: 2.5,
+                    py: 0.75,
+                    fontSize: "14px",
+                    fontWeight: attivo ? 600 : 500,
+                    color: attivo ? tokens.color.canvas : tokens.color.nearBlack,
+                    backgroundColor: attivo ? tokens.color.nearBlack : "transparent",
+                    border: `1px solid ${attivo ? tokens.color.nearBlack : tokens.color.border}`,
+                    "&:hover": {
+                      backgroundColor: attivo ? tokens.color.nearBlack : tokens.color.softStone,
+                    },
+                  }}
+                >
+                  {nome}
+                  <Box
+                    component="span"
                     sx={{
-                      p: 2.5,
-                      borderRadius: tokens.radius.lg,
-                      border: "1px solid #e2e4e8",
-                      backgroundColor: tokens.color.canvas,
-                      height: "100%",
-                      display: "flex",
-                      flexDirection: "column",
+                      ml: 1,
+                      fontFamily: tokens.font.mono,
+                      fontSize: "12px",
+                      color: attivo ? tokens.color.textFaint : tokens.color.textMuted,
                     }}
                   >
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                      <Chip
-                        label={`Scaglione ${bucketName}`}
-                        size="small"
-                        sx={{
-                          fontWeight: 700,
-                          fontSize: "11px",
-                          backgroundColor:
-                            bucketName.startsWith("0.8") || bucketName.startsWith("0.6")
-                              ? tokens.color.coral
-                              : tokens.color.softStone,
-                          color:
-                            bucketName.startsWith("0.8") || bucketName.startsWith("0.6")
-                              ? tokens.color.canvas
-                              : tokens.color.nearBlack,
-                        }}
-                      />
-                      <Typography variant="caption" sx={{ color: tokens.color.textMuted, fontWeight: 600 }}>
-                        {samples.length} post
-                      </Typography>
-                    </Box>
-
-                    {samples.length === 0 ? (
-                      <Typography variant="caption" sx={{ color: "#9e9ea7", fontStyle: "italic", my: "auto" }}>
-                        Nessun post presente in questo scaglione.
-                      </Typography>
-                    ) : (
-                      <>
-                        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, flexGrow: 1 }}>
-                          {paginatedSamples.map(({ post, probability }) => {
-                            const isHighProb = probability >= 0.5;
-                            const probColor = isHighProb ? tokens.color.coral : "#3b82f6";
-                            const probBg = isHighProb ? "#fff1ef" : "#eff6ff";
-                            return (
-                              <Paper
-                                key={post.id}
-                                elevation={0}
-                                sx={{
-                                  p: 2,
-                                  borderRadius: tokens.radius.md,
-                                  backgroundColor: tokens.color.tableHead,
-                                  border: tokens.border.subtle,
-                                  transition: "all 0.15s ease",
-                                  "&:hover": {
-                                    backgroundColor: tokens.color.canvas,
-                                    borderColor: isHighProb ? tokens.color.coral : "#3b82f6",
-                                    boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-                                  },
-                                }}
-                              >
-                                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-                                  <Typography
-                                    variant="caption"
-                                    sx={{
-                                      fontWeight: 600,
-                                      color: tokens.color.nearBlack,
-                                      overflow: "hidden",
-                                      textOverflow: "ellipsis",
-                                      whiteSpace: "nowrap",
-                                      maxWidth: "100px",
-                                      fontSize: "12px",
-                                    }}
-                                  >
-                                    {post.acct}
-                                  </Typography>
-                                  <Chip
-                                    label={`${(probability * 100).toFixed(1)}%`}
-                                    size="small"
-                                    sx={{
-                                      height: "20px",
-                                      fontSize: "10px",
-                                      fontWeight: 700,
-                                      backgroundColor: probBg,
-                                      color: probColor,
-                                    }}
-                                  />
-                                </Box>
-
-                                <Typography
-                                  variant="body2"
-                                  sx={{
-                                    display: "-webkit-box",
-                                    WebkitLineClamp: 4,
-                                    WebkitBoxOrient: "vertical",
-                                    overflow: "hidden",
-                                    color: tokens.color.textPrimary,
-                                    fontSize: "13px",
-                                    lineHeight: 1.5,
-                                    mb: 1.5,
-                                  }}
-                                >
-                                  {post.content}
-                                </Typography>
-
-                                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                  <Typography variant="caption" sx={{ color: tokens.color.textMuted, fontSize: "10px", fontFamily: "monospace" }}>
-                                    #{post.id}
-                                  </Typography>
-                                  <Button
-                                    component={Link}
-                                    to={`/posts/${post.id}`}
-                                    size="small"
-                                    variant="contained"
-                                    disableElevation
-                                    sx={{
-                                      fontSize: "11px",
-                                      fontWeight: 600,
-                                      textTransform: "none",
-                                      py: 0.3,
-                                      px: 1.5,
-                                      borderRadius: tokens.radius.lg,
-                                      backgroundColor: tokens.color.actionBlue,
-                                      color: tokens.color.canvas,
-                                      "&:hover": { backgroundColor: "#114cb0" },
-                                    }}
-                                  >
-                                    Vedi Dettagli &rarr;
-                                  </Button>
-                                </Box>
-                              </Paper>
-                            );
-                          })}
-                        </Box>
-
-                        {/* Pagination controls for this tier column */}
-                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 2, pt: 1.5, borderTop: "1px solid #f1f5f9" }}>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            disabled={currentPage <= 1}
-                            onClick={() => setBucketPage(bucketName, currentPage - 1)}
-                            sx={{ minWidth: "32px", px: 1, py: 0.2, fontSize: "11px", borderRadius: tokens.radius.sm }}
-                          >
-                            &larr; Indietro
-                          </Button>
-                          <Typography variant="caption" sx={{ color: tokens.color.darkSlateDeep, fontSize: "11px", fontWeight: 600 }}>
-                            {currentPage} / {totalPages}
-                          </Typography>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            disabled={currentPage >= totalPages}
-                            onClick={() => setBucketPage(bucketName, currentPage + 1)}
-                            sx={{ minWidth: "32px", px: 1, py: 0.2, fontSize: "11px", borderRadius: tokens.radius.sm }}
-                          >
-                            Avanti &rarr;
-                          </Button>
-                        </Box>
-                      </>
-                    )}
-                  </Paper>
-                </Grid>
+                    {quanti}
+                  </Box>
+                </Button>
               );
             })}
-          </Grid>
+          </Stack>
+
+          {campioniScaglione.length === 0 ? (
+            <Typography variant="body2" sx={{ color: tokens.color.textMuted, fontStyle: "italic", py: 4 }}>
+              Nessun post presente in questo scaglione.
+            </Typography>
+          ) : (
+            <>
+              <Box sx={{ borderTop: tokens.border.subtle }}>
+                {campioniVisibili.map(({ post, probability }) => {
+                  const altaProbabilita = probability >= 0.5;
+                  return (
+                    <Box
+                      key={post.id}
+                      sx={{
+                        display: "flex",
+                        gap: 3,
+                        py: 3,
+                        borderBottom: tokens.border.subtle,
+                        alignItems: "flex-start",
+                      }}
+                    >
+                      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{ fontWeight: 600, color: tokens.color.nearBlack, mb: 0.5 }}
+                        >
+                          {post.acct}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            display: "-webkit-box",
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                            color: tokens.color.textPrimary,
+                            lineHeight: 1.5,
+                            mb: 1.5,
+                          }}
+                        >
+                          {post.content}
+                        </Typography>
+                        <Link
+                          to={`/posts/${post.id}`}
+                          style={{
+                            color: tokens.color.actionBlue,
+                            textDecoration: "underline",
+                            fontSize: "14px",
+                            fontWeight: 500,
+                          }}
+                        >
+                          Vedi dettagli &rarr;
+                        </Link>
+                      </Box>
+
+                      <Box sx={{ flexShrink: 0, textAlign: "right", minWidth: 92 }}>
+                        <Typography
+                          sx={{
+                            fontFamily: tokens.font.mono,
+                            fontSize: "20px",
+                            fontWeight: 600,
+                            lineHeight: 1.2,
+                            color: altaProbabilita ? tokens.color.coral : tokens.color.actionBlue,
+                          }}
+                        >
+                          {(probability * 100).toFixed(1)}%
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{ display: "block", color: tokens.color.textMuted, fontSize: "11px" }}
+                        >
+                          probabilita&#39; IA
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            display: "block",
+                            mt: 0.5,
+                            fontFamily: tokens.font.mono,
+                            fontSize: "11px",
+                            color: tokens.color.textFaint,
+                          }}
+                        >
+                          #{post.id}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Box>
+
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 3 }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  disabled={paginaCorrente <= 1}
+                  onClick={() => setPaginaScaglione(paginaCorrente - 1)}
+                  sx={{ borderRadius: tokens.radius.pill, textTransform: "none", fontSize: "13px" }}
+                >
+                  &larr; Indietro
+                </Button>
+                <Typography variant="caption" sx={{ color: tokens.color.textMuted, fontWeight: 500 }}>
+                  Pagina {paginaCorrente} di {pagineScaglione} &middot; {campioniScaglione.length} post
+                </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  disabled={paginaCorrente >= pagineScaglione}
+                  onClick={() => setPaginaScaglione(paginaCorrente + 1)}
+                  sx={{ borderRadius: tokens.radius.pill, textTransform: "none", fontSize: "13px" }}
+                >
+                  Avanti &rarr;
+                </Button>
+              </Box>
+            </>
+          )}
         </Paper>
       )}
 
