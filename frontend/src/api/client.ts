@@ -481,6 +481,21 @@ export interface InfluenceAlgorithmInfo {
   seeds_sample: string[];
 }
 
+/** Parametri con cui e' stata eseguita la run di confronto. */
+export interface ParametriRun {
+  n_sub: number;
+  k: number;
+  theta: number;
+  num_rr: number;
+  mc_runs_celf: number;
+  eval_runs: number;
+  snowball_starts: number;
+  random_seed: number;
+  ic_p0: number;
+  ic_cap: number;
+  ic_method: string;
+}
+
 export interface InfluenceComparisonResponse {
   subgraph: {
     nodes: number;
@@ -492,6 +507,8 @@ export interface InfluenceComparisonResponse {
   algorithms: Record<string, InfluenceAlgorithmInfo>;
   seed_overlap_jaccard: Record<string, number>;
   winner_by_mc_spread: string;
+  /** null per le run che non hanno registrato i propri parametri. */
+  params: ParametriRun | null;
 }
 
 export const api = {
