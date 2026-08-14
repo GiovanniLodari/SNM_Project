@@ -82,6 +82,26 @@ ALTER TABLE statuses ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'hash
 -- Marcatore crawl timeline: quando abbiamo scaricato i post recenti dell'account.
 ALTER TABLE accounts ADD COLUMN IF NOT EXISTS timeline_crawled_at TIMESTAMPTZ;
 
+-- Ricerca testuale nel corpus (webapp: /api/posts?q=..., /api/fact-check?search=...).
+--
+-- Le due ricerche usano `content ILIKE '%termine%'`, che senza indice obbliga a
+-- leggere l'intera tabella: misurato su 1,8 milioni di post, una ricerca costa
+-- oltre trenta secondi, cioe' una pagina che sembra bloccata. L'indice trigram
+-- riporta la stessa interrogazione nell'ordine dei millisecondi.
+--
+-- Misurato: la stessa ricerca passa da 37 secondi a 38 millisecondi, e il
+-- conteggio dei risultati da 24 secondi a 17.
+--
+-- ATTENZIONE: questo file viene eseguito da `init_schema` all'avvio della
+-- webapp. Su un database vuoto la creazione e' istantanea; su uno gia' popolato
+-- richiede alcuni minuti e parecchio spazio (circa 490 MB su un corpus di 1,8
+-- milioni di post, quasi la meta' della tabella), quindi il primo avvio dopo
+-- questa aggiunta resta fermo per quel tempo. `IF NOT EXISTS` fa si' che accada
+-- una volta sola.
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX IF NOT EXISTS statuses_content_trgm
+    ON statuses USING gin (content gin_trgm_ops);
+
 -- Post risultato cancellato sull'istanza di origine (404 durante l'arricchimento).
 -- Si conserva comunque: contenuto già salvato in raw, e la cancellazione stessa
 -- è un segnale (spesso correla con moderazione). NULL = mai visto cancellato.

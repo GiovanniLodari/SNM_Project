@@ -1,4 +1,4 @@
-import type { BotDetectorId } from "../../api/client.ts";
+import type { BotDetectorId, Post } from "../../api/client.ts";
 import type { Atto } from "../narrativa/tipi.ts";
 import { tokens } from "../../theme.ts";
 
@@ -92,6 +92,28 @@ export const MODELLI: readonly Modello[] = [
 
 /** Il modello mostrato all'apertura del capitolo, se la URL non ne indica uno. */
 export const MODELLO_PREDEFINITO: IdModello = "fastdetect";
+
+/**
+ * La probabilita' che un rilevatore ha assegnato a un post, letta dalla riga
+ * che `/api/posts` restituisce.
+ *
+ * Sta nel registro e non nelle pagine perche' e' la terza nomenclatura degli
+ * stessi quattro modelli - dopo `id` e `idIndagine`, i nomi dei campi della
+ * riga - e tenerla altrove significherebbe riscrivere a mano una catena di
+ * `if` ogni volta che un elenco di post vuole mostrare i punteggi.
+ *
+ * `undefined` = la riga non porta il campo, `null` = il modello non ha valutato
+ * quel post: entrambi vanno mostrati come assenza, mai come zero.
+ */
+export function probabilitaDelPost(post: Post, modello: Modello): number | null | undefined {
+  const per_id: Record<IdModello, number | null | undefined> = {
+    fastdetect: post.fastdetect_prob,
+    binoculars: post.binoculars_prob,
+    desklib: post.desklib_prob,
+    ada: post.ada_prob,
+  };
+  return per_id[modello.id];
+}
 
 /**
  * Risolve la chiave di un modello, accettando anche le forme che il backend

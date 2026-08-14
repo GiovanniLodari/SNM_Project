@@ -32,12 +32,60 @@ export const dashboardSchema = z.object({
   fact_check_eligible: z.number(),
 });
 
+const statisticheFollowerSchema = z.object({
+  accounts: z.number(),
+  // Mediana e massimo sono null quando nessun profilo dichiara i follower:
+  // e' un'assenza di dato, non uno zero.
+  mediana: numeroOpzionale,
+  massimo: numeroOpzionale,
+  scartati: z.number(),
+});
+
 export const accountsStatsSchema = z.object({
   bot_total: z.number(),
   nonbot_total: z.number(),
   ai_producers_total: z.number(),
   ai_and_bot: z.number(),
   ai_and_not_bot: z.number(),
+  // La pagina Account divide per queste cifre (quote, matrice bot x IA): se
+  // una arrivasse assente le percentuali diventerebbero NaN a schermo, quindi
+  // qui sono richieste e un backend piu' vecchio fa fallire la query in modo
+  // dichiarato invece di disegnare numeri inventati.
+  detector: z.string(),
+  ai_threshold: z.number(),
+  accounts_total: z.number(),
+  accounts_con_post: z.number(),
+  valutati_bot: z.number(),
+  valutati_human: z.number(),
+  posts_bot: z.number(),
+  posts_human: z.number(),
+  istanze: z.array(
+    z.object({ domain: z.string(), accounts: z.number(), bot_accounts: z.number() }),
+  ),
+  followers_bot: statisticheFollowerSchema,
+  followers_human: statisticheFollowerSchema,
+  piu_seguiti: z.array(z.unknown()),
+  top_produttori: z.array(z.unknown()),
+});
+
+export const corpusSchema = z.object({
+  posts_total: z.number(),
+  authors_total: z.number(),
+  instances_total: z.number(),
+  first_post_at: z.string().nullable(),
+  last_post_at: z.string().nullable(),
+  posts_bot: z.number(),
+  posts_human: z.number(),
+  posts_senza_lingua: z.number(),
+  lingue: z.array(z.object({ lang: z.string(), posts: z.number() })),
+  istanze: z.array(
+    z.object({
+      domain: z.string(),
+      posts: z.number(),
+      accounts: z.number(),
+      bot_posts: z.number(),
+    }),
+  ),
 });
 
 const postSchema = z.object({

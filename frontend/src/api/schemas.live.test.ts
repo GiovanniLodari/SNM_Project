@@ -14,6 +14,7 @@
 import { describe, expect, it } from "vitest";
 import {
   accountsStatsSchema,
+  corpusSchema,
   dashboardSchema,
   detectorComparisonSummarySchema,
   factCheckSchema,
@@ -22,6 +23,7 @@ import {
 
 import dashboard from "./fixtures/dashboard.json";
 import accounts from "./fixtures/accounts.json";
+import corpus from "./fixtures/corpus.json";
 import factCheck from "./fixtures/fact-check.json";
 import detectorComparison from "./fixtures/detector-comparison-summary.json";
 import influenceSummary from "./fixtures/influence-summary.json";
@@ -29,6 +31,7 @@ import influenceSummary from "./fixtures/influence-summary.json";
 const casi = [
   ["dashboard", dashboardSchema, dashboard],
   ["accounts", accountsStatsSchema, accounts],
+  ["corpus", corpusSchema, corpus],
   ["fact-check", factCheckSchema, factCheck],
   ["detector-comparison/summary", detectorComparisonSummarySchema, detectorComparison],
   ["influence-maximization/summary", influenceSummarySchema, influenceSummary],

@@ -248,11 +248,17 @@ def fact_check_for(fact_checks: dict[int, dict], post_id: int) -> dict | None:
 from collections import defaultdict
 
 
-def accounts_producing_ai_content(
+def ai_profile_by_account(
     ai_scores: dict[int, dict], status_to_account: dict[int, int], threshold: float = 0.5,
-) -> set[int]:
-    """Account la cui probabilita' IA media (sui post per cui abbiamo un
-    punteggio) supera la soglia - anticipazione grezza della fase 4."""
+) -> dict[int, dict]:
+    """Per ogni account con almeno un post valutato: quanti post ha valutati,
+    quanti di quelli superano la soglia, e la probabilita' media.
+
+    Distinguere "valutato" da "non valutato" e' il motivo per cui questa
+    funzione restituisce anche gli account sotto soglia: un account senza post
+    valutati non e' un account giudicato umano, e sommare i due casi
+    trasformerebbe un'assenza di misura in una misura.
+    """
     by_account: dict[int, list[float]] = defaultdict(list)
     for status_id, account_id in status_to_account.items():
         score = ai_scores.get(status_id)
@@ -260,8 +266,30 @@ def accounts_producing_ai_content(
             by_account[account_id].append(score["probability"])
 
     return {
-        account_id for account_id, probs in by_account.items()
-        if sum(probs) / len(probs) >= threshold
+        account_id: {
+            "scored": len(probs),
+            "ai_posts": sum(1 for p in probs if p >= threshold),
+            "mean": sum(probs) / len(probs),
+        }
+        for account_id, probs in by_account.items()
+    }
+
+
+def accounts_producing_ai_content(
+    ai_scores: dict[int, dict], status_to_account: dict[int, int], threshold: float = 0.5,
+) -> set[int]:
+    """Account la cui probabilita' IA media (sui post per cui abbiamo un
+    punteggio) supera la soglia - anticipazione grezza della fase 4.
+
+    Definito sopra `ai_profile_by_account` perche' "produttore di contenuto IA"
+    deve voler dire la stessa cosa ovunque: quando le due nozioni erano scritte
+    due volte, bastava toccarne una perche' la pagina Account e il resto del
+    progetto contassero insiemi diversi.
+    """
+    profiles = ai_profile_by_account(ai_scores, status_to_account, threshold)
+    return {
+        account_id for account_id, profile in profiles.items()
+        if profile["mean"] >= threshold
     }
 
 

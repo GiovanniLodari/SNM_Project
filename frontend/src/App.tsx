@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense, type FocusEvent } from "react";
+import { useState, lazy, Suspense } from "react";
 import {
   HashRouter,
   Routes,
@@ -93,8 +93,8 @@ import { useQueryClient } from "@tanstack/react-query";
  * applicazione vuol dire ridisegnare il canvas del grafo e i grafici recharts,
  * che sarebbe visibilmente lento oltre che inutile.
  */
-const LARGHEZZA_APERTA = 270;
-const LARGHEZZA_RIPOSO = 76;
+/** Larghezza fissa della sidebar su desktop. */
+const LARGHEZZA_SIDEBAR = 260;
 
 /**
  * Reindirizza le vecchie rotte per detector al capitolo unificato.
@@ -138,16 +138,9 @@ function RedirezioneConfronto() {
 interface PropsNavigazione {
   /** Chiude il pannello temporaneo su mobile dopo un clic. */
   onNavigate?: () => void;
-  /**
-   * Sul desktop la sidebar sta a riposo come colonna di sole icone e si apre
-   * al passaggio del mouse. Sul pannello mobile e' sempre `true`: li' non
-   * esiste il passaggio del mouse, e una colonna di icone mute sarebbe
-   * l'unica navigazione disponibile.
-   */
-  espansa?: boolean;
 }
 
-function NavigationContent({ onNavigate, espansa = true }: PropsNavigazione) {
+function NavigationContent({ onNavigate }: PropsNavigazione) {
   const location = useLocation();
   const queryClient = useQueryClient();
 
@@ -160,152 +153,260 @@ function NavigationContent({ onNavigate, espansa = true }: PropsNavigazione) {
     prefetchRouteData(queryClient, path);
   };
 
-  // Le etichette restano sempre nel DOM e si limitano a sfumare: nasconderle
-  // con `display: none` le toglierebbe anche agli screen reader, e chi naviga
-  // da tastiera si troverebbe otto collegamenti senza nome.
-  const testoNascosto = {
-    opacity: espansa ? 1 : 0,
-    visibility: espansa ? "visible" : "hidden",
-    transition: "opacity 0.2s ease",
-    whiteSpace: "nowrap" as const,
-  };
-
   return (
     <Box
       sx={{
         backgroundColor: tokens.color.canvas,
         height: "100%",
-        borderRight: tokens.border.subtle,
+        display: "flex",
+        flexDirection: "column",
         p: 2,
         overflowX: "hidden",
         overflowY: "auto",
+        scrollbarWidth: "thin",
+        "&::-webkit-scrollbar": {
+          width: "4px",
+        },
+        "&::-webkit-scrollbar-thumb": {
+          backgroundColor: tokens.color.borderStrong,
+          borderRadius: "4px",
+        },
       }}
     >
-      {/* Marchio: contratto resta la sola sigla, cosi' la colonna stretta ha
-          comunque un'ancora visiva al posto di uno spazio vuoto. */}
-      <Box sx={{ px: 1, py: 2, mb: 2, whiteSpace: "nowrap" }}>
-        <Typography
-          variant="h6"
+      {/* Brand & Monogram Lockup */}
+      <Box
+        component={Link}
+        to="/"
+        onClick={onNavigate}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
+          px: 1,
+          py: 1.5,
+          mb: 1.5,
+          textDecoration: "none",
+          color: "inherit",
+          borderRadius: "8px",
+          transition: "background-color 0.15s ease",
+          "&:hover": {
+            backgroundColor: tokens.color.surfaceStone,
+          },
+        }}
+      >
+        <Box
           sx={{
+            width: 32,
+            height: 32,
+            borderRadius: "8px",
+            backgroundColor: tokens.color.nearBlack,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: tokens.color.canvas,
             fontFamily: tokens.font.display,
             fontWeight: 700,
-            fontSize: "20px",
-            color: tokens.color.nearBlack,
+            fontSize: "13px",
             letterSpacing: "-0.5px",
+            flexShrink: 0,
           }}
         >
-          {espansa ? "SNM.Intelligence" : "SNM"}
-        </Typography>
-        <EtichettaMono taglia="micro" sx={{ mt: 0.5, ...testoNascosto }}>
-          Analisi del Fediverso
-        </EtichettaMono>
+          SNM
+        </Box>
+        <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+          <Typography
+            sx={{
+              fontFamily: tokens.font.display,
+              fontWeight: 700,
+              fontSize: "15px",
+              lineHeight: 1.2,
+              color: tokens.color.nearBlack,
+              letterSpacing: "-0.3px",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            SNM.Intelligence
+          </Typography>
+          <Typography
+            sx={{
+              fontFamily: tokens.font.mono,
+              fontSize: "10px",
+              fontWeight: 600,
+              letterSpacing: "0.06em",
+              color: tokens.color.textMuted,
+              textTransform: "uppercase",
+              lineHeight: 1.2,
+              mt: 0.25,
+            }}
+          >
+            Analisi del Fediverso
+          </Typography>
+        </Box>
       </Box>
 
-      {/* I capitoli nell'ordine della pipeline. L'intestazione di gruppo col
-          numero romano e' cio' che rende leggibile la sequenza: prima le voci
-          erano dodici allo stesso livello e l'ordine sembrava arbitrario. */}
-      {CAPITOLI.map((capitolo, indice) => (
-        <Box key={capitolo.id} component="section" sx={{ mb: 2 }}>
-          {capitolo.id !== "panoramica" && (
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "baseline",
-                justifyContent: espansa ? "flex-start" : "center",
-                gap: 1,
-                px: espansa ? 2 : 0,
-                pt: 2,
-                pb: 1,
-                mt: 1,
-                borderTop: indice > 0 ? tokens.border.subtle : "none",
-              }}
-            >
-              {/* Contratta, resta il solo numero romano: e' abbastanza per
-                  ritrovare il capitolo, e il filetto sopra fa da separatore. */}
-              {capitolo.numero && (
-                <Box
-                  component="span"
+      {/* Navigazione ordinata per capitoli della pipeline */}
+      <Box sx={{ flexGrow: 1 }}>
+        {CAPITOLI.map((capitolo, indice) => (
+          <Box key={capitolo.id} component="section" sx={{ mb: 1.5 }}>
+            {capitolo.id !== "panoramica" && (
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  px: 1,
+                  pt: 1.5,
+                  pb: 0.5,
+                  mt: indice > 1 ? 0.5 : 0,
+                }}
+              >
+                {capitolo.numero && (
+                  <Box
+                    component="span"
+                    sx={{
+                      fontFamily: tokens.font.mono,
+                      fontSize: "10px",
+                      fontWeight: 700,
+                      color: tokens.color.coral,
+                      backgroundColor: tokens.color.surfaceCoral,
+                      px: "5px",
+                      py: "1px",
+                      borderRadius: "4px",
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {capitolo.numero}
+                  </Box>
+                )}
+                <Typography
                   sx={{
                     fontFamily: tokens.font.mono,
                     fontSize: "11px",
                     fontWeight: 600,
-                    color: tokens.color.coral,
-                    minWidth: 16,
-                    textAlign: espansa ? "left" : "center",
+                    color: tokens.color.textMuted,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
                   }}
                 >
-                  {capitolo.numero}
-                </Box>
-              )}
-              <EtichettaMono
-                taglia="micro"
-                colore={tokens.color.textFaint}
-                component="span"
-                sx={testoNascosto}
-              >
-                {capitolo.etichetta}
-              </EtichettaMono>
-            </Box>
-          )}
+                  {capitolo.etichetta}
+                </Typography>
+              </Box>
+            )}
 
-          <List sx={{ p: 0 }}>
-            {capitolo.voci.map((voce) => {
-              const isSelected = isRouteActive(location.pathname, voce.path);
-              const Icona = voce.icona;
-              return (
-                <ListItem key={voce.path} disablePadding sx={{ mb: 0.5 }}>
-                  <ListItemButton
-                    component={Link}
-                    to={voce.path}
-                    selected={isSelected}
-                    onClick={onNavigate}
-                    onMouseEnter={() => handlePrefetch(voce.path)}
-                    onFocus={() => handlePrefetch(voce.path)}
-                    onTouchStart={() => handlePrefetch(voce.path)}
-                    sx={{
-                      py: 1.2,
-                      px: espansa ? 2 : 1.5,
-                      borderRadius: "24px",
-                      transition: "background-color 0.15s ease-in-out, padding 0.2s ease",
-                      "&.Mui-selected": {
-                        backgroundColor: tokens.color.nearBlack,
-                        color: tokens.color.canvas,
-                        "&:hover": {
-                          backgroundColor: tokens.color.nearBlack,
-                        },
-                        "& .MuiListItemIcon-root": {
-                          color: tokens.color.canvas,
-                        },
-                      },
-                      "&:hover": {
-                        backgroundColor: isSelected ? tokens.color.nearBlack : tokens.color.softStone,
-                      },
-                    }}
-                  >
-                    <ListItemIcon
+            <List sx={{ p: 0 }}>
+              {capitolo.voci.map((voce) => {
+                const isSelected = isRouteActive(location.pathname, voce.path);
+                const Icona = voce.icona;
+                return (
+                  <ListItem key={voce.path} disablePadding sx={{ mb: 0.3 }}>
+                    <ListItemButton
+                      component={Link}
+                      to={voce.path}
+                      selected={isSelected}
+                      onClick={onNavigate}
+                      onMouseEnter={() => handlePrefetch(voce.path)}
+                      onFocus={() => handlePrefetch(voce.path)}
+                      onTouchStart={() => handlePrefetch(voce.path)}
                       sx={{
-                        minWidth: 34,
-                        color: isSelected ? tokens.color.canvas : tokens.color.textMuted,
+                        py: 0.85,
+                        px: 1.25,
+                        borderRadius: "8px",
+                        transition: "all 0.15s ease-in-out",
+                        "&.Mui-selected": {
+                          backgroundColor: tokens.color.nearBlack,
+                          color: tokens.color.canvas,
+                          "&:hover": {
+                            backgroundColor: tokens.color.nearBlackHover,
+                          },
+                          "& .MuiListItemIcon-root": {
+                            color: tokens.color.coral,
+                          },
+                          "& .MuiListItemText-primary": {
+                            color: tokens.color.canvas,
+                            fontWeight: 600,
+                          },
+                        },
+                        "&:hover": {
+                          backgroundColor: isSelected
+                            ? tokens.color.nearBlackHover
+                            : tokens.color.softStone,
+                        },
                       }}
                     >
-                      <Icona sx={{ fontSize: 20 }} />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={voce.testo}
-                      sx={testoNascosto}
-                      primaryTypographyProps={{
-                        fontFamily: tokens.font.body,
-                        fontWeight: isSelected ? 600 : 500,
-                        fontSize: "14px",
-                      }}
-                    />
-                  </ListItemButton>
-                </ListItem>
-              );
-            })}
-          </List>
+                      <ListItemIcon
+                        sx={{
+                          minWidth: 28,
+                          color: isSelected ? tokens.color.coral : tokens.color.textMuted,
+                          transition: "color 0.15s ease",
+                        }}
+                      >
+                        <Icona sx={{ fontSize: 18 }} />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={voce.testo}
+                        primaryTypographyProps={{
+                          fontFamily: tokens.font.body,
+                          fontWeight: isSelected ? 600 : 500,
+                          fontSize: "13.5px",
+                          color: isSelected ? tokens.color.canvas : tokens.color.textPrimary,
+                          whiteSpace: "nowrap",
+                        }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                );
+              })}
+            </List>
+          </Box>
+        ))}
+      </Box>
+
+      {/* Footer minimalista della sidebar */}
+      <Box
+        sx={{
+          pt: 2,
+          pb: 0.5,
+          px: 1,
+          mt: "auto",
+          borderTop: tokens.border.subtle,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Box
+            sx={{
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              backgroundColor: tokens.color.success,
+              boxShadow: `0 0 6px ${tokens.color.success}`,
+            }}
+          />
+          <Typography
+            sx={{
+              fontFamily: tokens.font.mono,
+              fontSize: "11px",
+              color: tokens.color.textMuted,
+              fontWeight: 500,
+            }}
+          >
+            Fediverso Live
+          </Typography>
         </Box>
-      ))}
+        <Typography
+          sx={{
+            fontFamily: tokens.font.mono,
+            fontSize: "10px",
+            color: tokens.color.textFaint,
+          }}
+        >
+          v1.0
+        </Typography>
+      </Box>
     </Box>
   );
 }
@@ -331,20 +432,9 @@ function CapitoloCorrente() {
 
 export default function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [sidebarAperta, setSidebarAperta] = useState(false);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
-  };
-
-  // `onFocus`/`onBlur` in React corrispondono a focusin/focusout, quindi
-  // risalgono dai figli: la sidebar si apre anche arrivandoci col tabulatore,
-  // e non solo col mouse. Senza, chi naviga da tastiera resterebbe con le sole
-  // icone e nessun modo di far comparire le etichette.
-  const gestisciUscitaFocus = (evento: FocusEvent<HTMLDivElement>) => {
-    if (!evento.currentTarget.contains(evento.relatedTarget as Node | null)) {
-      setSidebarAperta(false);
-    }
   };
 
   return (
@@ -360,20 +450,18 @@ export default function App() {
           <AppBar
             position="fixed"
             sx={{
-              // Ancorata alla larghezza a riposo: la sidebar che si apre le
-              // passa sopra, quindi la barra non si sposta al passaggio del
-              // mouse e il titolo del capitolo resta fermo.
-              width: { sm: `calc(100% - ${LARGHEZZA_RIPOSO}px)` },
-              ml: { sm: `${LARGHEZZA_RIPOSO}px` },
+              width: { sm: `calc(100% - ${LARGHEZZA_SIDEBAR}px)` },
+              ml: { sm: `${LARGHEZZA_SIDEBAR}px` },
               backgroundImage: "none",
               backgroundColor: "rgba(255, 255, 255, 0.9)",
               backdropFilter: "blur(8px)",
               color: tokens.color.textPrimary,
               boxShadow: "none",
               borderBottom: tokens.border.subtle,
+              zIndex: (tema) => tema.zIndex.appBar,
             }}
           >
-            <Toolbar sx={{ justifyContent: "space-between", height: "64px" }}>
+            <Toolbar sx={{ justifyContent: "space-between", height: "60px" }}>
               <IconButton
                 color="inherit"
                 aria-label="open drawer"
@@ -391,7 +479,7 @@ export default function App() {
           {/* Sidebar Navigation */}
           <Box
             component="nav"
-            sx={{ width: { sm: LARGHEZZA_RIPOSO }, flexShrink: { sm: 0 } }}
+            sx={{ width: { sm: LARGHEZZA_SIDEBAR }, flexShrink: { sm: 0 } }}
           >
             <Drawer
               variant="temporary"
@@ -402,40 +490,36 @@ export default function App() {
               }}
               sx={{
                 display: { xs: "block", sm: "none" },
-                "& .MuiDrawer-paper": { boxSizing: "border-box", width: LARGHEZZA_APERTA, border: "none" },
+                "& .MuiDrawer-paper": {
+                  boxSizing: "border-box",
+                  width: LARGHEZZA_SIDEBAR,
+                  borderRight: tokens.border.subtle,
+                },
               }}
             >
-              {/* Su mobile il pannello e' sovrapposto al contenuto: se restasse
-                  aperto dopo il clic coprirebbe la pagina appena richiesta. */}
               <NavigationContent onNavigate={() => setMobileOpen(false)} />
             </Drawer>
             <Drawer
               variant="permanent"
               open
               PaperProps={{
-                onMouseEnter: () => setSidebarAperta(true),
-                onMouseLeave: () => setSidebarAperta(false),
-                onFocus: () => setSidebarAperta(true),
-                onBlur: gestisciUscitaFocus,
+                "data-testid": "sidebar-desktop",
               }}
               sx={{
                 display: { xs: "none", sm: "block" },
                 "& .MuiDrawer-paper": {
                   boxSizing: "border-box",
-                  width: sidebarAperta ? LARGHEZZA_APERTA : LARGHEZZA_RIPOSO,
-                  border: "none",
+                  width: LARGHEZZA_SIDEBAR,
+                  borderRight: tokens.border.subtle,
+                  borderTop: "none",
+                  borderLeft: "none",
+                  borderBottom: "none",
+                  backgroundColor: tokens.color.canvas,
                   overflowX: "hidden",
-                  transition: "width 0.2s ease",
-                  // Sopra la barra superiore: aprendosi la sidebar scavalca il
-                  // contenuto, e passare sotto la barra la taglierebbe a meta'.
-                  zIndex: (tema) => tema.zIndex.appBar + 1,
-                  // Chi ha chiesto meno animazioni non deve vedere la colonna
-                  // allargarsi: cambia larghezza, ma di colpo.
-                  "@media (prefers-reduced-motion: reduce)": { transition: "none" },
                 },
               }}
             >
-              <NavigationContent espansa={sidebarAperta} />
+              <NavigationContent />
             </Drawer>
           </Box>
 
@@ -444,7 +528,7 @@ export default function App() {
             component="main"
             sx={{
               flexGrow: 1,
-              width: "100%",
+              width: { sm: `calc(100% - ${LARGHEZZA_SIDEBAR}px)` },
               minHeight: "100vh",
               pt: { xs: 8, sm: 9 },
               display: "flex",

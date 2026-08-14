@@ -2,6 +2,7 @@ import type { ZodType } from "zod";
 import {
   dashboardSchema,
   accountsStatsSchema,
+  corpusSchema,
   factCheckSchema,
   detectorComparisonSummarySchema,
   influenceSummarySchema,
@@ -74,7 +75,59 @@ export interface PostsResponse {
   selected_langs: string[];
   page: number;
   page_size: number;
+  /**
+   * Post che soddisfano i filtri, non solo quelli del blocco corrente.
+   *
+   * `null` quando il backend non lo calcola perche' costerebbe troppo: dalla
+   * seconda pagina in poi, e con una ricerca testuale attiva. E' un'assenza di
+   * dato, e va mostrata come tale invece che come zero.
+   */
+  total_count: number | null;
   has_next: boolean;
+  /** I filtri applicati davvero: un valore non ammesso ricade sul default lato
+   * server, e senza questo rimando la pagina mostrerebbe un controllo attivo
+   * che il backend ha ignorato. */
+  search: string;
+  author: string;
+  order: string;
+}
+
+/** Filtri dell'elenco post, nella forma in cui li scrive l'interfaccia. */
+export interface FiltriPost {
+  lang?: string[];
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  /** "tutti" | "bot" | "umani": la dichiarazione del profilo, non un giudizio. */
+  author?: string;
+  /** "archivio" | "recenti" | "vecchi". */
+  order?: string;
+}
+
+export interface CorpusLingua {
+  lang: string;
+  posts: number;
+}
+
+export interface CorpusIstanza {
+  domain: string;
+  posts: number;
+  accounts: number;
+  bot_posts: number;
+}
+
+export interface CorpusResponse {
+  posts_total: number;
+  /** Account distinti che compaiono come autori, non tutti quelli archiviati. */
+  authors_total: number;
+  instances_total: number;
+  first_post_at: string | null;
+  last_post_at: string | null;
+  posts_bot: number;
+  posts_human: number;
+  posts_senza_lingua: number;
+  lingue: CorpusLingua[];
+  istanze: CorpusIstanza[];
 }
 
 export interface PostDetailResponse {
@@ -86,12 +139,72 @@ export interface PostDetailResponse {
   fact_check: FactCheck | null;
 }
 
+export interface AccountIstanza {
+  domain: string;
+  accounts: number;
+  bot_accounts: number;
+}
+
+/** Follower dichiarati nel profilo, non archi di follow raccolti dal crawler. */
+export interface StatisticheFollower {
+  /** Account con un valore dichiarato e plausibile. */
+  accounts: number;
+  mediana: number | null;
+  massimo: number | null;
+  /**
+   * Account il cui valore dichiarato e' stato scartato perche' impossibile
+   * (miliardi di follower, o l'esatto massimo di un intero a 32 bit). Il
+   * conteggio esiste per poterlo dichiarare invece di far sparire delle righe
+   * senza dirlo.
+   */
+  scartati: number;
+}
+
+export interface AccountSeguito {
+  id: number;
+  acct: string;
+  bot: boolean;
+  domain: string;
+  followers: number;
+}
+
+export interface ProduttoreIa {
+  id: number;
+  acct: string;
+  bot: boolean;
+  domain: string;
+  followers: number | null;
+  posts: number | null;
+  /** Post dell'account per cui esiste un punteggio del rilevatore. */
+  posts_scored: number;
+  /** Di quelli, quanti superano la soglia. */
+  ai_posts: number;
+  mean_prob: number;
+}
+
 export interface AccountsStats {
   bot_total: number;
   nonbot_total: number;
   ai_producers_total: number;
   ai_and_bot: number;
   ai_and_not_bot: number;
+
+  /** Quale rilevatore ha prodotto i giudizi di questa pagina: e' uno solo, non
+   * il consenso a quattro del Capitolo II. */
+  detector: string;
+  ai_threshold: number;
+  accounts_total: number;
+  accounts_con_post: number;
+  /** Account con almeno un post valutato: il denominatore onesto dei giudizi. */
+  valutati_bot: number;
+  valutati_human: number;
+  posts_bot: number;
+  posts_human: number;
+  istanze: AccountIstanza[];
+  followers_bot: StatisticheFollower;
+  followers_human: StatisticheFollower;
+  piu_seguiti: AccountSeguito[];
+  top_produttori: ProduttoreIa[];
 }
 
 export interface DescriptiveStats {
@@ -526,9 +639,21 @@ export const api = {
     getJson<{ accounts: AccountSearchResult[] }>(`/api/accounts/search${buildQuery({ q })}`),
   accountDetail: (id: number) =>
     getJson<AccountDetailResponse>(`/api/accounts/${id}/detail`),
-  posts: (lang: string[], page: number, pageSize: number = 25) =>
-    getJson<PostsResponse>(`/api/posts${buildQuery({ lang, page, page_size: pageSize })}`),
+  // Un oggetto invece di sei posizionali: i filtri sono cresciuti da uno a
+  // cinque, e `api.posts(["it"], 1, 10, "", "bot", "recenti")` non si legge.
+  posts: ({ lang, page = 1, pageSize = 25, search, author, order }: FiltriPost = {}) =>
+    getJson<PostsResponse>(
+      `/api/posts${buildQuery({
+        lang,
+        page,
+        page_size: pageSize,
+        q: search || undefined,
+        author: author && author !== "tutti" ? author : undefined,
+        order: order && order !== "archivio" ? order : undefined,
+      })}`,
+    ),
   postDetail: (id: number) => getJson<PostDetailResponse>(`/api/posts/${id}`),
+  corpus: () => getJson<CorpusResponse>("/api/corpus", corpusSchema),
   accounts: () => getJson<AccountsStats>("/api/accounts", accountsStatsSchema),
   aiDetection: (probBucket: string[], page: number, sortBy: string = "id", detector: string = "fastdetect") =>
     getJson<AiDetectionResponse>(`/api/ai-detection${buildQuery({ detector, prob_bucket: probBucket, page, sort_by: sortBy })}`),

@@ -23,5 +23,11 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
+    // I test di pagina montano un capitolo intero - indice, atti, griglie,
+    // decine di righe - dentro jsdom, che non ha accelerazione di alcun tipo:
+    // il solo primo render puo' costare qualche secondo su una macchina
+    // occupata. Con i 5 secondi predefiniti fallivano per il tempo, non per il
+    // comportamento, ed e' il tipo di rosso che insegna a ignorare i rossi.
+    testTimeout: 20000,
   },
 });

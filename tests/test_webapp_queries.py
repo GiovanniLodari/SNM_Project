@@ -238,3 +238,221 @@ def test_get_account_bot_flags_returns_flags_for_given_ids(conn):
     flags = get_account_bot_flags(conn, [account_id])
 
     assert flags[account_id] is True
+
+
+from webapp.queries import (  # noqa: E402
+    accounts_population,
+    corpus_composition,
+    count_posts_by_bot,
+    count_posts_matching,
+    get_accounts_by_ids,
+)
+
+
+def _status_by(conn, instance_id, mastodon_id, content, account, lang="en"):
+    """Post attribuito a un account specifico, per i test che distinguono bot e
+    umani (i corrispondenti in `_make_status` sono tutti umani e tutti diversi)."""
+    return upsert_status(conn, instance_id, {
+        "id": mastodon_id, "account": account, "content": content, "language": lang,
+    })
+
+
+_ALICE = {"id": "1", "acct": "alice", "username": "alice", "bot": False}
+_BOBBOT = {"id": "2", "acct": "bobbot", "username": "bobbot", "bot": True}
+
+
+def test_count_posts_matching_applies_the_same_filters_as_the_listing(conn):
+    topic_id = upsert_topic(conn, "ai")
+    instance_id = upsert_instance(conn, "mastodon.social", 100, topic_id)
+    _status_by(conn, instance_id, "s1", "<p>hello world</p>", _ALICE, lang="en")
+    _status_by(conn, instance_id, "s2", "<p>ciao mondo</p>", _ALICE, lang="it")
+    _status_by(conn, instance_id, "s3", "<p>hello robot</p>", _BOBBOT, lang="en")
+
+    assert count_posts_matching(conn, langs=None) == 3
+    assert count_posts_matching(conn, langs=["en"]) == 2
+    assert count_posts_matching(conn, langs=None, search="hello") == 2
+    assert count_posts_matching(conn, langs=None, author="bot") == 1
+    assert count_posts_matching(conn, langs=["en"], search="hello", author="umani") == 1
+
+
+def test_count_posts_matching_treats_like_metacharacters_literally(conn):
+    """Cercare "100%" non deve corrispondere a qualunque testo: senza escape il
+    carattere jolly di LIKE arriverebbe intatto alla query."""
+    topic_id = upsert_topic(conn, "ai")
+    instance_id = upsert_instance(conn, "mastodon.social", 100, topic_id)
+    _status_by(conn, instance_id, "s1", "<p>sicuro al 100% </p>", _ALICE)
+    _status_by(conn, instance_id, "s2", "<p>nessuna percentuale</p>", _ALICE)
+
+    assert count_posts_matching(conn, langs=None, search="100%") == 1
+    # Il jolly e' letterale: cercare "%" trova il solo post che contiene quel
+    # carattere, non tutti come farebbe un LIKE non protetto.
+    assert count_posts_matching(conn, langs=None, search="%") == 1
+
+
+def test_list_posts_orders_by_the_requested_criterion(conn):
+    topic_id = upsert_topic(conn, "ai")
+    instance_id = upsert_instance(conn, "mastodon.social", 100, topic_id)
+    primo = _status_by(conn, instance_id, "s1", "<p>uno</p>", _ALICE)
+    secondo = _status_by(conn, instance_id, "s2", "<p>due</p>", _ALICE)
+
+    archivio = [p["id"] for p in list_posts(conn, None, 0, 10, order="archivio")]
+    ignoto = [p["id"] for p in list_posts(conn, None, 0, 10, order="ordinamento-inesistente")]
+
+    assert archivio == [primo, secondo]
+    # Un ordinamento sconosciuto ricade sul default invece di raggiungere l'SQL.
+    assert ignoto == archivio
+
+
+def test_list_posts_filters_by_author_type(conn):
+    topic_id = upsert_topic(conn, "ai")
+    instance_id = upsert_instance(conn, "mastodon.social", 100, topic_id)
+    _status_by(conn, instance_id, "s1", "<p>umano</p>", _ALICE)
+    _status_by(conn, instance_id, "s2", "<p>automatico</p>", _BOBBOT)
+
+    soli_bot = list_posts(conn, None, 0, 10, author="bot")
+
+    assert [p["acct"] for p in soli_bot] == ["bobbot"]
+
+
+def test_count_posts_by_bot_splits_posts_not_accounts(conn):
+    topic_id = upsert_topic(conn, "ai")
+    instance_id = upsert_instance(conn, "mastodon.social", 100, topic_id)
+    _status_by(conn, instance_id, "s1", "<p>a</p>", _BOBBOT)
+    _status_by(conn, instance_id, "s2", "<p>b</p>", _BOBBOT)
+    _status_by(conn, instance_id, "s3", "<p>c</p>", _ALICE)
+
+    counts = count_posts_by_bot(conn)
+
+    assert counts[True] == 2
+    assert counts[False] == 1
+
+
+def test_corpus_composition_reports_volumes_languages_and_instances(conn):
+    topic_id = upsert_topic(conn, "ai")
+    instance_id = upsert_instance(conn, "mastodon.social", 100, topic_id)
+    altra = upsert_instance(conn, "fosstodon.org", 50, topic_id)
+    _status_by(conn, instance_id, "s1", "<p>a</p>", _ALICE, lang="it")
+    _status_by(conn, instance_id, "s2", "<p>b</p>", _BOBBOT, lang="it")
+    _status_by(conn, altra, "s3", "<p>c</p>", _ALICE, lang="en")
+
+    composizione = corpus_composition(conn)
+
+    assert composizione["posts_total"] == 3
+    assert composizione["instances_total"] == 2
+    assert composizione["posts_bot"] == 1
+    assert composizione["posts_human"] == 2
+    assert composizione["lingue"][0] == {"lang": "it", "posts": 2}
+    domini = {voce["domain"]: voce for voce in composizione["istanze"]}
+    assert domini["mastodon.social"]["posts"] == 2
+    assert domini["mastodon.social"]["bot_posts"] == 1
+
+
+def test_corpus_composition_excludes_deleted_posts(conn):
+    topic_id = upsert_topic(conn, "ai")
+    instance_id = upsert_instance(conn, "mastodon.social", 100, topic_id)
+    _status_by(conn, instance_id, "s1", "<p>a</p>", _ALICE)
+    cancellato = _status_by(conn, instance_id, "s2", "<p>b</p>", _ALICE)
+    mark_deleted(conn, cancellato)
+
+    assert corpus_composition(conn)["posts_total"] == 1
+
+
+def test_accounts_population_counts_accounts_per_instance(conn):
+    topic_id = upsert_topic(conn, "ai")
+    instance_id = upsert_instance(conn, "mastodon.social", 100, topic_id)
+    upsert_account(conn, instance_id, _ALICE)
+    upsert_account(conn, instance_id, _BOBBOT)
+
+    popolazione = accounts_population(conn)
+
+    assert popolazione["istanze"][0]["domain"] == "mastodon.social"
+    assert popolazione["istanze"][0]["accounts"] == 2
+    assert popolazione["istanze"][0]["bot_accounts"] == 1
+    assert popolazione["accounts_con_post"] == 0
+
+
+def test_accounts_population_ignores_non_numeric_follower_counts(conn):
+    """`accounts.raw` e' JSONB non validato: un contatore mancante o testuale non
+    deve far fallire la query, semplicemente non entra nella statistica."""
+    topic_id = upsert_topic(conn, "ai")
+    instance_id = upsert_instance(conn, "mastodon.social", 100, topic_id)
+    upsert_account(conn, instance_id, {**_ALICE, "followers_count": 120})
+    upsert_account(conn, instance_id, {**_BOBBOT, "followers_count": "molti"})
+    upsert_account(conn, instance_id, {"id": "3", "acct": "carol", "username": "carol", "bot": False})
+
+    popolazione = accounts_population(conn)
+
+    assert popolazione["followers_human"]["accounts"] == 1
+    assert popolazione["followers_human"]["massimo"] == 120
+    assert popolazione["followers_bot"]["accounts"] == 0
+    assert [voce["acct"] for voce in popolazione["piu_seguiti"]] == ["alice"]
+
+
+def test_accounts_population_discards_impossible_follower_counts(conn):
+    """Nei dati reali compaiono profili che dichiarano miliardi di follower e
+    altri fermi a 2147483647, il massimo di un intero a 32 bit: sono guasti del
+    dato remoto, e in classifica scavalcherebbero ogni account vero."""
+    topic_id = upsert_topic(conn, "ai")
+    instance_id = upsert_instance(conn, "mastodon.social", 100, topic_id)
+    upsert_account(conn, instance_id, {**_ALICE, "followers_count": 5000})
+    upsert_account(conn, instance_id, {
+        "id": "9", "acct": "impossibile", "username": "impossibile", "bot": False,
+        "followers_count": 8116613856,
+    })
+
+    popolazione = accounts_population(conn)
+
+    assert popolazione["followers_human"]["accounts"] == 1
+    assert popolazione["followers_human"]["massimo"] == 5000
+    # Scartato, non nascosto: la pagina lo dichiara.
+    assert popolazione["followers_human"]["scartati"] == 1
+    assert [voce["acct"] for voce in popolazione["piu_seguiti"]] == ["alice"]
+
+
+def test_accounts_population_lists_each_handle_once(conn):
+    """Lo stesso profilo remoto viene archiviato una volta per ogni istanza da
+    cui il crawler lo incontra: in classifica deve comparire una volta sola."""
+    topic_id = upsert_topic(conn, "ai")
+    prima = upsert_instance(conn, "mastodon.social", 100, topic_id)
+    seconda = upsert_instance(conn, "fosstodon.org", 50, topic_id)
+    doppione = {"id": "5", "acct": "nhl@sportsbots.xyz", "username": "nhl", "bot": True}
+    upsert_account(conn, prima, {**doppione, "followers_count": 900})
+    upsert_account(conn, seconda, {**doppione, "followers_count": 900})
+    upsert_account(conn, prima, {**_ALICE, "followers_count": 100})
+
+    piu_seguiti = accounts_population(conn)["piu_seguiti"]
+
+    assert [voce["acct"] for voce in piu_seguiti] == ["nhl@sportsbots.xyz", "alice"]
+
+
+def test_get_accounts_by_ids_omits_implausible_followers(conn):
+    topic_id = upsert_topic(conn, "ai")
+    instance_id = upsert_instance(conn, "mastodon.social", 100, topic_id)
+    account_id = upsert_account(conn, instance_id, {**_ALICE, "followers_count": 2147483647})
+
+    anagrafica = get_accounts_by_ids(conn, [account_id])
+
+    # None e non il numero: il profilo esiste, il suo contatore no.
+    assert anagrafica[account_id]["followers"] is None
+
+
+def test_get_accounts_by_ids_returns_profile_and_post_count(conn):
+    topic_id = upsert_topic(conn, "ai")
+    instance_id = upsert_instance(conn, "mastodon.social", 100, topic_id)
+    # Il profilo con i follower va passato anche allo status: `upsert_status`
+    # riscrive `accounts.raw` con l'oggetto account che trova nel post, quindi
+    # inserirlo dopo cancellerebbe il contatore appena scritto.
+    alice = {**_ALICE, "followers_count": 7}
+    account_id = upsert_account(conn, instance_id, alice)
+    _status_by(conn, instance_id, "s1", "<p>a</p>", alice)
+
+    anagrafica = get_accounts_by_ids(conn, [account_id])
+
+    assert anagrafica[account_id]["acct"] == "alice"
+    assert anagrafica[account_id]["domain"] == "mastodon.social"
+    assert anagrafica[account_id]["followers"] == 7
+    assert anagrafica[account_id]["posts"] == 1
+
+
+def test_get_accounts_by_ids_returns_empty_for_no_ids(conn):
+    assert get_accounts_by_ids(conn, []) == {}

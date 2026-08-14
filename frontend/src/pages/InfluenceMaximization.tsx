@@ -1,7 +1,6 @@
-import { useState } from "react";
 import { Box, Skeleton, Typography } from "@mui/material";
 import { useUrlNumber, useUrlString } from "../hooks/useUrlState.ts";
-import { api, type AccountDetail } from "../api/client.ts";
+import { useDettaglioAccount } from "../hooks/useDettaglioAccount.ts";
 import {
   useInfluenceSummaryQuery,
   useInfluenceGraphQuery,
@@ -78,37 +77,9 @@ export default function InfluenceMaximization() {
   // allora non c'e' niente da osservare per l'indice.
   const attoAttivo = useAttoInVista(ATTI, Boolean(summary));
 
-  const [modalOpen, setModalOpen] = useState<boolean>(false);
-  const [modalAccount, setModalAccount] = useState<AccountDetail | null>(null);
-  const [modalLoading, setModalLoading] = useState<boolean>(false);
-  const [modalError, setModalError] = useState<string | null>(null);
-
-  const handleSelectAccount = (idString: string) => {
-    const parsedId = parseInt(idString, 10);
-    if (isNaN(parsedId)) return;
-
-    setModalOpen(true);
-    setModalLoading(true);
-    setModalError(null);
-    setModalAccount(null);
-    api.accountDetail(parsedId)
-      .then((res) => {
-        if (res.account) {
-          setModalAccount(res.account);
-        } else {
-          setModalError(`Nessun dettaglio in archivio per l'account #${parsedId}.`);
-        }
-      })
-      .catch((err) => {
-        // Senza questo stato il modale si apriva e spariva in silenzio.
-        setModalError(
-          err instanceof Error
-            ? `Impossibile caricare i dettagli dell'account: ${err.message}`
-            : "Impossibile caricare i dettagli dell'account.",
-        );
-      })
-      .finally(() => setModalLoading(false));
-  };
+  // Apertura del profilo di un seed: la stessa logica serve alla pagina
+  // Account, quindi vive in un hook invece che in quattro `useState` ricopiati.
+  const dettaglio = useDettaglioAccount();
 
   const handleSearchChange = (query: string) => {
     // La pagina 3 di una ricerca precedente non esiste quasi mai nella nuova,
@@ -200,7 +171,7 @@ export default function InfluenceMaximization() {
               <CanvasCascata
                 nodes={graphData.nodes}
                 links={graphData.links}
-                onSelectAccount={handleSelectAccount}
+                onSelectAccount={dettaglio.apri}
                 seedSelezionato={selectedSeedId || undefined}
                 onSelectSeed={setSelectedSeedId}
                 maxStep={meta.num_steps}
@@ -219,7 +190,7 @@ export default function InfluenceMaximization() {
               totalSeedCount={meta.seeds}
               selectedSeedId={selectedSeedId || undefined}
               onSelectSeed={setSelectedSeedId}
-              onSelectAccount={handleSelectAccount}
+              onSelectAccount={dettaglio.apri}
               targets={top_targets}
             />
           </Sezione>
@@ -251,15 +222,11 @@ export default function InfluenceMaximization() {
       </PaginaCapitolo>
 
       <AccountDetailModal
-        account={modalAccount}
-        error={modalError}
-        open={modalOpen}
-        onClose={() => {
-          setModalOpen(false);
-          setModalAccount(null);
-          setModalError(null);
-        }}
-        loading={modalLoading}
+        account={dettaglio.account}
+        error={dettaglio.errore}
+        open={dettaglio.aperto}
+        onClose={dettaglio.chiudi}
+        loading={dettaglio.caricamento}
       />
     </>
   );

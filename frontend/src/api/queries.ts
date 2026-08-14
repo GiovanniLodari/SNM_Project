@@ -3,10 +3,9 @@ import {
   useInfiniteQuery,
   useMutation,
   useQueryClient,
-  keepPreviousData,
   type QueryClient,
 } from "@tanstack/react-query";
-import { api } from "./client.ts";
+import { api, type FiltriPost } from "./client.ts";
 
 /**
  * Custom TanStack Query Hooks per SNM.Intelligence.
@@ -16,9 +15,12 @@ import { api } from "./client.ts";
 
 export const queryKeys = {
   dashboard: ["dashboard"] as const,
-  posts: (lang: string[], page: number, pageSize: number) => ["posts", { lang, page, pageSize }] as const,
-  postsInfinite: (lang: string[], pageSize: number) => ["posts", "infinite", { lang, pageSize }] as const,
+  // Tutti i filtri entrano nella chiave: due viste filtrate diversamente sono
+  // due elenchi diversi, e condividere la cache mostrerebbe i post di una
+  // ricerca sotto i filtri di un'altra.
+  postsInfinite: (filtri: FiltriPost) => ["posts", "infinite", filtri] as const,
   postDetail: (id: number) => ["posts", "detail", id] as const,
+  corpus: ["corpus"] as const,
   accounts: ["accounts"] as const,
   aiDetection: (probBucket: string[], page: number, sortBy: string, detector: string) =>
     ["ai-detection", { probBucket, page, sortBy, detector }] as const,
@@ -46,19 +48,6 @@ export function useDashboardQuery() {
   });
 }
 
-export function usePostsQuery(lang: string[], page: number, pageSize: number = 25) {
-  return useQuery({
-    queryKey: queryKeys.posts(lang, page, pageSize),
-    queryFn: () => api.posts(lang, page, pageSize),
-    staleTime: 5 * 60 * 1000,
-    // Cambiare pagina crea una chiave nuova: senza questo, l'elenco veniva
-    // smontato e sostituito da uno spinner a ogni clic, e i ~700ms della
-    // richiesta si sentivano tutti. Con i dati precedenti come segnaposto la
-    // pagina resta in piedi e si aggiorna quando arrivano quelli nuovi.
-    placeholderData: keepPreviousData,
-  });
-}
-
 /**
  * L'archivio dei post caricato per blocchi successivi invece che a pagine.
  *
@@ -72,13 +61,21 @@ export function usePostsQuery(lang: string[], page: number, pageSize: number = 2
  * deduce la fine dell'elenco dal numero di elementi ricevuti, che sarebbe
  * sbagliato quando l'ultimo blocco e' esattamente pieno.
  */
-export function usePostsInfiniteQuery(lang: string[], pageSize: number = 10) {
+export function usePostsInfiniteQuery(filtri: FiltriPost) {
   return useInfiniteQuery({
-    queryKey: queryKeys.postsInfinite(lang, pageSize),
-    queryFn: ({ pageParam }) => api.posts(lang, pageParam, pageSize),
+    queryKey: queryKeys.postsInfinite(filtri),
+    queryFn: ({ pageParam }) => api.posts({ ...filtri, page: pageParam }),
     initialPageParam: 1,
     getNextPageParam: (ultimoBlocco, blocchi) =>
       ultimoBlocco.has_next ? blocchi.length + 1 : undefined,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useCorpusQuery() {
+  return useQuery({
+    queryKey: queryKeys.corpus,
+    queryFn: () => api.corpus(),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -220,9 +217,24 @@ export function prefetchRouteData(queryClient: QueryClient, path: string) {
       staleTime,
     });
   } else if (path === "/posts") {
+    // `prefetchInfiniteQuery` e non `prefetchQuery`: la chiave e la forma dei
+    // dati di una query a blocchi sono diverse, e riempirla con una risposta
+    // singola lascerebbe la cache inutilizzabile - la pagina rifarebbe comunque
+    // la richiesta, e il prefetch sarebbe solo traffico sprecato.
+    // I filtri sono quelli predefiniti di Posts: con altri nella URL la chiave
+    // non combacia e il prefetch semplicemente non serve.
+    const filtriIniziali: FiltriPost = { lang: [], pageSize: 10, search: "", author: "tutti", order: "archivio" };
+    queryClient.prefetchInfiniteQuery({
+      queryKey: queryKeys.postsInfinite(filtriIniziali),
+      queryFn: () => api.posts({ ...filtriIniziali, page: 1 }),
+      initialPageParam: 1,
+      staleTime,
+    });
+    // La composizione del corpus apre la pagina: e' la prima cosa che si vede,
+    // quindi vale la pena averla gia' pronta.
     queryClient.prefetchQuery({
-      queryKey: queryKeys.posts([], 1, 25),
-      queryFn: () => api.posts([], 1, 25),
+      queryKey: queryKeys.corpus,
+      queryFn: () => api.corpus(),
       staleTime,
     });
   } else if (path === "/detection") {
