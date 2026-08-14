@@ -32,6 +32,9 @@ import { useFactCheckQuery } from "../api/queries.ts";
 import { useDebounce } from "../hooks/useDebounce.ts";
 import { tokens } from "../theme.ts";
 import { EmptyState, ErrorState } from "../components/States.tsx";
+import IntestazioneCapitolo from "../components/narrativa/IntestazioneCapitolo.tsx";
+import BandaScura from "../components/narrativa/BandaScura.tsx";
+import { CAPITOLO_VERIFICA } from "../navigazione.ts";
 import { formatNumber } from "../utils/format.ts";
 import { useUrlList, useUrlNumber, useUrlString } from "../hooks/useUrlState.ts";
 
@@ -97,35 +100,12 @@ export default function FactChecking() {
 
   return (
     <Box sx={{ pb: 8, backgroundColor: tokens.color.canvas }}>
-      {/* Hero Header */}
-      <Box sx={{ mb: 5, pt: 1, borderBottom: tokens.border.subtle, pb: 4 }}>
-        <Typography
-          variant="h3"
-          sx={{
-            fontFamily: tokens.font.display,
-            fontWeight: 700,
-            fontSize: { xs: "32px", md: "48px" },
-            color: tokens.color.black,
-            letterSpacing: "-1.2px",
-            lineHeight: 1.05,
-            mb: 2,
-          }}
-        >
-          Verifica dei fatti
-        </Typography>
-        <Typography
-          variant="body1"
-          sx={{
-            fontFamily: tokens.font.body,
-            color: tokens.color.textPrimary,
-            fontSize: "17px",
-            maxWidth: "850px",
-            lineHeight: 1.5,
-          }}
-        >
-          Verifica automatizzata dei claim e delle affermazioni fattuali eseguita mediante una pipeline LLM (<em>gpt-oss:20b</em>) combinata con ricerca di evidenze web in tempo reale su DuckDuckGo e Wikipedia.
-        </Typography>
-      </Box>
+      <IntestazioneCapitolo
+        numero={CAPITOLO_VERIFICA.numero}
+        capitolo={CAPITOLO_VERIFICA.etichetta}
+        titolo={CAPITOLO_VERIFICA.titolo}
+        guida="Le affermazioni verificabili passano per una pipeline LLM (gpt-oss:20b) che cerca evidenze su DuckDuckGo e Wikipedia e allega il ragionamento con cui e' arrivata al verdetto. Il ragionamento e' parte del risultato: senza, il verdetto non sarebbe contestabile."
+      />
 
       <ErrorState message={error} />
 
@@ -247,6 +227,31 @@ export default function FactChecking() {
           </ResponsiveContainer>
         </Box>
       </Paper>
+
+      {/* Il risultato del capitolo, prima che l'elenco lo disperda nel
+          dettaglio dei singoli verdetti. */}
+      {totalAudited !== null && (
+        <BandaScura
+          tinta="navy"
+          occhiello="Il risultato"
+          titolo={
+            quota(unverifiableCount)
+              ? `Il ${quota(unverifiableCount)}% delle affermazioni non e' verificabile`
+              : "L'esito della verifica"
+          }
+          testo={
+            "Non verificabile non vuol dire falso: vuol dire che le fonti raggiungibili non " +
+            "bastano a decidere. E' la categoria piu' onesta di questo capitolo, e anche quella " +
+            "che ricorda quanto poco si possa concludere automaticamente su un post breve."
+          }
+          cifre={[
+            { valore: formatNumber(totalAudited), etichetta: "Affermazioni verificate" },
+            { valore: formatNumber(trueCount), etichetta: "Vere o perlopiu' vere" },
+            { valore: formatNumber(falseCount), etichetta: "False o perlopiu' false" },
+            { valore: formatNumber(unverifiableCount), etichetta: "Non verificabili" },
+          ]}
+        />
+      )}
 
       {/* Search and Filters */}
       <Paper variant="outlined" sx={{ borderRadius: tokens.radius.lg, p: 3, mb: 4, borderColor: tokens.color.border }}>

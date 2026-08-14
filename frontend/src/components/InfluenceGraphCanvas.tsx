@@ -368,7 +368,7 @@ export default function InfluenceGraphCanvas({
           justifyContent: "space-between",
           flexWrap: "wrap",
           gap: 2,
-          backgroundColor: "#0d0d10",
+          backgroundColor: tokens.color.darkCanvas,
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
@@ -527,7 +527,7 @@ export default function InfluenceGraphCanvas({
         sx={{
           px: 3,
           py: 2,
-          backgroundColor: "#0d0d10",
+          backgroundColor: tokens.color.darkCanvas,
           borderTop: "1px solid rgba(255, 255, 255, 0.1)",
           display: "flex",
           alignItems: "center",
@@ -541,7 +541,7 @@ export default function InfluenceGraphCanvas({
             sx={{
               backgroundColor: tokens.color.coral,
               color: tokens.color.canvas,
-              "&:hover": { backgroundColor: "#e05c3e" },
+              "&:hover": { backgroundColor: tokens.color.coralDark },
             }}
           >
             {isPlaying ? <Pause /> : <PlayArrow />}

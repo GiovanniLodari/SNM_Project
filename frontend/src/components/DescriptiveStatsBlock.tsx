@@ -259,7 +259,7 @@ export default function DescriptiveStatsBlock() {
                         backgroundColor: tokens.color.nearBlack,
                         border: "none",
                         borderRadius: tokens.radius.sm,
-                        color: "#fff",
+                        color: tokens.color.canvas,
                       }}
                       formatter={(val) => [`${formatNumber(Number(val || 0))} status`, "Frequenza"]}
                     />
@@ -296,7 +296,7 @@ export default function DescriptiveStatsBlock() {
                         backgroundColor: tokens.color.nearBlack,
                         border: "none",
                         borderRadius: tokens.radius.sm,
-                        color: "#fff",
+                        color: tokens.color.canvas,
                       }}
                     />
                     <Bar dataKey="count" radius={[0, 4, 4, 0]}>

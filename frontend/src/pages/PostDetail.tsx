@@ -162,7 +162,7 @@ export default function PostDetail() {
               </Box>
 
               {/* Binoculars */}
-              <Box sx={{ p: 2, borderRadius: "14px", backgroundColor: "#edfce9", border: `1px solid ${tokens.color.chipBorderHumanGreen}` }}>
+              <Box sx={{ p: 2, borderRadius: "14px", backgroundColor: tokens.color.surfaceGreen, border: `1px solid ${tokens.color.chipBorderHumanGreen}` }}>
                 <Typography variant="caption" sx={{ fontFamily: tokens.font.mono, color: tokens.color.deepGreen, fontWeight: 700, display: "block", mb: 0.5 }}>
                   DETECTOR 2 • BINOCULARS (QWEN2.5 0.5B ICML 2024)
                 </Typography>

@@ -3,6 +3,7 @@ import {
   Typography,
   Box,
   Button,
+  CircularProgress,
   LinearProgress,
   Skeleton,
   Stack,
@@ -15,47 +16,88 @@ import {
   Grid,
 } from "@mui/material";
 import { Link } from "react-router-dom";
-import { usePostsQuery } from "../api/queries.ts";
-import { SmartToy as BotIcon, ArrowBack as PrevIcon, ArrowForward as NextIcon } from "@mui/icons-material";
+import { usePostsInfiniteQuery } from "../api/queries.ts";
+import { SmartToy as BotIcon, ExpandMore as AltroIcon } from "@mui/icons-material";
 import { tokens } from "../theme.ts";
 import { EmptyState } from "../components/States.tsx";
-import { formatDateTime } from "../utils/format.ts";
+import IntestazioneCapitolo from "../components/narrativa/IntestazioneCapitolo.tsx";
+import { CAPITOLO_CORPUS } from "../navigazione.ts";
+import { formatDateTime, formatNumber } from "../utils/format.ts";
 import { useUrlList, useUrlNumber } from "../hooks/useUrlState.ts";
+import { useSentinella } from "../hooks/useSentinella.ts";
+
+/**
+ * Tetto ai blocchi che la URL puo' chiedere di ripristinare. Senza, un
+ * indirizzo con `?pagine=5000` innescherebbe cinquemila richieste in fila al
+ * caricamento della pagina.
+ */
+const MAX_BLOCCHI = 200;
 
 export default function Posts() {
   // Filtri nella URL: la vista diventa condivisibile e il tasto Indietro
   // ripercorre i filtri invece di uscire dalla pagina.
   const [selectedLangs, setSelectedLangs] = useUrlList("lang");
-  const [page, setPage] = useUrlNumber("page", 1);
   const [pageSize, setPageSize] = useUrlNumber("size", 10);
+  // Quanti blocchi mostrare. Ha preso il posto del numero di pagina: l'elenco
+  // ora si accumula, ma il conteggio resta nella URL perche' tornando indietro
+  // da un post si deve ritrovare l'elenco lungo com'era, non riportato in cima.
+  const [blocchiRichiesti, setBlocchiRichiesti] = useUrlNumber("pagine", 1);
 
   const {
     data,
     isLoading: loading,
     isError,
     isFetching,
-    isPlaceholderData,
-  } = usePostsQuery(selectedLangs, page, pageSize);
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = usePostsInfiniteQuery(selectedLangs, pageSize);
   const error = isError ? "Impossibile caricare l'elenco dei post." : null;
 
-  // Vero mentre arriva una pagina nuova con quella vecchia ancora a schermo:
-  // basta un filetto di avanzamento e un velo, non uno spinner che sostituisce
-  // tutto (DESIGN.md non usa spinner: superfici piatte e filetti sottili).
-  const staAggiornando = isFetching && isPlaceholderData;
+  const blocchiCaricati = data?.pages.length ?? 0;
+  const daMostrare = Math.min(Math.max(1, blocchiRichiesti), MAX_BLOCCHI);
+  const posts = data?.pages.flatMap((blocco) => blocco.posts) ?? [];
+  const lingueDisponibili = data?.pages[0]?.available_langs ?? [];
 
-  // Lo scroll in cima e' un effetto collaterale del cambio pagina, non del
-  // caricamento dei dati: resta un effect, ma non fa piu' da fetch.
+  // Vero mentre l'elenco viene ricostruito da capo dopo un cambio di filtro,
+  // con quello vecchio ancora a schermo: basta un filetto di avanzamento e un
+  // velo, non uno spinner che sostituisce tutto (DESIGN.md non usa spinner:
+  // superfici piatte e filetti sottili). Il caricamento di un blocco in coda
+  // non conta: ha un indicatore suo, in fondo all'elenco.
+  const staAggiornando = isFetching && !isFetchingNextPage && blocchiCaricati > 0;
+
+  // Unico punto in cui si chiede altro contenuto: sia la sentinella sia il
+  // bottone si limitano ad alzare il numero di blocchi richiesti, e questo
+  // effetto allinea il caricato al richiesto. Averne uno solo e' cio' che
+  // permette alla URL di ripristinare un elenco lungo senza una seconda
+  // strada che faccia la stessa cosa in modo leggermente diverso.
+  useEffect(() => {
+    if (blocchiCaricati === 0 || blocchiCaricati >= daMostrare) return;
+    if (!hasNextPage || isFetchingNextPage) return;
+    fetchNextPage();
+  }, [blocchiCaricati, daMostrare, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const caricaAltro = () => {
+    if (!hasNextPage || isFetchingNextPage) return;
+    setBlocchiRichiesti(Math.min(blocchiCaricati + 1, MAX_BLOCCHI));
+  };
+
+  const sentinella = useSentinella(hasNextPage && !isFetchingNextPage, caricaAltro);
+
+  // Lo scroll in cima segue il cambio dei filtri, non il caricamento: quando
+  // arrivano altri post in coda la posizione di lettura non si tocca.
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [page, selectedLangs, pageSize]);
+  }, [selectedLangs, pageSize]);
 
   const handleLangToggle = (langCode: string) => {
     const next = selectedLangs.includes(langCode)
       ? selectedLangs.filter((l) => l !== langCode)
       : [...selectedLangs, langCode];
-    // Reset di pagina nella stessa scrittura del filtro: due setter URL
-    // separati si sovrascriverebbero (vedi OpzioniScrittura in useUrlState).
-    setSelectedLangs(next, { azzera: ["page"] });
+    // Il numero di blocchi torna a 1 nella stessa scrittura del filtro: due
+    // setter URL separati si sovrascriverebbero (vedi OpzioniScrittura in
+    // useUrlState).
+    setSelectedLangs(next, { azzera: ["pagine"] });
   };
 
   const formatTime = formatDateTime;
@@ -74,7 +116,7 @@ export default function Posts() {
             <Skeleton
               variant="rectangular"
               height={260}
-              sx={{ borderRadius: tokens.radius.lg, backgroundColor: "#f9f8f6" }}
+              sx={{ borderRadius: tokens.radius.lg, backgroundColor: tokens.color.surfaceStone }}
             />
           </Grid>
           <Grid item xs={12} md={9}>
@@ -96,24 +138,12 @@ export default function Posts() {
 
   return (
     <Box>
-      <Box sx={{ mb: 6 }}>
-
-        <Typography
-          variant="h2"
-          sx={{
-            fontFamily: tokens.font.display,
-            fontWeight: 400,
-            fontSize: { xs: "32px", md: "48px" },
-            color: tokens.color.nearBlack,
-            mb: 1,
-          }}
-        >
-          Archivio dei post
-        </Typography>
-        <Typography variant="body1" sx={{ color: tokens.color.textMuted }}>
-          I post raccolti dalle istanze Mastodon individuate, filtrabili per lingua.
-        </Typography>
-      </Box>
+      <IntestazioneCapitolo
+        numero={CAPITOLO_CORPUS.numero}
+        capitolo={CAPITOLO_CORPUS.etichetta}
+        titolo="I post raccolti dal Fediverso"
+        guida="Il corpus grezzo, filtrabile per lingua, prima che qualsiasi modello lo giudichi. Ogni post porta al proprio dettaglio, dove compaiono i punteggi dei quattro rilevatori."
+      />
 
       <Grid container spacing={4}>
         {/* Left Side Filters */}
@@ -122,9 +152,9 @@ export default function Posts() {
             <Typography variant="caption" sx={{ color: tokens.color.textMuted, mb: 2, fontWeight: 700, letterSpacing: "0.5px", display: "block" }}>
               FILTRA PER LINGUA
             </Typography>
-            {data && data.available_langs.length > 0 ? (
+            {lingueDisponibili.length > 0 ? (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                {data.available_langs.map((langCode) => {
+                {lingueDisponibili.map((langCode) => {
                   const isChecked = selectedLangs.includes(langCode);
                   return (
                     <Box
@@ -140,7 +170,7 @@ export default function Posts() {
                         backgroundColor: isChecked ? tokens.color.surfaceCoral : "transparent",
                         border: isChecked ? `1px solid ${tokens.color.coralLight}` : "1px solid transparent",
                         transition: "all 0.15s ease",
-                        "&:hover": { backgroundColor: "#f9f8f6" },
+                        "&:hover": { backgroundColor: tokens.color.surfaceStone },
                       }}
                     >
                       <input
@@ -168,7 +198,7 @@ export default function Posts() {
                   <Button
                     size="small"
                     variant="text"
-                    onClick={() => setSelectedLangs([], { azzera: ["page"] })}
+                    onClick={() => setSelectedLangs([], { azzera: ["pagine"] })}
                     sx={{ color: tokens.color.coral, textTransform: "none", fontSize: "12px", alignSelf: "flex-start", mt: 1 }}
                   >
                     Reset filtri ({selectedLangs.length})
@@ -185,7 +215,7 @@ export default function Posts() {
 
         {/* Post list */}
         <Grid item xs={12} md={9}>
-          {error || !data || data.posts.length === 0 ? (
+          {error || posts.length === 0 ? (
             <EmptyState message="Nessun post corrisponde ai filtri selezionati." />
           ) : (
             <Box>
@@ -210,7 +240,7 @@ export default function Posts() {
                     transition: "opacity 0.15s ease",
                   }}
                 >
-                  {data.posts.map((post, idx) => (
+                  {posts.map((post, idx) => (
                     <div key={post.id}>
                       <ListItem
                         sx={{
@@ -294,7 +324,7 @@ export default function Posts() {
                                     fontFamily: tokens.font.mono,
                                     fontSize: "10px",
                                     fontWeight: 600,
-                                    backgroundColor: post.binoculars_prob != null && post.binoculars_prob >= 0.5 ? "#edfce9" : tokens.color.surfaceBlue,
+                                    backgroundColor: post.binoculars_prob != null && post.binoculars_prob >= 0.5 ? tokens.color.surfaceGreen : tokens.color.surfaceBlue,
                                     color: post.binoculars_prob != null && post.binoculars_prob >= 0.5 ? tokens.color.deepGreen : tokens.color.actionBlue,
                                     border: "1px solid",
                                     borderColor: post.binoculars_prob != null && post.binoculars_prob >= 0.5 ? tokens.color.chipBorderHumanGreen : tokens.color.chipBorderHuman,
@@ -360,39 +390,68 @@ export default function Posts() {
                           }
                         />
                       </ListItem>
-                      {idx < data.posts.length - 1 && <Divider sx={{ borderColor: tokens.color.border }} />}
+                      {idx < posts.length - 1 && <Divider sx={{ borderColor: tokens.color.border }} />}
                     </div>
                   ))}
                 </List>
               </Paper>
 
-              {/* Pagination & Page Size Control */}
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
-                <Button
-                  variant="outlined"
-                  startIcon={<PrevIcon />}
-                  disabled={page <= 1}
-                  onClick={() => setPage(page - 1)}
-                  sx={{ borderRadius: tokens.radius.pill, textTransform: "none", fontSize: "13px" }}
-                >
-                  Indietro
-                </Button>
+              {/* Coda dell'elenco: la sentinella invisibile carica in anticipo
+                  mentre si scorre, il bottone resta perche' lo scorrimento
+                  automatico e' inaccessibile da tastiera e non esiste dove
+                  IntersectionObserver manca. */}
+              <Box
+                ref={sentinella}
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 2,
+                  py: 2,
+                }}
+              >
+                {isFetchingNextPage && (
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                    <CircularProgress size={16} sx={{ color: tokens.color.nearBlack }} />
+                    <Typography variant="body2" sx={{ color: tokens.color.textMuted }}>
+                      Carico altri post…
+                    </Typography>
+                  </Box>
+                )}
 
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                {hasNextPage && !isFetchingNextPage && (
+                  <Button
+                    variant="outlined"
+                    endIcon={<AltroIcon />}
+                    onClick={caricaAltro}
+                    sx={{ borderRadius: tokens.radius.pill, fontSize: "13px" }}
+                  >
+                    Carica altri {pageSize} post
+                  </Button>
+                )}
+
+                {!hasNextPage && (
+                  <Typography variant="body2" sx={{ color: tokens.color.textMuted }}>
+                    Fine dell&#39;elenco.
+                  </Typography>
+                )}
+
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", justifyContent: "center" }}>
                   <Typography variant="caption" sx={{ color: tokens.color.textMuted, fontWeight: 500 }}>
-                    Pagina {page}
+                    {formatNumber(posts.length)} post a schermo
                   </Typography>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <Typography variant="caption" sx={{ color: tokens.color.textMuted }}>
-                      Post per pagina:
+                      Post per blocco:
                     </Typography>
                     <select
                       value={pageSize}
-                      onChange={(e) => setPageSize(Number(e.target.value), { azzera: ["page"] })}
+                      aria-label="Post caricati per blocco"
+                      onChange={(e) => setPageSize(Number(e.target.value), { azzera: ["pagine"] })}
                       style={{
                         padding: "4px 8px",
                         borderRadius: tokens.radius.sm,
-                        border: "1px solid #d1d5db",
+                        border: `1px solid ${tokens.color.borderInput}`,
                         fontSize: "12px",
                         fontFamily: tokens.font.body,
                         cursor: "pointer",
@@ -405,16 +464,6 @@ export default function Posts() {
                     </select>
                   </Box>
                 </Box>
-
-                <Button
-                  variant="outlined"
-                  endIcon={<NextIcon />}
-                  disabled={!data.has_next}
-                  onClick={() => setPage(page + 1)}
-                  sx={{ borderRadius: tokens.radius.pill, textTransform: "none", fontSize: "13px" }}
-                >
-                  Avanti
-                </Button>
               </Box>
             </Box>
           )}

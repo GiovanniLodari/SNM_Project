@@ -260,7 +260,7 @@ export default function DbSync() {
                   backgroundColor: tokens.color.coral, // Coral CTA Button
                   color: tokens.color.canvas,
                   borderRadius: tokens.radius.pill,
-                  "&:hover": { backgroundColor: "#e05c40" },
+                  "&:hover": { backgroundColor: tokens.color.coralDark },
                   mt: "auto",
                 }}
               >

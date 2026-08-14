@@ -2,6 +2,8 @@ import { Typography, Box, Grid, Skeleton, Paper, LinearProgress, Tooltip, Stack 
 import { useAccountsQuery } from "../api/queries.ts";
 import { SmartToy as BotIcon, People as HumanIcon, Psychology as AiIcon, HelpOutline as HelpIcon } from "@mui/icons-material";
 import { tokens } from "../theme.ts";
+import IntestazioneCapitolo from "../components/narrativa/IntestazioneCapitolo.tsx";
+import { CAPITOLO_CORPUS } from "../navigazione.ts";
 import { formatNumber } from "../utils/format.ts";
 
 export default function Accounts() {
@@ -44,24 +46,12 @@ export default function Accounts() {
 
   return (
     <Box>
-      <Box sx={{ mb: 6 }}>
-
-        <Typography
-          variant="h2"
-          sx={{
-            fontFamily: tokens.font.display,
-            fontWeight: 400,
-            fontSize: { xs: "32px", md: "48px" },
-            color: tokens.color.nearBlack,
-            mb: 1,
-          }}
-        >
-          Fediverse Account Taxonomy
-        </Typography>
-        <Typography variant="body1" sx={{ color: tokens.color.textMuted }}>
-          Cross-referenced statistics comparing bot accounts vs human creators of synthetic AI content.
-        </Typography>
-      </Box>
+      <IntestazioneCapitolo
+        numero={CAPITOLO_CORPUS.numero}
+        capitolo={CAPITOLO_CORPUS.etichetta}
+        titolo="Chi ha scritto i post del corpus"
+        guida="Quanti account si dichiarano automatizzati, quanti pubblicano testo che i rilevatori marcano come sintetico, e quanto le due categorie si sovrappongono. Sono due cose diverse, ed e' proprio la loro distanza a essere interessante."
+      />
 
       <Grid container spacing={4}>
         {/* Global Bot Distribution */}

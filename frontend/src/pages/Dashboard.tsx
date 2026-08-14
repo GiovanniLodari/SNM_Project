@@ -42,14 +42,8 @@ export default function Dashboard() {
       {/* Intestazione del grafo: dice cosa si sta guardando prima del canvas */}
       <Box sx={{ mb: 3 }}>
         <Typography
-          variant="h4"
-          sx={{
-            fontFamily: tokens.font.display,
-            fontWeight: 400,
-            fontSize: { xs: "28px", md: "36px" },
-            color: tokens.color.nearBlack,
-            letterSpacing: "-0.48px",
-          }}
+          component="h2"
+          sx={{ ...tokens.type.cardHeading, color: tokens.color.nearBlack }}
         >
           La rete dei follow, nodo per nodo
         </Typography>
@@ -227,49 +221,23 @@ export default function Dashboard() {
                 />
               </Box>
 
-              {/* Collegamenti ai quattro modelli e al confronto */}
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, pt: 1 }}>
-                <Button
+              {/* Un solo collegamento: i quattro modelli sono un menu a
+                  tendina dentro il capitolo, non quattro destinazioni. Prima
+                  qui c'erano cinque bottoni che portavano a cinque pagine
+                  quasi identiche. */}
+              <Box sx={{ pt: 1 }}>
+                <Box
                   component={Link}
-                  to="/ai-detection"
-                  size="small"
-                  sx={{ color: tokens.color.canvas, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: tokens.radius.lg, textTransform: "none", fontSize: "12px", "&:hover": { backgroundColor: "rgba(255,255,255,0.2)" } }}
+                  to="/detection"
+                  sx={{
+                    color: tokens.color.coral,
+                    textDecoration: "underline",
+                    fontSize: "14px",
+                    fontWeight: 500,
+                  }}
                 >
-                  FastDetectGPT
-                </Button>
-                <Button
-                  component={Link}
-                  to="/ai-detection-binoculars"
-                  size="small"
-                  sx={{ color: tokens.color.canvas, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: tokens.radius.lg, textTransform: "none", fontSize: "12px", "&:hover": { backgroundColor: "rgba(255,255,255,0.2)" } }}
-                >
-                  Binoculars
-                </Button>
-                <Button
-                  component={Link}
-                  to="/ai-detection-desklib"
-                  size="small"
-                  sx={{ color: tokens.color.canvas, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: tokens.radius.lg, textTransform: "none", fontSize: "12px", "&:hover": { backgroundColor: "rgba(255,255,255,0.2)" } }}
-                >
-                  Desklib
-                </Button>
-                <Button
-                  component={Link}
-                  to="/ai-detection-ada"
-                  size="small"
-                  sx={{ color: tokens.color.canvas, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: tokens.radius.lg, textTransform: "none", fontSize: "12px", "&:hover": { backgroundColor: "rgba(255,255,255,0.2)" } }}
-                >
-                  AdaDetectGPT
-                </Button>
-                <Button
-                  component={Link}
-                  to="/detector-comparison"
-                  size="small"
-                  variant="outlined"
-                  sx={{ color: tokens.color.coral, borderColor: tokens.color.coral, borderRadius: tokens.radius.lg, textTransform: "none", fontSize: "12px", fontWeight: 600, "&:hover": { backgroundColor: "rgba(255,119,89,0.1)", borderColor: tokens.color.coral } }}
-                >
-                  Confronto &rarr;
-                </Button>
+                  Apri il capitolo sul testo sintetico &rarr;
+                </Box>
               </Box>
             </Box>
           </Grid>

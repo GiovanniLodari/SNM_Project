@@ -1,4 +1,11 @@
-import { useQuery, useMutation, useQueryClient, keepPreviousData, type QueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+  type QueryClient,
+} from "@tanstack/react-query";
 import { api } from "./client.ts";
 
 /**
@@ -10,6 +17,7 @@ import { api } from "./client.ts";
 export const queryKeys = {
   dashboard: ["dashboard"] as const,
   posts: (lang: string[], page: number, pageSize: number) => ["posts", { lang, page, pageSize }] as const,
+  postsInfinite: (lang: string[], pageSize: number) => ["posts", "infinite", { lang, pageSize }] as const,
   postDetail: (id: number) => ["posts", "detail", id] as const,
   accounts: ["accounts"] as const,
   aiDetection: (probBucket: string[], page: number, sortBy: string, detector: string) =>
@@ -48,6 +56,30 @@ export function usePostsQuery(lang: string[], page: number, pageSize: number = 2
     // richiesta si sentivano tutti. Con i dati precedenti come segnaposto la
     // pagina resta in piedi e si aggiorna quando arrivano quelli nuovi.
     placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * L'archivio dei post caricato per blocchi successivi invece che a pagine.
+ *
+ * Con la paginazione ogni clic sostituiva l'elenco e costringeva ad aspettare
+ * la risposta prima di poter leggere ancora: scorrere il corpus - che e' il
+ * compito del capitolo - voleva dire fermarsi ogni dieci post. Qui i blocchi si
+ * accumulano, quindi quanto e' gia' arrivato resta a schermo e leggibile mentre
+ * il successivo e' in volo.
+ *
+ * `getNextPageParam` si basa su `has_next` che il backend calcola gia': non si
+ * deduce la fine dell'elenco dal numero di elementi ricevuti, che sarebbe
+ * sbagliato quando l'ultimo blocco e' esattamente pieno.
+ */
+export function usePostsInfiniteQuery(lang: string[], pageSize: number = 10) {
+  return useInfiniteQuery({
+    queryKey: queryKeys.postsInfinite(lang, pageSize),
+    queryFn: ({ pageParam }) => api.posts(lang, pageParam, pageSize),
+    initialPageParam: 1,
+    getNextPageParam: (ultimoBlocco, blocchi) =>
+      ultimoBlocco.has_next ? blocchi.length + 1 : undefined,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -193,39 +225,18 @@ export function prefetchRouteData(queryClient: QueryClient, path: string) {
       queryFn: () => api.posts([], 1, 25),
       staleTime,
     });
-  } else if (path === "/ai-detection") {
+  } else if (path === "/detection") {
+    // Il capitolo apre sul modello predefinito e chiude sul confronto: si
+    // pre-caricano entrambi, perche' l'atto III e' raggiungibile scorrendo
+    // senza altra navigazione che potrebbe innescare un secondo prefetch.
     queryClient.prefetchQuery({
       queryKey: queryKeys.aiDetection([], 1, "id", "fastdetect"),
       queryFn: () => api.aiDetection([], 1, "id", "fastdetect"),
       staleTime,
     });
-  } else if (path === "/ai-detection-binoculars") {
-    queryClient.prefetchQuery({
-      queryKey: queryKeys.aiDetection([], 1, "id", "binoculars"),
-      queryFn: () => api.aiDetection([], 1, "id", "binoculars"),
-      staleTime,
-    });
-  } else if (path === "/ai-detection-desklib") {
-    queryClient.prefetchQuery({
-      queryKey: queryKeys.aiDetection([], 1, "id", "desklib"),
-      queryFn: () => api.aiDetection([], 1, "id", "desklib"),
-      staleTime,
-    });
-  } else if (path === "/ai-detection-ada") {
-    queryClient.prefetchQuery({
-      queryKey: queryKeys.aiDetection([], 1, "id", "ada"),
-      queryFn: () => api.aiDetection([], 1, "id", "ada"),
-      staleTime,
-    });
-  } else if (path === "/detector-comparison") {
     queryClient.prefetchQuery({
       queryKey: queryKeys.detectorComparisonSummary,
       queryFn: () => api.detectorComparisonSummary(),
-      staleTime,
-    });
-    queryClient.prefetchQuery({
-      queryKey: queryKeys.detectorComparisonPosts("all", 1, 25, ""),
-      queryFn: () => api.detectorComparisonPosts("all", 1, 25, ""),
       staleTime,
     });
   } else if (path === "/fact-check") {

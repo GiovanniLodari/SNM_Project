@@ -283,7 +283,7 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
                 fontWeight: 600,
                 px: 2.5,
                 "&:hover": {
-                  backgroundColor: isPlaying ? "#e05b3d" : "#0d9668",
+                  backgroundColor: isPlaying ? tokens.color.coralDark : tokens.color.successDark,
                 },
               }}
             >

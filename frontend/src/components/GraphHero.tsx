@@ -443,7 +443,7 @@ export default function GraphHero() {
             targetId: randomLink.target,
             progress: 0,
             speed: 0.015 + Math.random() * 0.02,
-            color: srcNode?.bot ? "#ff5252" : "#38bdf8",
+            color: srcNode?.bot ? tokens.color.graphBot : tokens.color.graphHuman,
           });
         }
       }
@@ -641,7 +641,7 @@ export default function GraphHero() {
       elevation={0}
       sx={{
         borderRadius: "28px",
-        backgroundColor: "#131924",
+        backgroundColor: tokens.color.darkGraph,
         color: tokens.color.canvas,
         p: { xs: 3, md: 4 },
         mb: 6,

@@ -155,11 +155,16 @@ def load_fact_checks(path: Path) -> dict[int, dict]:
 
 
 
-def count_eligible_posts(post_texts_path: Path, lang: str = "en") -> int:
+def count_eligible_posts(post_texts_path: Path, lang: str | None = "en") -> int:
     """Conta i post nel pool idoneo (stesso filtro di export_texts.py/fact_check.py:
     lingua + testo non vuoto dopo strip), per calcolare le percentuali di
     completamento delle pipeline. File assente = 0. Righe troncate vengono
-    ignorate (come in load_ai_scores)."""
+    ignorate (come in load_ai_scores).
+
+    `lang=None` conta i post di qualsiasi lingua: serve ai rilevatori che non
+    applicano alcun filtro linguistico, il cui pool idoneo e' quindi piu' ampio
+    di quello inglese.
+    """
     def _load():
         n = 0
         with post_texts_path.open("r", encoding="utf-8") as f:
@@ -169,14 +174,20 @@ def count_eligible_posts(post_texts_path: Path, lang: str = "en") -> int:
                     continue
                 try:
                     row = json.loads(line)
-                    if row.get("lang") == lang and row.get("text", "").strip():
+                    if lang is not None and row.get("lang") != lang:
+                        continue
+                    if row.get("text", "").strip():
                         n += 1
                 except (json.JSONDecodeError, KeyError):
                     # Righe troncate/malformate da un crash/interruzione vengono ignorate
                     continue
         return n
 
-    return _cached_load(post_texts_path, lang, _load) if post_texts_path.exists() else 0
+    # La chiave di cache distingue i due pool: senza il ripiego a stringa,
+    # `lang=None` e `lang="en"` condividerebbero la stessa voce e il secondo
+    # calcolo restituirebbe il conteggio del primo.
+    chiave = lang if lang is not None else "__tutte__"
+    return _cached_load(post_texts_path, chiave, _load) if post_texts_path.exists() else 0
 
 
 def count_checkworthy_eligible_posts(

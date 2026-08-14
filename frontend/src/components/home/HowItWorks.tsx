@@ -14,20 +14,12 @@ export default function HowItWorks() {
   return (
     <Box id={ANCORA_COME_FUNZIONA} sx={{ mb: 6, scrollMarginTop: "88px" }}>
       <Box sx={{ mb: 3 }}>
-        <Typography
-          variant="h4"
-          sx={{
-            fontFamily: tokens.font.display,
-            fontWeight: 400,
-            fontSize: { xs: "28px", md: "36px" },
-            color: tokens.color.nearBlack,
-            letterSpacing: "-0.48px",
-          }}
-        >
-          Come funziona
+        <Typography component="h2" sx={{ ...tokens.type.cardHeading, color: tokens.color.nearBlack }}>
+          I quattro capitoli
         </Typography>
         <Typography variant="body2" sx={{ color: tokens.color.textMuted, mt: 0.5 }}>
-          Quattro passi, dalla raccolta dei post alla diffusione nella rete. Ognuno ha la sua pagina.
+          Dalla raccolta dei post alla diffusione nella rete. Ognuno ha la sua pagina, e si
+          leggono nell&#39;ordine.
         </Typography>
       </Box>
 
@@ -45,20 +37,20 @@ export default function HowItWorks() {
                   border: tokens.border.subtle,
                   display: "flex",
                   flexDirection: "column",
-                  transition: "border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out",
-                  "&:hover": {
-                    borderColor: tokens.color.nearBlack,
-                    boxShadow: "0 6px 18px rgba(0,0,0,0.05)",
-                  },
+                  // Nessuna ombra: DESIGN.md tiene le superfici piatte e affida
+                  // la profondita' al contrasto dei bordi.
+                  transition: "border-color 0.15s ease-in-out",
+                  "&:hover": { borderColor: tokens.color.nearBlack },
                 }}
               >
                 <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
                   <Typography
-                    variant="caption"
+                    component="span"
                     sx={{
                       fontFamily: tokens.font.mono,
                       fontSize: "12px",
-                      color: tokens.color.textFaint,
+                      fontWeight: 600,
+                      color: tokens.color.coral,
                       letterSpacing: "1px",
                     }}
                   >
@@ -68,10 +60,10 @@ export default function HowItWorks() {
                 </Box>
 
                 <Typography
-                  variant="h6"
+                  component="h3"
                   sx={{
                     fontFamily: tokens.font.display,
-                    fontWeight: 600,
+                    fontWeight: 500,
                     fontSize: "18px",
                     color: tokens.color.nearBlack,
                     mb: 1,

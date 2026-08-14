@@ -179,7 +179,7 @@ function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }
             <Box
               sx={{
                 p: 1.5,
-                backgroundColor: "#050811",
+                backgroundColor: tokens.color.darkConsole,
                 color: tokens.color.accentCyan,
                 fontFamily: tokens.font.mono,
                 fontSize: "11px",
@@ -209,7 +209,7 @@ function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }
               backgroundColor: tokens.color.danger, // Error Red
               color: tokens.color.canvas,
               borderRadius: tokens.radius.pill,
-              "&:hover": { backgroundColor: "#800000" },
+              "&:hover": { backgroundColor: tokens.color.dangerDark },
             }}
           >
             Halt Agent

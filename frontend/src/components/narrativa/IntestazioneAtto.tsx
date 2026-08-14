@@ -1,5 +1,6 @@
 import { Box, Typography } from "@mui/material";
-import type { Atto } from "./influenceContent.ts";
+import type { Atto } from "./tipi.ts";
+import EtichettaMono from "./EtichettaMono.tsx";
 import { tokens } from "../../theme.ts";
 
 interface Props {
@@ -18,27 +19,13 @@ interface Props {
 export default function IntestazioneAtto({ atto }: Props) {
   return (
     <Box sx={{ mb: 4 }}>
-      <Typography
-        component="p"
-        sx={{
-          fontFamily: tokens.font.mono,
-          fontSize: "12px",
-          letterSpacing: "1px",
-          textTransform: "uppercase",
-          color: tokens.color.textMuted,
-          mb: 1,
-        }}
-      >
+      <EtichettaMono sx={{ mb: 1, fontSize: "12px", letterSpacing: "1px" }}>
         Atto {atto.numero} — {atto.titolo}
-      </Typography>
+      </EtichettaMono>
       <Typography
         component="h2"
         sx={{
-          fontFamily: tokens.font.display,
-          fontWeight: 400,
-          fontSize: { xs: "26px", md: "34px" },
-          lineHeight: 1.2,
-          letterSpacing: "-0.6px",
+          ...tokens.type.sectionHeading,
           color: tokens.color.nearBlack,
           maxWidth: "24ch",
         }}

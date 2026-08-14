@@ -563,10 +563,19 @@ def ai_detection(
     else:
         ai_scores = results.load_ai_scores(AI_SCORES_PATH)
 
-    if detector in ("binoculars", "desklib", "ada", "ada_local", "adadetect"):
-        eligible = max(len(ai_scores), 192823)
-    else:
-        eligible = results.count_eligible_posts(POST_TEXTS_PATH)
+    # Denominatore del "su N idonei": i post che questo rilevatore avrebbe
+    # potuto valutare. Prima i tre non-FastDetect ricevevano
+    # `max(len(ai_scores), 192823)`, una costante scritta a mano: finche' ogni
+    # rilevatore aveva una pagina propria la cosa passava inosservata, ma il
+    # menu a tendina del frontend mette i quattro "su N idonei" uno dopo
+    # l'altro, e tre di quei quattro erano inventati.
+    #
+    # Binoculars e' l'unico ad aver girato senza filtro di lingua - il suo file
+    # di punteggi contiene 200.040 post contro i 192.822 inglesi - quindi il suo
+    # pool idoneo e' l'intero corpus. Usare per tutti il conteggio inglese
+    # produrrebbe per Binoculars un "200.040 su 192.822", cioe' piu' del 100%.
+    lingua_idonea = None if detector == "binoculars" else "en"
+    eligible = results.count_eligible_posts(POST_TEXTS_PATH, lingua_idonea)
 
 
     histogram = results.ai_probability_histogram(ai_scores)

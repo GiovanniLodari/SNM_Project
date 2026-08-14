@@ -1,11 +1,6 @@
 import type { ComponentType } from "react";
 import type { SvgIconProps } from "@mui/material";
-import {
-  Storage as RaccoltaIcon,
-  Psychology as RilevamentoIcon,
-  FactCheck as FactCheckIcon,
-  TrendingUp as InfluenzaIcon,
-} from "@mui/icons-material";
+import { CAPITOLI_NUMERATI } from "../../navigazione.ts";
 
 /**
  * Testi della homepage, raccolti qui invece che sparsi nel JSX.
@@ -32,7 +27,7 @@ export const HERO = {
 } as const;
 
 export interface HomeStep {
-  /** Progressivo mostrato in mono, "01" - "04". */
+  /** Numero romano del capitolo, lo stesso che porta la sidebar. */
   numero: string;
   titolo: string;
   descrizione: string;
@@ -42,45 +37,22 @@ export interface HomeStep {
   icona: ComponentType<SvgIconProps>;
 }
 
-export const STEPS: readonly HomeStep[] = [
-  {
-    numero: "01",
-    titolo: "Raccolta",
-    descrizione:
-      "Un crawler percorre le istanze del Fediverso e archivia post, account e archi di follow, " +
-      "costruendo il corpus su cui lavora tutto il resto.",
-    ctaLabel: "Sfoglia i post",
-    path: "/posts",
-    icona: RaccoltaIcon,
-  },
-  {
-    numero: "02",
-    titolo: "Rilevamento del testo sintetico",
-    descrizione:
-      "Quattro rilevatori indipendenti - FastDetectGPT, Binoculars, Desklib e AdaDetectGPT - " +
-      "leggono lo stesso testo. Dove non concordano, il confronto lo mostra.",
-    ctaLabel: "Confronta i detector",
-    path: "/detector-comparison",
-    icona: RilevamentoIcon,
-  },
-  {
-    numero: "03",
-    titolo: "Verifica dei fatti",
-    descrizione:
-      "Le affermazioni verificabili vengono controllate da un LLM che cita le sue fonti, " +
-      "cercate su DuckDuckGo e Wikipedia.",
-    ctaLabel: "Leggi i verdetti",
-    path: "/fact-check",
-    icona: FactCheckIcon,
-  },
-  {
-    numero: "04",
-    titolo: "Bot e influenza",
-    descrizione:
-      "Quali account sono automatizzati, e da quali nodi conviene partire perche' un " +
-      "contenuto raggiunga piu' persone possibile.",
-    ctaLabel: "Vedi la diffusione",
-    path: "/influence-maximization",
-    icona: InfluenzaIcon,
-  },
-];
+/**
+ * I quattro passi, derivati dai capitoli invece che riscritti.
+ *
+ * Erano un secondo elenco, numerato "01"-"04" e con titoli propri ("Raccolta",
+ * "Bot e influenza") che non comparivano da nessun'altra parte: la homepage
+ * prometteva quattro passi con certi nomi e la sidebar ne offriva dodici con
+ * nomi diversi. Derivandoli, la promessa e la navigazione non possono piu'
+ * divergere - e un capitolo che cambia nome lo cambia in entrambi i posti.
+ */
+export const STEPS: readonly HomeStep[] = CAPITOLI_NUMERATI.map((capitolo) => ({
+  // I capitoli numerati hanno sempre un numero: e' la condizione con cui sono
+  // stati selezionati.
+  numero: capitolo.numero ?? "",
+  titolo: capitolo.etichetta,
+  descrizione: capitolo.sommario,
+  ctaLabel: capitolo.ctaLabel,
+  path: capitolo.voci[0].path,
+  icona: capitolo.icona,
+}));

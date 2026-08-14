@@ -18,10 +18,18 @@ import { createTheme } from "@mui/material/styles";
 const color = {
     // Marchio
     nearBlack: "#17171c",
+    // Sfumatura appena piu' chiara di nearBlack: hover dei bottoni pieni, dove
+    // "piu' scuro" non e' disponibile perche' si parte gia' quasi dal nero.
+    nearBlackHover: "#2e2e38",
     black: "#000000",
     deepGreen: "#003c33",
+    // Banda scura alternativa a deepGreen (DESIGN.md, dark-feature-band): serve
+    // a distinguere un capitolo dall'altro senza cambiare famiglia di colore.
+    darkNavy: "#071829",
     actionBlue: "#1863dc",
     coral: "#ff7759",
+    // Coral premuto/hover: unica variante scura del coral usata dai controlli.
+    coralDark: "#e66043",
     coralLight: "#ffad9b",
     purple: "#7c3aed",
     danger: "#b30000",
@@ -30,10 +38,17 @@ const color = {
     canvas: "#ffffff",
     softStone: "#eeece7",
     surfaceSubtle: "#f8f9fa",
+    // Bianco appena caldo: fondo dei blocchi di esplorazione, distingue il
+    // pannello dal canvas senza introdurre un bordo in piu'.
+    surfaceWarm: "#fafaf8",
     surfaceBlue: "#f1f5ff",
     surfaceCoral: "#fff0ec",
     surfacePurple: "#f5f3ff",
+    surfaceGreen: "#edfce9",
     surfaceDanger: "#fdf2f2",
+    // Pietra chiara: fondo degli scheletri di caricamento e hover delle righe
+    // d'elenco, dove softStone sarebbe troppo marcato.
+    surfaceStone: "#f9f8f6",
     tableHead: "#fafafa",
 
     // Testo
@@ -44,21 +59,44 @@ const color = {
     // Bordi
     border: "#e5e7eb",
     borderStrong: "#d9d9dd",
+    // Bordo dei controlli di modulo, l'unico piu' marcato di borderStrong.
+    borderInput: "#d1d5db",
+    // Filetto piu' tenue del sistema (DESIGN.md, Card Border): separa le righe
+    // dentro una card, dove `border` risulterebbe una gabbia.
+    cardBorder: "#f2f2f2",
     borderPurple: "#ddd6fe",
+    // Anello di focus da tastiera (DESIGN.md, Semantic): non e' actionBlue,
+    // che serve ai link, perche' focus e link devono restare distinguibili.
+    focusBlue: "#4c6ee6",
 
-    // Superfici scure (grafo, console log, modali)
+    // Superfici scure (grafo, console log, modali). Sono quattro tinte vicine
+    // ma non intercambiabili: ognuna fa da fondo a un contenuto diverso, e
+    // uniformarle appiattirebbe la distinzione fra un grafo e un terminale.
     darkSurface: "#0b0f19",
+    /** Canvas della cascata di influenza: il piu' scuro, per far risaltare i nodi. */
+    darkCanvas: "#0d0d10",
+    /** Riquadro del grafo dei follow in homepage. */
+    darkGraph: "#131924",
+    /** Console dei log delle pipeline: nero bluastro da terminale. */
+    darkConsole: "#050811",
     darkSlate: "#94a3b8",
     darkSlateDeep: "#64748b",
     darkSlateDarker: "#475569",
     darkSlateLight: "#cbd5e1",
     accentCyan: "#00e5ff",
+    /** Nodo bot e nodo umano nel grafo dei follow, su fondo scuro. */
+    graphBot: "#ff5252",
+    graphHuman: "#38bdf8",
 
     // Stati positivi: verde "attivo" (nodo umano, pipeline in esecuzione) e
     // verde "appena attivato" della cascata di influenza - due significati
     // diversi, quindi due token distinti anche se le tinte sono vicine.
     success: "#10b981",
+    /** Verde premuto: hover del comando "in esecuzione" della barra del grafo. */
+    successDark: "#0d9668",
     activated: "#34c759",
+    /** Rosso premuto: hover dei comandi distruttivi (arresto di una pipeline). */
+    dangerDark: "#800000",
     // Bordi tenui delle chip detector: azzurro = sotto soglia (non IA),
     // verde = sotto soglia per Binoculars, che usa una scala propria.
     chipBorderHuman: "#c6d7ff",
@@ -67,9 +105,124 @@ const color = {
 
 // I colori stanno in una const a parte perche' i bordi qui sotto devono
 // potervisi riferire: un oggetto letterale non puo' citare se stesso.
+const font = {
+  display: "Space Grotesk, Inter, sans-serif",
+  body: "Inter, sans-serif",
+  mono: "ui-monospace, monospace",
+};
+
+/**
+ * Scala tipografica di DESIGN.md (sezione Typography > Hierarchy), in oggetti
+ * pronti da spandere dentro `sx`:
+ *
+ *     <Typography sx={{ ...tokens.type.sectionHeading }}>
+ *
+ * Esiste accanto alle varianti MUI perche' le varianti sono sei caselle
+ * (h1..h6) mentre DESIGN.md descrive dodici ruoli, e la corrispondenza non e'
+ * uno a uno. Il risultato era che ogni pagina dichiarava una `variant` e poi ne
+ * riscriveva a mano `fontSize`, `lineHeight` e `letterSpacing` dentro `sx`,
+ * ognuna con valori leggermente diversi: e' il motivo per cui i titoli non
+ * combaciavano da una sezione all'altra. Qui il ruolo si nomina una volta.
+ *
+ * Le misure sono responsive gia' nel token: chi lo usa non deve reintrodurre
+ * un breakpoint a mano, che era l'altra meta' della divergenza.
+ */
+const type = {
+  /** Dichiarazione della homepage, una sola per pagina. */
+  heroDisplay: {
+    fontFamily: font.display,
+    fontWeight: 400,
+    fontSize: { xs: "40px", sm: "56px", md: "72px", lg: "96px" },
+    lineHeight: 1.0,
+    letterSpacing: "-1.92px",
+  },
+  /** Titolo di apertura di un capitolo. */
+  productDisplay: {
+    fontFamily: font.display,
+    fontWeight: 400,
+    fontSize: { xs: "34px", md: "56px", lg: "72px" },
+    lineHeight: 1.0,
+    letterSpacing: "-1.44px",
+  },
+  /** Titolo di sezione ampia. */
+  sectionDisplay: {
+    fontFamily: font.display,
+    fontWeight: 400,
+    fontSize: { xs: "32px", md: "48px", lg: "60px" },
+    lineHeight: 1.0,
+    letterSpacing: "-1.2px",
+  },
+  /** Titolo di sezione: e' anche la domanda che apre un atto. */
+  sectionHeading: {
+    fontFamily: font.display,
+    fontWeight: 400,
+    fontSize: { xs: "26px", md: "34px", lg: "40px" },
+    lineHeight: 1.2,
+    letterSpacing: "-0.48px",
+  },
+  /** Titolo di scheda o di blocco dentro un atto. */
+  cardHeading: {
+    fontFamily: font.display,
+    fontWeight: 400,
+    fontSize: { xs: "24px", md: "32px" },
+    lineHeight: 1.2,
+    letterSpacing: "-0.32px",
+  },
+  /** Titolo di card, filtro, elemento di elenco. */
+  featureHeading: {
+    fontFamily: font.display,
+    fontWeight: 500,
+    fontSize: "24px",
+    lineHeight: 1.3,
+    letterSpacing: 0,
+  },
+  /** Paragrafo guida sotto un titolo. */
+  bodyLarge: {
+    fontFamily: font.body,
+    fontWeight: 400,
+    fontSize: { xs: "16px", md: "18px" },
+    lineHeight: 1.4,
+  },
+  body: {
+    fontFamily: font.body,
+    fontWeight: 400,
+    fontSize: "16px",
+    lineHeight: 1.5,
+  },
+  /**
+   * Etichetta tecnica maiuscola. Reso dal componente EtichettaMono, che va
+   * preferito a questo token nudo perche' porta con se' anche il `component`
+   * corretto e la spaziatura.
+   */
+  monoLabel: {
+    fontFamily: font.mono,
+    fontWeight: 400,
+    fontSize: "14px",
+    lineHeight: 1.4,
+    letterSpacing: "0.28px",
+    textTransform: "uppercase" as const,
+  },
+  /** Microcopy: pie' di pagina, metadati, note. */
+  micro: {
+    fontFamily: font.body,
+    fontWeight: 400,
+    fontSize: "12px",
+    lineHeight: 1.4,
+  },
+  /** Cifra grande di un dato chiave (KPI, risultato di un atto). */
+  numeroGrande: {
+    fontFamily: font.display,
+    fontWeight: 400,
+    fontSize: { xs: "40px", md: "56px" },
+    lineHeight: 1.0,
+    letterSpacing: "-1.2px",
+  },
+};
+
 export const tokens = {
   color,
   radius: {
+    xs: "4px",
     sm: "8px",
     md: "12px",
     lg: "16px",
@@ -77,11 +230,15 @@ export const tokens = {
     pill: "32px",
     chip: "30px",
   },
-  font: {
-    display: "Space Grotesk, Inter, sans-serif",
-    body: "Inter, sans-serif",
-    mono: "ui-monospace, monospace",
-  },
+  font,
+  type,
+  /**
+   * Padding orizzontale del Container in App.tsx. Vive qui perche' le bande a
+   * piena larghezza (BandaScura) devono annullarlo con margini negativi
+   * speculari: se i due valori divergessero, la banda risulterebbe disallineata
+   * dal bordo del contenuto invece che a filo.
+   */
+  paddingContenuto: { xs: 2, sm: 4, md: 6 },
   // Scorciatoie per i bordi ricorrenti: la sola stringa "1px solid #e5e7eb"
   // compariva 65 volte scritta a mano.
   border: {
@@ -125,8 +282,14 @@ export const theme = createTheme({
   shape: {
     borderRadius: 16,
   },
+  // Le sei varianti MUI ricalcano i ruoli di DESIGN.md nell'ordine decrescente
+  // che MUI impone (h1 > h2 > ... > h6). I ruoli che non ci stanno - Hero
+  // Display, Section Display, Mono Label - vivono in `tokens.type`, che e' da
+  // preferire nel codice nuovo: le varianti restano per i componenti MUI che
+  // le applicano da soli.
   typography: {
     fontFamily: tokens.font.body,
+    // Product Display
     h1: {
       fontFamily: tokens.font.display,
       fontWeight: 400,
@@ -134,20 +297,23 @@ export const theme = createTheme({
       lineHeight: 1.0,
       letterSpacing: "-1.44px",
     },
+    // Section Heading: la crenatura era -1.2px, valore che DESIGN.md riserva ai
+    // 60px; a 48px stringeva troppo e i titoli lunghi risultavano compressi.
     h2: {
       fontFamily: tokens.font.display,
       fontWeight: 400,
       fontSize: "48px",
-      lineHeight: 1.05,
-      letterSpacing: "-1.2px",
+      lineHeight: 1.2,
+      letterSpacing: "-0.48px",
     },
     h3: {
       fontFamily: tokens.font.display,
       fontWeight: 400,
       fontSize: "38px",
-      lineHeight: 1.1,
-      letterSpacing: "-1.0px",
+      lineHeight: 1.2,
+      letterSpacing: "-0.4px",
     },
+    // Card Heading
     h4: {
       fontFamily: tokens.font.display,
       fontWeight: 400,
@@ -155,11 +321,13 @@ export const theme = createTheme({
       lineHeight: 1.2,
       letterSpacing: "-0.32px",
     },
+    // Feature Heading
     h5: {
       fontFamily: tokens.font.display,
       fontWeight: 500,
       fontSize: "24px",
       lineHeight: 1.3,
+      letterSpacing: 0,
     },
     h6: {
       fontFamily: tokens.font.body,
@@ -189,6 +357,18 @@ export const theme = createTheme({
     },
   },
   components: {
+    // Anello di focus unico per tutta l'app (DESIGN.md, Semantic > Focus Blue).
+    // Prima ogni controllo si affidava all'outline predefinito del browser, che
+    // cambia tinta e spessore fra Chrome e Firefox: navigando da tastiera la
+    // pagina sembrava di un altro progetto.
+    MuiCssBaseline: {
+      styleOverrides: {
+        "*:focus-visible": {
+          outline: `2px solid ${color.focusBlue}`,
+          outlineOffset: "2px",
+        },
+      },
+    },
     MuiCard: {
       styleOverrides: {
         root: {

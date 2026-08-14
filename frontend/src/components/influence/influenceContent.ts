@@ -6,23 +6,9 @@
  * gli attributi `sx`. Tenerla qui rende anche i componenti verificabili.
  */
 
-// Altezza dello sticky top di IndiceAtti, in pixel. Governa anche lo
-// scrollMarginTop delle sezioni in InfluenceMaximization.tsx: le due cose
-// devono restare uguali perche' l'ancora atterri esattamente sotto l'indice,
-// quindi vivono in questo unico valore condiviso invece che duplicate come
-// numeri scritti a mano nei due file.
-export const OFFSET_INDICE_PX = 96;
+import type { Atto } from "../narrativa/tipi.ts";
 
-export interface Atto {
-  /** Ancora per l'indice laterale. */
-  id: string;
-  numero: string;
-  titolo: string;
-  /** La domanda con cui l'atto si apre. */
-  domanda: string;
-}
-
-export const ATTI: Atto[] = [
+export const ATTI: readonly Atto[] = [
   {
     id: "problema",
     numero: "I",

@@ -116,7 +116,7 @@ export default function AccountDetailModal({
         sx={{
           height: 120,
           width: "100%",
-          backgroundColor: "#071829",
+          backgroundColor: tokens.color.darkNavy,
           backgroundImage: account?.header ? `url(${account.header})` : "none",
           backgroundSize: "cover",
           backgroundPosition: "center",
