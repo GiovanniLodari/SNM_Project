@@ -1,8 +1,8 @@
+import { lazy, Suspense } from "react";
 import { Grid, Typography, Box, LinearProgress, Button } from "@mui/material";
 import { Link } from "react-router-dom";
 import { useDashboardQuery } from "../api/queries.ts";
 import GraphHero from "../components/GraphHero.tsx";
-import DescriptiveStatsBlock from "../components/DescriptiveStatsBlock.tsx";
 import HomeHero from "../components/home/HomeHero.tsx";
 import HowItWorks from "../components/home/HowItWorks.tsx";
 import {
@@ -15,6 +15,22 @@ import {
 import { tokens } from "../theme.ts";
 import { ErrorState } from "../components/States.tsx";
 import { formatNumber } from "../utils/format.ts";
+
+/**
+ * Il blocco delle statistiche descrittive e' l'unico punto della Panoramica
+ * che disegna curve, e quindi l'unico che dipenda da recharts: 352 kB
+ * minificati (106 kB gzip) che, importati normalmente, arrivavano insieme alla
+ * pagina d'ingresso e ritardavano la hero e il grafo dei follow - cioe' le due
+ * cose che si vedono per prime.
+ *
+ * Sta sotto la piega, dopo hero, "Come funziona" e il canvas del grafo, e in
+ * ogni caso non rende nulla finche' la sua query non risponde (`return null`
+ * su `loading`): il caricamento del chunk e quello dei dati corrono in
+ * parallelo e nessuno dei due aspetta l'altro. Per questo il fallback e'
+ * `null` e non uno scheletro - uno scheletro qui mostrerebbe un'attesa dove
+ * prima non si vedeva niente, che e' un segnale peggiore, non migliore.
+ */
+const DescriptiveStatsBlock = lazy(() => import("../components/DescriptiveStatsBlock.tsx"));
 
 export default function Dashboard() {
   const { data: stats, isLoading: loading, isError } = useDashboardQuery();
@@ -62,7 +78,9 @@ export default function Dashboard() {
       {stats && (
       <>
       {/* Block Statistiche Descrittive Conforme a DESIGN.md */}
-      <DescriptiveStatsBlock />
+      <Suspense fallback={null}>
+        <DescriptiveStatsBlock />
+      </Suspense>
 
       {/* Main Grid Metrics */}
       <Grid container spacing={4} sx={{ mb: 6 }}>
