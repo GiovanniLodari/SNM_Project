@@ -5,7 +5,7 @@ import Blocco from "../../dati/Blocco.tsx";
 import BarraQuota from "../../dati/BarraQuota.tsx";
 import ClassificaBarre, { type VoceClassifica } from "../../dati/ClassificaBarre.tsx";
 import LegendaVoce from "../../dati/LegendaVoce.tsx";
-import { TINTA_BOT, TINTA_UMANO } from "../../dati/tinte.ts";
+import { TINTA_BOT, TINTA_BOT_INK, TINTA_UMANO } from "../../dati/tinte.ts";
 import { tokens } from "../../../theme.ts";
 import { formatNumber, formatPercent } from "../../../utils/format.ts";
 
@@ -39,7 +39,7 @@ export default function PopolazioneAccount({ stats }: Props) {
       etichetta: "Bot dichiarati",
       valore: formatNumber(stats.bot_total),
       nota: `${formatPercent(quotaBot)} degli account si marca come automatizzato`,
-      accento: TINTA_BOT,
+      accento: TINTA_BOT_INK,
     },
     {
       etichetta: "Hanno pubblicato",

@@ -62,7 +62,12 @@ export default function PastiglieRilevatori({ post }: Props) {
         sx={{
           fontFamily: tokens.font.mono,
           fontSize: "12px",
-          color: valutati === 0 ? tokens.color.textFaint : tokens.color.textMuted,
+          // Una sola tinta per entrambi i casi: il grigio piu' chiaro che
+          // distingueva "non valutato" dava 3.0:1 sul canvas, e sotto
+          // `textMuted` non esiste un grigio che passi AA sul bianco. La
+          // distinzione la portano gia' le pastiglie tratteggiate qui accanto,
+          // che e' il posto giusto: e' una differenza di stato, non di enfasi.
+          color: tokens.color.textMuted,
         }}
       >
         {valutati === 0

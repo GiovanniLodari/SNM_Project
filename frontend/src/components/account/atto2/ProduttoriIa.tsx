@@ -37,7 +37,7 @@ export default function ProduttoriIa({ produttori, detector, onApriAccount }: Pr
       <>
         <Typography
           component="span"
-          sx={{ fontFamily: tokens.font.mono, fontSize: "12px", color: tokens.color.textFaint }}
+          sx={{ fontFamily: tokens.font.mono, fontSize: "12px", color: tokens.color.textMuted }}
         >
           {String(indice + 1).padStart(2, "0")}
         </Typography>

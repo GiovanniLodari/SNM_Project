@@ -135,7 +135,7 @@ export default function ElencoPost({
                       checked={quartiliSelezionati.includes(quartile)}
                       onChange={() => onCambiaQuartile(quartile)}
                       sx={{
-                        color: tokens.color.textFaint,
+                        color: tokens.color.textMuted,
                         "&.Mui-checked": { color: modello.accento },
                       }}
                     />

@@ -167,7 +167,7 @@ export default function ClassificheSeed({
                           size="small"
                           sx={{
                             backgroundColor: "rgba(255, 119, 89, 0.15)",
-                            color: tokens.color.coral,
+                            color: tokens.color.coralInk,
                             fontFamily: tokens.font.mono,
                             fontWeight: 700,
                             fontSize: "11px",

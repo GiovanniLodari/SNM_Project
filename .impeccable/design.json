@@ -1,0 +1,527 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-14T00:00:00.000Z",
+  "title": "Design System: SNM.Intelligence",
+  "extensions": {
+    "colorMeta": {
+      "nero-marchio": {
+        "role": "primary",
+        "displayName": "Nero di marchio",
+        "canonical": "oklch(20.7% 0.010 285.5)",
+        "tonalRamp": [
+          "#0b0b0f",
+          "#232329",
+          "#3f3f45",
+          "#5d5d63",
+          "#7f7f86",
+          "#a1a1a8",
+          "#c6c6ce",
+          "#eeeef5"
+        ]
+      },
+      "verde-capitolo": {
+        "role": "secondary",
+        "displayName": "Verde di capitolo",
+        "canonical": "oklch(31.9% 0.058 178.9)",
+        "tonalRamp": [
+          "#00120c",
+          "#002d24",
+          "#134a40",
+          "#35695e",
+          "#588c81",
+          "#79aea2",
+          "#9fd4c8",
+          "#c5fcef"
+        ]
+      },
+      "navy-capitolo": {
+        "role": "secondary",
+        "displayName": "Navy di capitolo",
+        "canonical": "oklch(20.4% 0.041 250.2)",
+        "tonalRamp": [
+          "#000c1c",
+          "#142537",
+          "#2f4255",
+          "#4c6074",
+          "#6e8398",
+          "#8fa4bb",
+          "#b4cae2",
+          "#daf1ff"
+        ]
+      },
+      "coral-bot": {
+        "role": "tertiary",
+        "displayName": "Coral dei bot",
+        "canonical": "oklch(72.5% 0.172 33.9)",
+        "tonalRamp": [
+          "#390000",
+          "#5e0000",
+          "#830000",
+          "#a92501",
+          "#d34f32",
+          "#fa7254",
+          "#ff997a",
+          "#ffc1a0"
+        ]
+      },
+      "viola-sintetico": {
+        "role": "tertiary",
+        "displayName": "Viola del sintetico",
+        "canonical": "oklch(54.1% 0.247 293.0)",
+        "tonalRamp": [
+          "#240068",
+          "#38008c",
+          "#5000b1",
+          "#6c1ed7",
+          "#8c50ff",
+          "#ad76ff",
+          "#d19fff",
+          "#f8c8ff"
+        ]
+      },
+      "blu-azione": {
+        "role": "tertiary",
+        "displayName": "Blu d'azione",
+        "canonical": "oklch(53.1% 0.198 260.2)",
+        "tonalRamp": [
+          "#0c005e",
+          "#000081",
+          "#002ea5",
+          "#0053ca",
+          "#3079f4",
+          "#529dff",
+          "#77c4ff",
+          "#9eedff"
+        ]
+      },
+      "pietra": {
+        "role": "neutral",
+        "displayName": "Pietra",
+        "canonical": "oklch(94.3% 0.007 88.6)",
+        "tonalRamp": [
+          "#0c0b08",
+          "#252420",
+          "#41403c",
+          "#5f5d59",
+          "#82807c",
+          "#a3a19d",
+          "#c9c7c2",
+          "#f0eee9"
+        ]
+      },
+      "inchiostro": {
+        "role": "neutral",
+        "displayName": "Inchiostro",
+        "canonical": "oklch(24.8% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a1a1a1",
+          "#c7c7c7",
+          "#eeeeee"
+        ]
+      },
+      "testo-attenuato": {
+        "role": "neutral",
+        "displayName": "Testo attenuato (superfici chiare)",
+        "canonical": "oklch(51.9% 0.032 285.3)",
+        "tonalRamp": [
+          "#0a0918",
+          "#222233",
+          "#3e3e50",
+          "#5b5b6f",
+          "#7e7e93",
+          "#9f9fb5",
+          "#c5c5dc",
+          "#ececff"
+        ]
+      },
+      "filetto": {
+        "role": "neutral",
+        "displayName": "Filetto",
+        "canonical": "oklch(92.8% 0.006 264.5)",
+        "tonalRamp": [
+          "#0a0b0e",
+          "#232427",
+          "#3e4043",
+          "#5c5e61",
+          "#7e8084",
+          "#a0a1a5",
+          "#c5c7cb",
+          "#eceef2"
+        ]
+      },
+      "focus": {
+        "role": "semantic",
+        "displayName": "Anello di focus",
+        "canonical": "oklch(57.9% 0.186 268.2)",
+        "tonalRamp": [
+          "#0f0058",
+          "#0d007b",
+          "#1b2b9f",
+          "#334fc4",
+          "#5275ed",
+          "#7198ff",
+          "#94bfff",
+          "#bae7ff"
+        ]
+      },
+      "pericolo": {
+        "role": "semantic",
+        "displayName": "Pericolo",
+        "canonical": "oklch(48.1% 0.198 29.2)",
+        "tonalRamp": [
+          "#3f0000",
+          "#650000",
+          "#8c0000",
+          "#b20000",
+          "#dd3f31",
+          "#ff6553",
+          "#ff8d79",
+          "#ffb69f"
+        ]
+      },
+      "successo": {
+        "role": "semantic",
+        "displayName": "Successo",
+        "canonical": "oklch(69.6% 0.149 162.5)",
+        "tonalRamp": [
+          "#001800",
+          "#003609",
+          "#005526",
+          "#007643",
+          "#009a65",
+          "#1dbe85",
+          "#57e5aa",
+          "#84ffd1"
+        ]
+      },
+      "fondo-grafo": {
+        "role": "surface-dark",
+        "displayName": "Fondo del grafo",
+        "canonical": "oklch(21.3% 0.024 262.3)",
+        "tonalRamp": [
+          "#060b15",
+          "#1e2430",
+          "#39404d",
+          "#565e6b",
+          "#79818f",
+          "#9aa2b1",
+          "#bfc8d7",
+          "#e6efff"
+        ]
+      },
+      "coral-ink": {
+        "role": "tertiary",
+        "displayName": "Coral inchiostro",
+        "canonical": "oklch(52.4% 0.172 33.9)",
+        "tonalRamp": [
+          "#390000",
+          "#5e0000",
+          "#830000",
+          "#a92501",
+          "#d34f32",
+          "#fa7254",
+          "#ff997a",
+          "#ffc1a0"
+        ]
+      },
+      "testo-su-scuro": {
+        "role": "neutral",
+        "displayName": "Testo su scuro",
+        "canonical": "oklch(64.4% 0.024 285.3)",
+        "tonalRamp": [
+          "#0a0918",
+          "#222233",
+          "#3e3e50",
+          "#5b5b6f",
+          "#7e7e93",
+          "#9f9fb5",
+          "#c5c5dc",
+          "#ececff"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "heroDisplay": {
+        "displayName": "Dichiarazione",
+        "purpose": "La domanda della Panoramica. Una sola per applicazione. Responsive: 96/72/56/40px."
+      },
+      "productDisplay": {
+        "displayName": "Apertura di capitolo",
+        "purpose": "Titolo di apertura di un capitolo. Responsive: 72/56/34px."
+      },
+      "sectionDisplay": {
+        "displayName": "Titolo di banda",
+        "purpose": "Titolo della banda scura, entro 20ch. Responsive: 60/48/32px."
+      },
+      "sectionHeading": {
+        "displayName": "Domanda d'atto",
+        "purpose": "La domanda che apre un atto, entro 24ch. Responsive: 40/34/26px."
+      },
+      "cardHeading": {
+        "displayName": "Titolo di blocco maggiore",
+        "purpose": "Blocchi principali e cifra della scheda dati. Responsive: 32/24px."
+      },
+      "featureHeading": {
+        "displayName": "Titolo di blocco",
+        "purpose": "Titolo del blocco dentro un atto. Unico ruolo display con peso 500."
+      },
+      "numeroGrande": {
+        "displayName": "Cifra chiave",
+        "purpose": "La cifra dentro una banda scura. Responsive: 56/40px."
+      },
+      "bodyLarge": {
+        "displayName": "Paragrafo guida",
+        "purpose": "Testo sotto un titolo. Entro 62ch su fondo scuro."
+      },
+      "body": {
+        "displayName": "Testo corrente",
+        "purpose": "Prosa entro 65-75ch; descrizioni dei blocchi entro 70ch."
+      },
+      "monoLabel": {
+        "displayName": "Apparato",
+        "purpose": "Marcatori di sezione, unità, soglie, codici. Reso da EtichettaMono. Taglia micro: 11px / 0.5px."
+      },
+      "micro": {
+        "displayName": "Microcopy",
+        "purpose": "Piè di pagina, metadati, note."
+      }
+    },
+    "shadows": [
+      {
+        "name": "nessuna",
+        "value": "none",
+        "purpose": "Il valore predefinito di ogni card, paper e bottone. Un box-shadow su una superficie è sempre un errore in questo sistema."
+      },
+      {
+        "name": "glow-stato",
+        "value": "0 0 6px #10b981",
+        "purpose": "Unica eccezione: il pallino di stato «Fediverso Live» nel piè della sidebar. Il glow segnala che il dato è vivo."
+      }
+    ],
+    "motion": [
+      {
+        "name": "transizione-colore",
+        "value": "0.15s ease",
+        "purpose": "Hover di link, voci d'indice, icone. Cambia solo colore e fondo."
+      },
+      {
+        "name": "transizione-controllo",
+        "value": "all 0.15s ease-in-out",
+        "purpose": "Voci di navigazione e controlli. Mai su proprietà di layout."
+      },
+      {
+        "name": "scorrimento-atto",
+        "value": "scrollIntoView({ behavior: 'smooth', block: 'start' })",
+        "purpose": "Salto da una voce dell'indice al suo atto, con scrollMarginTop pari all'offset dell'indice sticky."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "xs",
+        "value": "0px"
+      },
+      {
+        "name": "sm",
+        "value": "600px"
+      },
+      {
+        "name": "md",
+        "value": "900px"
+      },
+      {
+        "name": "lg",
+        "value": "1200px"
+      },
+      {
+        "name": "xl",
+        "value": "1536px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Bottone primario",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "La singola azione più importante della schermata. Pastiglia nera, mai più di una per sezione.",
+      "html": "<button class=\"ds-btn-primary\">Esplora il corpus</button>",
+      "css": ".ds-btn-primary { background: #17171c; color: #ffffff; font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; padding: 10px 24px; border: none; border-radius: 32px; cursor: pointer; transition: background-color 0.15s ease; } .ds-btn-primary:hover { background: #000000; } .ds-btn-primary:focus-visible { outline: 2px solid #4c6ee6; outline-offset: 2px; } .ds-btn-primary:active { background: #000000; } .ds-btn-primary:disabled { background: #d9d9dd; color: #69697e; cursor: not-allowed; }"
+    },
+    {
+      "name": "Bottone contornato",
+      "kind": "button",
+      "refersTo": "button-outlined",
+      "description": "Azione secondaria accanto alla primaria. Il bordo si scurisce in hover, il fondo passa a pietra.",
+      "html": "<button class=\"ds-btn-outlined\">Come funziona</button>",
+      "css": ".ds-btn-outlined { background: transparent; color: #212121; font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; padding: 10px 24px; border: 1px solid #d9d9dd; border-radius: 32px; cursor: pointer; transition: background-color 0.15s ease, border-color 0.15s ease; } .ds-btn-outlined:hover { background: #eeece7; border-color: #17171c; } .ds-btn-outlined:focus-visible { outline: 2px solid #4c6ee6; outline-offset: 2px; }"
+    },
+    {
+      "name": "Pastiglia di tassonomia",
+      "kind": "chip",
+      "refersTo": "chip-tassonomia",
+      "description": "Filtro lingua del corpus. Deliberatamente più grande di un tag: la tassonomia qui è un controllo di primo piano. Attiva = fondo coral con testo nero (mai bianco).",
+      "html": "<div class=\"ds-chip-row\"><button class=\"ds-chip\" aria-pressed=\"false\"><span class=\"ds-chip-code\">IT</span>Italiano</button><button class=\"ds-chip ds-chip--attiva\" aria-pressed=\"true\"><span class=\"ds-chip-code\">EN</span>Inglese</button></div>",
+      "css": ".ds-chip-row { display: flex; flex-wrap: wrap; gap: 8px; } .ds-chip { display: inline-flex; align-items: center; font-family: Inter, sans-serif; font-size: 15px; line-height: 1.2; padding: 8px 18px; border-radius: 30px; border: 1px solid #ffad9b; background: #fff0ec; color: #17171c; cursor: pointer; transition: background-color 0.15s ease, color 0.15s ease; } .ds-chip-code { font-family: ui-monospace, monospace; font-size: 13px; margin-right: 6px; } .ds-chip:hover { background: #ffad9b; } .ds-chip:focus-visible { outline: 2px solid #4c6ee6; outline-offset: 2px; } .ds-chip--attiva { background: #ff7759; border-color: #c03d20; color: #17171c; } .ds-chip--attiva:hover { background: #e66043; }"
+    },
+    {
+      "name": "Pastiglie dei rilevatori",
+      "kind": "custom",
+      "refersTo": "chip-tassonomia",
+      "description": "Componente distintivo. Quattro quadrati, uno per rilevatore: pieno = sopra soglia, contornato = sotto, tratteggiato = non valutato. Si contano a colpo d'occhio.",
+      "html": "<div class=\"ds-pastiglie\"><div class=\"ds-pastiglie-gruppo\"><span class=\"ds-pastiglia ds-pastiglia--blu ds-pastiglia--piena\" title=\"FastDetectGPT: 87.3%\"></span><span class=\"ds-pastiglia ds-pastiglia--verde\" title=\"Binoculars: 31.0%\"></span><span class=\"ds-pastiglia ds-pastiglia--coral ds-pastiglia--piena\" title=\"Desklib: 64.2%\"></span><span class=\"ds-pastiglia ds-pastiglia--vuota\" title=\"AdaDetectGPT: n/d\"></span></div><span class=\"ds-pastiglie-nota\">2/3 lo dicono sintetico</span></div>",
+      "css": ".ds-pastiglie { display: flex; align-items: center; gap: 8px; } .ds-pastiglie-gruppo { display: flex; gap: 4px; } .ds-pastiglia { width: 14px; height: 14px; border-radius: 4px; background: transparent; border: 1.5px solid #d9d9dd; } .ds-pastiglia--blu { border-color: #1863dc; } .ds-pastiglia--blu.ds-pastiglia--piena { background: #1863dc; } .ds-pastiglia--verde { border-color: #003c33; } .ds-pastiglia--verde.ds-pastiglia--piena { background: #003c33; } .ds-pastiglia--coral { border-color: #c03d20; } .ds-pastiglia--coral.ds-pastiglia--piena { background: #ff7759; } .ds-pastiglia--vuota { border-style: dashed; border-color: #d9d9dd; } .ds-pastiglie-nota { font-family: ui-monospace, monospace; font-size: 12px; color: #69697e; }"
+    },
+    {
+      "name": "Blocco",
+      "kind": "card",
+      "refersTo": "blocco",
+      "description": "L'unità di contenuto dentro un atto: occhiello opzionale, titolo, descrizione entro 70ch, contenuto. Bordo 1px, nessuna ombra, angoli 22px.",
+      "html": "<section class=\"ds-blocco\"><p class=\"ds-occhiello\">Distribuzione</p><h3 class=\"ds-blocco-titolo\">Quanto testo per account</h3><p class=\"ds-blocco-descrizione\">Ogni riga è un account del corpus, ordinato per numero di post archiviati. La coda lunga a destra è il materiale su cui i rilevatori hanno meno da dire.</p></section>",
+      "css": ".ds-blocco { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 22px; padding: 32px; } .ds-occhiello { font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; color: #69697e; margin: 0 0 8px; } .ds-blocco-titolo { font-family: 'Space Grotesk', Inter, sans-serif; font-size: 24px; font-weight: 500; line-height: 1.3; color: #17171c; margin: 0; } .ds-blocco-descrizione { font-family: Inter, sans-serif; font-size: 14px; line-height: 1.6; color: #69697e; max-width: 70ch; margin: 8px 0 0; }"
+    },
+    {
+      "name": "Scheda cifra",
+      "kind": "card",
+      "refersTo": "scheda-cifra",
+      "description": "La cifra chiave di un blocco: filetto colorato in alto (3px), etichetta mono, numero in display, nota che dice come va letto. Passa «n/d» quando il dato manca.",
+      "html": "<div class=\"ds-scheda\"><p class=\"ds-scheda-etichetta\">Consenso pieno</p><p class=\"ds-scheda-valore\">1.284</p><p class=\"ds-scheda-nota\">Post su cui tutti e quattro i rilevatori concordano.</p></div>",
+      "css": ".ds-scheda { background: #eeece7; border-radius: 8px; border-top: 3px solid #7c3aed; padding: 24px; } .ds-scheda-etichetta { font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; color: #7c3aed; margin: 0; } .ds-scheda-valore { font-family: 'Space Grotesk', Inter, sans-serif; font-size: 32px; line-height: 1.2; letter-spacing: -0.32px; color: #7c3aed; margin: 8px 0; } .ds-scheda-nota { font-family: Inter, sans-serif; font-size: 13px; line-height: 1.4; color: #69697e; margin: 0; }"
+    },
+    {
+      "name": "Campo di ricerca",
+      "kind": "input",
+      "refersTo": "campo-ricerca",
+      "description": "Ricerca nel testo dei post. Pastiglia con icona di lente come adornment; il bottone di cancellazione compare solo quando c'è testo.",
+      "html": "<label class=\"ds-campo\"><svg class=\"ds-campo-icona\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"7\"></circle><path d=\"M20 20l-3.5-3.5\"></path></svg><input class=\"ds-campo-input\" type=\"search\" placeholder=\"Cerca una parola nel testo dei post\" aria-label=\"Cerca nel testo dei post\" /></label>",
+      "css": ".ds-campo { display: inline-flex; align-items: center; gap: 8px; background: #ffffff; border: 1px solid #d1d5db; border-radius: 32px; padding: 8px 16px; min-width: 280px; transition: border-color 0.15s ease; } .ds-campo:hover { border-color: #17171c; } .ds-campo:focus-within { outline: 2px solid #4c6ee6; outline-offset: 2px; } .ds-campo-icona { color: #69697e; flex-shrink: 0; } .ds-campo-input { border: none; outline: none; background: transparent; font-family: Inter, sans-serif; font-size: 15px; color: #212121; width: 100%; } .ds-campo-input::placeholder { color: #69697e; }"
+    },
+    {
+      "name": "Voce di navigazione",
+      "kind": "nav",
+      "refersTo": "nav-voce",
+      "description": "Sidebar raggruppata per capitolo: numero romano in coral, etichetta mono, voci. La voce attiva è nera con icona coral — l'unico punto in cui il coral non significa «bot» ma «sei qui».",
+      "html": "<nav class=\"ds-nav\"><div class=\"ds-nav-gruppo\"><span class=\"ds-nav-numero\">II</span><span class=\"ds-nav-capitolo\">Il testo sintetico</span></div><a class=\"ds-nav-voce ds-nav-voce--attiva\" href=\"#\" aria-current=\"page\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12 3a7 7 0 00-7 7c0 2.4 1.2 4.1 2.4 5.3.5.5.8 1 .9 1.6l.2 1.1h7l.2-1.1c.1-.6.4-1.1.9-1.6C17.8 14.1 19 12.4 19 10a7 7 0 00-7-7zm-3 17h6v1a2 2 0 01-2 2h-2a2 2 0 01-2-2v-1z\"></path></svg><span>Rilevamento IA</span></a><a class=\"ds-nav-voce\" href=\"#\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M4 5h16v2H4zm0 4h16v2H4zm0 4h10v2H4zm0 4h10v2H4z\"></path></svg><span>Post</span></a></nav>",
+      "css": ".ds-nav { background: #ffffff; padding: 8px; width: 244px; } .ds-nav-gruppo { display: flex; align-items: center; gap: 8px; padding: 12px 8px 4px; } .ds-nav-numero { font-family: ui-monospace, monospace; font-size: 10px; font-weight: 700; color: #c03d20; background: #fff0ec; padding: 1px 5px; border-radius: 4px; } .ds-nav-capitolo { font-family: ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #69697e; } .ds-nav-voce { display: flex; align-items: center; gap: 10px; padding: 7px 10px; margin-bottom: 3px; border-radius: 8px; text-decoration: none; font-family: Inter, sans-serif; font-size: 13.5px; font-weight: 500; color: #212121; transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out; } .ds-nav-voce svg { color: #69697e; flex-shrink: 0; } .ds-nav-voce:hover { background: #eeece7; } .ds-nav-voce:focus-visible { outline: 2px solid #4c6ee6; outline-offset: 2px; } .ds-nav-voce--attiva { background: #17171c; color: #ffffff; font-weight: 600; } .ds-nav-voce--attiva svg { color: #c03d20; } .ds-nav-voce--attiva:hover { background: #2e2e38; }"
+    },
+    {
+      "name": "Banda scura",
+      "kind": "custom",
+      "refersTo": "banda-scura",
+      "description": "Componente distintivo: la punteggiatura del sistema. Una per capitolo, porta il risultato che quel capitolo ha prodotto. Le cifre stanno sotto un filetto, mai dentro una card.",
+      "html": "<section class=\"ds-banda\"><p class=\"ds-banda-occhiello\">Il risultato</p><h2 class=\"ds-banda-titolo\">Un post su sette non l'ha scritto una persona</h2><p class=\"ds-banda-testo\">La stima vale per i post in italiano con almeno 40 parole: sotto quella soglia i rilevatori smettono di essere affidabili e il corpus li esclude.</p><div class=\"ds-banda-cifre\"><div class=\"ds-banda-cifra\"><p class=\"ds-banda-valore\">14,2%</p><p class=\"ds-banda-etichetta\">Post sopra soglia su tutti e quattro</p></div><div class=\"ds-banda-cifra\"><p class=\"ds-banda-valore\">3.891</p><p class=\"ds-banda-etichetta\">Post valutati</p></div></div></section>",
+      "css": ".ds-banda { background: #003c33; color: #ffffff; padding: 80px 48px; } .ds-banda-occhiello { font-family: ui-monospace, monospace; font-size: 14px; letter-spacing: 0.28px; text-transform: uppercase; color: rgba(255,255,255,0.6); margin: 0 0 16px; } .ds-banda-titolo { font-family: 'Space Grotesk', Inter, sans-serif; font-size: 48px; font-weight: 400; line-height: 1.0; letter-spacing: -1.2px; max-width: 20ch; margin: 0; text-wrap: balance; } .ds-banda-testo { font-family: Inter, sans-serif; font-size: 18px; line-height: 1.4; color: rgba(255,255,255,0.72); max-width: 62ch; margin: 24px 0 0; text-wrap: pretty; } .ds-banda-cifre { display: flex; flex-wrap: wrap; gap: 32px; margin-top: 48px; } .ds-banda-cifra { flex: 1 1 200px; border-top: 1px solid rgba(255,255,255,0.24); padding-top: 16px; } .ds-banda-valore { font-family: 'Space Grotesk', Inter, sans-serif; font-size: 56px; line-height: 1.0; letter-spacing: -1.2px; margin: 0; } .ds-banda-etichetta { font-family: Inter, sans-serif; font-size: 12px; line-height: 1.4; color: rgba(255,255,255,0.6); margin: 8px 0 0; }"
+    },
+    {
+      "name": "Indice degli atti",
+      "kind": "nav",
+      "refersTo": "nav-voce",
+      "description": "Componente distintivo: colonna sticky che dà al lettore la mappa del capitolo. La voce corrente passa a nero peso 600 e porta aria-current. Sparisce sotto md invece di comprimersi.",
+      "html": "<nav class=\"ds-indice\" aria-label=\"Indice degli atti\"><a class=\"ds-indice-voce\" href=\"#problema\"><span class=\"ds-indice-numero\">I</span><span class=\"ds-indice-titolo\">Il problema</span></a><a class=\"ds-indice-voce ds-indice-voce--attiva\" href=\"#cascata\" aria-current=\"true\"><span class=\"ds-indice-numero\">II</span><span class=\"ds-indice-titolo\">La cascata</span></a><a class=\"ds-indice-voce\" href=\"#limiti\"><span class=\"ds-indice-numero\">III</span><span class=\"ds-indice-titolo\">Cosa non dimostra</span></a></nav>",
+      "css": ".ds-indice { display: flex; flex-direction: column; gap: 16px; background: #ffffff; padding: 8px; } .ds-indice-voce { display: flex; align-items: baseline; gap: 8px; text-decoration: none; color: #69697e; font-weight: 400; transition: color 0.15s ease; } .ds-indice-numero { font-family: ui-monospace, monospace; font-size: 12px; } .ds-indice-titolo { font-family: 'Space Grotesk', Inter, sans-serif; font-size: 14px; } .ds-indice-voce:hover { color: #17171c; } .ds-indice-voce:focus-visible { outline: 2px solid #4c6ee6; outline-offset: 2px; } .ds-indice-voce--attiva { color: #17171c; font-weight: 600; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "L'edizione critica",
+    "overview": "Un'edizione critica è un testo accompagnato dal suo apparato: le note, le varianti, le sigle dei testimoni, il rimando alla fonte. Il testo si legge da solo; l'apparato è lì per chi vuole verificare. Questo sistema è costruito su quella divisione. Il canvas bianco continuo porta il testo — le domande che aprono ogni atto, i paragrafi che spiegano come va letto un grafico. Il monospazio porta l'apparato — «ATTO III — LA CASCATA», «QUARTILI», i codici lingua, le soglie. Non si mescolano mai: se un'informazione è apparato, sta in monospazio maiuscolo; se è testo, sta in Inter e si legge come una frase.\n\nLa densità cresce lungo la pagina, non è uniforme. Un capitolo apre con una domanda in corpo grande su molto bianco, attraversa i blocchi in cui il metodo viene spiegato, e solo alla fine consegna la tabella con dodici colonne di filtri. La banda scura a piena larghezza — verde di capitolo o navy — interrompe il bianco una volta per capitolo e porta il risultato: è la punteggiatura del sistema, non un elemento decorativo. Le superfici scure profonde (grafo, cascata, console) sono un'altra cosa ancora: sono strumenti, e il nero serve a far risaltare i nodi luminosi.\n\nIl sistema rifiuta tre cose per iscritto, ereditate da PRODUCT.md. Non è una dashboard admin generica: niente griglie di card identiche con icona, numero e freccia verde. Non è una landing page SaaS: niente gradienti, glassmorphism, metriche gonfiate, CTA in ogni sezione. E non è un progetto universitario improvvisato: niente palette di default della libreria, niente tabelle nude, niente grafici che escono dal grafico. Il pubblico primario è una commissione di tesi che guarda su proiettore: ogni scelta si giudica lì.",
+    "keyCharacteristics": [
+      "Canvas bianco come superficie predefinita; il colore arriva dai dati, mai dall'ornamento.",
+      "Titoli in Space Grotesk con crenatura negativa; corpo in Inter; apparato tecnico in monospazio maiuscolo.",
+      "Ogni atto apre con una domanda in italiano corrente, prima di qualunque cifra.",
+      "Una banda scura per capitolo, a piena larghezza, che porta il risultato di quel capitolo.",
+      "Nessuna ombra: la profondità viene dall'alternanza di superfici e da filetti da 1px.",
+      "Angoli generosi sui riquadri di contenuto (22px), stretti sui marcatori dati (4px), a pastiglia sui controlli (30-32px).",
+      "Quattro tinte semantiche fisse — bot, umano, sintetico, non valutato — che non cambiano significato da una pagina all'altra.",
+      "Indice laterale sticky degli atti su desktop, che sparisce sotto md invece di comprimersi."
+    ],
+    "rules": [
+      {
+        "name": "La regola del significato unico",
+        "body": "Una tinta satura significa una cosa sola in tutto il sistema. Coral è «bot dichiarato», viola è «testo sintetico», verde è «non dichiarato bot». Bot e IA non condividono la tinta di proposito: è la distanza fra le due che il Capitolo I mette in scena.",
+        "section": "colors"
+      },
+      {
+        "name": "La regola dei due coral",
+        "body": "Il coral pieno su fondo chiaro da' 2,2:1 sulla pietra e 2,6:1 sotto testo bianco: vietato come colore del testo su superficie chiara, dove vive come riempimento con sopra il nero di marchio. Quando la tinta deve dire «bot» ed essere letta si usa il coral inchiostro (#c03d20), la stessa tinta piu' scura. Su fondo scuro il coral pieno è corretto (6,8:1 sul nero di marchio).",
+        "section": "colors"
+      },
+      {
+        "name": "La regola delle quattro superfici scure",
+        "body": "Un grafo, una cascata, un terminale e una modale non condividono il fondo. La tinta si sceglie dal contenuto, non dalla comodità.",
+        "section": "colors"
+      },
+      {
+        "name": "La regola del colore che viene dai dati",
+        "body": "Il canvas è bianco e resta bianco. Nessuna superficie prende colore per «dare energia alla sezione»: il colore entra quando c'è un dato che lo richiede o quando un capitolo si chiude con la sua banda.",
+        "section": "colors"
+      },
+      {
+        "name": "La regola della domanda",
+        "body": "Un atto apre con una domanda in italiano corrente in sectionHeading, non con un'etichetta funzionale. La domanda viene prima dei dati perché è quella a dare senso ai grafici che seguono.",
+        "section": "typography"
+      },
+      {
+        "name": "La regola dell'occhiello che informa",
+        "body": "L'etichetta in monospazio sopra un titolo è consentita solo quando dice qualcosa che il titolo non dice: la posizione nella narrazione, l'unità di misura, la tassonomia, la soglia. Vietato l'occhiello che ripete il titolo con altre parole.",
+        "section": "typography"
+      },
+      {
+        "name": "La regola del display fuori dai controlli",
+        "body": "Space Grotesk non entra nelle etichette dei campi, nel testo delle celle di tabella, nei valori dei dati. Titoli, cifre e navigazione: nient'altro.",
+        "section": "typography"
+      },
+      {
+        "name": "La regola della dichiarazione unica",
+        "body": "heroDisplay compare una volta sola, in Panoramica. La gerarchia si costruisce con la distanza fra i ruoli, non alzando il ruolo più alto.",
+        "section": "typography"
+      },
+      {
+        "name": "La regola del piatto per difetto",
+        "body": "Le superfici sono piatte a riposo. Se due elementi non si distinguono, la risposta è un filetto, un cambio di fondo o più spazio, in quest'ordine. Test: se sembra un'app del 2014, l'ombra c'è e non doveva esserci.",
+        "section": "elevation"
+      },
+      {
+        "name": "La regola del riquadro guadagnato",
+        "body": "Un contenuto viene riquadrato solo se il riquadro serve a separarlo da un vicino con cui verrebbe confuso. Riquadri annidati: vietati.",
+        "section": "elevation"
+      },
+      {
+        "name": "La regola della banda unica",
+        "body": "Una banda scura per capitolo. Due bande nella stessa pagina non raddoppiano l'enfasi: annullano quella della prima.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do partire dal canvas bianco e lasciare che il colore arrivi dai dati: una categoria, uno stato, un rilevatore, una banda di chiusura.",
+      "Do aprire ogni atto con la domanda a cui risponde, in sectionHeading entro 24ch, prima di qualunque cifra.",
+      "Do usare le tinte di tinte.ts per bot (coral), non-dichiarato-bot (verde), sintetico (viola) e non valutato (#d9d9dd). Se serve una quinta categoria, si dichiara lì, non nel componente.",
+      "Do mostrare «n/d» quando il dato manca. Uno 0 inventato è indistinguibile da uno 0 misurato.",
+      "Do dare a ogni controllo interattivo default, hover, focus, premuto e disabilitato. Transizioni a 150 ms su colore e fondo.",
+      "Do usare gli scheletri di caricamento che imitano la disposizione reale della sezione, e lo spinner solo per la pagina intera.",
+      "Do dichiarare il nome accessibile dei campi con inputProps aria-label, e distinguere le categorie dei grafici con forma o etichetta oltre che con la tinta.",
+      "Do importare da tokens (frontend/src/theme.ts): i colori erano finiti duplicati in oltre mille letterali esadecimali.",
+      "Do usare il coral pieno come riempimento con testo nero di marchio sopra, come marcatore, o come tinta su fondo scuro; il coral inchiostro (TINTA_BOT_INK) quando la stessa tinta deve essere letta su fondo chiaro.",
+      "Do scegliere il grigio dalla famiglia della superficie: textMuted sulle chiare, textOnDark sulle scure, bianco trasparente al 70-72% sulle bande verdi e navy."
+    ],
+    "donts": [
+      "Don't costruire una dashboard admin generica: griglie di card identiche con icona + numero + freccia verde, KPI senza contesto, template Material riconoscibile a colpo d'occhio.",
+      "Don't costruire una landing page SaaS: gradienti decorativi, glassmorphism, metriche gonfiate a effetto, strisce «Trusted by», CTA in ogni sezione. Compreso il template hero-metric.",
+      "Don't consegnare un progetto universitario improvvisato: grafici grezzi della libreria, tabelle nude, palette di default, nessuna gerarchia tipografica.",
+      "Don't mettere ombre sulle card. Nessuna.",
+      "Don't annidare riquadri. Un blocco dentro un blocco è sempre sbagliato.",
+      "Don't usare border-left o border-right colorati di spessore maggiore di 1px come accento. Il filetto da 3px della scheda cifra sta in alto, ed è l'unico consentito.",
+      "Don't mettere due bande scure nella stessa pagina, né usare la variante a piena larghezza in una pagina con indice laterale.",
+      "Don't mettere un occhiello in monospazio sopra ogni sezione. Solo quando dice qualcosa che il titolo non dice.",
+      "Don't usare Space Grotesk nelle etichette di form, nelle celle di tabella o nei valori dei dati.",
+      "Don't usare textOnDark (#93939f) su una superficie chiara: da' 3,0:1. E' il grigio delle superfici scure, e sotto textMuted non esiste un grigio che passi AA sul bianco.",
+      "Don't scrivere testo bianco su coral (2,6:1) né su verde di stato (2,6:1). Su una tinta satura chiara si scrive in nero di marchio.",
+      "Don't uniformare le quattro superfici scure: grafo, cascata, console e modale hanno fondi diversi perché contengono cose diverse.",
+      "Don't animare proprietà di layout, né aggiungere sequenze d'ingresso alla pagina.",
+      "Don't reinventare affordance standard — scrollbar custom, controlli di form fuori vocabolario, modali dove basterebbe una sezione in linea."
+    ]
+  }
+}

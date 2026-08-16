@@ -100,7 +100,10 @@ export default function EsploratoreScaglioni({
                   ml: 1,
                   fontFamily: tokens.font.mono,
                   fontSize: "12px",
-                  color: attivo ? tokens.color.textFaint : tokens.color.textMuted,
+                  // Attivo il bottone ha fondo nero, quindi il conteggio passa
+                  // al grigio delle superfici scure; a riposo resta su quello
+                  // delle superfici chiare.
+                  color: attivo ? tokens.color.textOnDark : tokens.color.textMuted,
                 }}
               >
                 {campioni[nome]?.length ?? 0}
@@ -187,7 +190,7 @@ export default function EsploratoreScaglioni({
                       mt: 0.5,
                       fontFamily: tokens.font.mono,
                       fontSize: "11px",
-                      color: tokens.color.textFaint,
+                      color: tokens.color.textMuted,
                     }}
                   >
                     #{post.id}

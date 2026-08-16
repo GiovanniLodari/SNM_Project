@@ -24,7 +24,7 @@ interface Props {
  *
  * Lo step 0 non e' propagazione: sono i seed di partenza, gia' presenti prima
  * che la cascata inizi a muoversi. Per questo la sua barra usa un colore
- * diverso (`textFaint`, spento) da quello degli step di propagazione veri
+ * diverso (`textMuted`, spento) da quello degli step di propagazione veri
  * (`actionBlue`) ed e' etichettato "seed" invece che "step 0" sull'asse: chi
  * legge il grafico non deve poter scambiare il punto di partenza per il primo
  * risultato della propagazione.
@@ -84,7 +84,7 @@ export default function AndamentoStep({ stepStats }: Props) {
             {dati.map((d) => (
               <Cell
                 key={d.step}
-                fill={d.eSeed ? tokens.color.textFaint : tokens.color.actionBlue}
+                fill={d.eSeed ? tokens.color.textMuted : tokens.color.actionBlue}
               />
             ))}
           </Bar>
@@ -94,7 +94,7 @@ export default function AndamentoStep({ stepStats }: Props) {
             type="monotone"
             dataKey="cumulativi"
             name="nodi cumulativi"
-            stroke={tokens.color.coral}
+            stroke={tokens.color.coralInk}
             fill={tokens.color.surfaceCoral}
             strokeWidth={2}
           />

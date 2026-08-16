@@ -196,7 +196,7 @@ export default function Dashboard() {
                   Rilevamento del testo sintetico (4 modelli)
                 </Typography>
               </Box>
-              <Typography variant="body2" sx={{ color: tokens.color.textFaint, mb: 2 }}>
+              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.72)", mb: 2 }}>
                 Analisi comparativa dello stesso testo con <strong>FastDetectGPT</strong>, <strong>Binoculars (ICML 2024)</strong>, <strong>Desklib AI Detector</strong> e <strong>AdaDetectGPT</strong>.
               </Typography>
 
@@ -251,7 +251,7 @@ export default function Dashboard() {
                   Verifica dei fatti con LLM
                 </Typography>
               </Box>
-              <Typography variant="body2" sx={{ color: tokens.color.textFaint, mb: 3 }}>
+              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.72)", mb: 3 }}>
 Verificate <strong>{formatNumber(stats.fact_check_done)}</strong> affermazioni su <strong>{formatNumber(stats.fact_check_eligible)}</strong> ritenute controllabili.
               </Typography>
 
@@ -277,7 +277,7 @@ Verificate <strong>{formatNumber(stats.fact_check_done)}</strong> affermazioni s
               </Box>
 
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography variant="caption" sx={{ color: tokens.color.textFaint }}>
+                <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.72)" }}>
                   Fonti di verifica: DuckDuckGo + Wikipedia
                 </Typography>
                 <Box

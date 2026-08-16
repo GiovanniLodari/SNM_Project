@@ -31,6 +31,21 @@ const color = {
     // Coral premuto/hover: unica variante scura del coral usata dai controlli.
     coralDark: "#e66043",
     coralLight: "#ffad9b",
+    /**
+     * Il coral quando deve fare da inchiostro invece che da riempimento.
+     *
+     * `coral` su fondo chiaro da' 2.6:1 sul canvas e 2.2:1 sulla pietra: sotto
+     * la soglia sia per il testo (4.5:1) sia per un segno che porta
+     * informazione (3:1). Non e' un difetto del coral, e' il suo posto: vive
+     * come fondo, con sopra il nero di marchio (6.8:1).
+     *
+     * Dove pero' la tinta deve dire "bot" *ed essere letta* - la cifra di una
+     * scheda, l'etichetta che la sormonta, il numero di capitolo nella sidebar -
+     * serve la stessa tinta piu' scura. Stessa hue OKLCH del coral (33.9), solo
+     * lightness ridotta: il legame semantico regge, la lettura anche.
+     * 5.3:1 sul canvas, 4.5:1 sulla pietra, 4.8:1 su surfaceCoral.
+     */
+    coralInk: "#c03d20",
     purple: "#7c3aed",
     danger: "#b30000",
 
@@ -53,8 +68,32 @@ const color = {
 
     // Testo
     textPrimary: "#212121",
-    textMuted: "#75758a",
-    textFaint: "#93939f",
+    /**
+     * Testo secondario sulle superfici chiare: descrizioni dei blocchi, note
+     * delle schede, metadati, etichette mono a riposo.
+     *
+     * Era `#75758a`, che dava 4.499:1 sul canvas - sotto la soglia AA di 4.5 per
+     * un pelo, ma sotto - e 3.8:1 sulla pietra, dove vive la nota di ogni
+     * SchedaCifra. Il valore attuale e' calcolato sulla superficie peggiore fra
+     * quelle su cui compare davvero: 5.4:1 sul canvas, 4.5:1 sulla pietra,
+     * 5.1:1 su surfaceWarm, 4.8:1 su surfaceCoral e surfacePurple.
+     */
+    textMuted: "#69697e",
+    /**
+     * Testo secondario sulle superfici scure: grafo, cascata, console, modali
+     * scure, card delle pipeline.
+     *
+     * Si chiamava `textFaint` e veniva usato su entrambe le famiglie di fondo.
+     * Sulle superfici scure e' corretto (5.9:1 sul nero di marchio, 6.3:1 sul
+     * fondo del grafo); su quelle chiare dava 3.0:1, e nessuna terza tonalita'
+     * di grigio piu' chiara di `textMuted` puo' passare AA sul bianco - quindi
+     * quelle occorrenze sono diventate `textMuted` e il token ha preso il nome
+     * del solo mestiere che sa fare.
+     *
+     * Non regge sulle bande verdi (4.1:1 su deepGreen): li' si usa
+     * `rgba(255,255,255,0.72)`, come fa BandaScura.
+     */
+    textOnDark: "#93939f",
 
     // Bordi
     border: "#e5e7eb",
@@ -80,8 +119,18 @@ const color = {
     /** Console dei log delle pipeline: nero bluastro da terminale. */
     darkConsole: "#050811",
     darkSlate: "#94a3b8",
-    darkSlateDeep: "#64748b",
-    darkSlateDarker: "#475569",
+    /**
+     * Etichette e icone di servizio sui pannelli scuri (misure del grafo,
+     * comandi della barra). Era `#64748b`, 4.0:1 sul fondo scuro: sotto AA per
+     * le caption da 10-11px che ne fanno l'uso principale. Ora 4.9:1.
+     */
+    darkSlateDeep: "#728299",
+    /**
+     * "Nodo non ancora raggiunto" nella cascata e nella sua legenda. Era
+     * `#475569`, 2.6:1 sul fondo della cascata: sotto il 3:1 richiesto a un
+     * elemento grafico che porta informazione (WCAG 1.4.11). Ora 3.1:1.
+     */
+    darkSlateDarker: "#526175",
     darkSlateLight: "#cbd5e1",
     accentCyan: "#00e5ff",
     /** Nodo bot e nodo umano nel grafo dei follow, su fondo scuro. */

@@ -95,7 +95,7 @@ export default function PostDetail() {
                     {post.acct}
                   </Typography>
                   <Chip label={post.domain} size="small" sx={{ borderRadius: tokens.radius.md, backgroundColor: tokens.color.softStone }} />
-                  {post.language && <Chip label={post.language.toUpperCase()} size="small" sx={{ borderRadius: tokens.radius.md, backgroundColor: tokens.color.coral, color: tokens.color.canvas }} />}
+                  {post.language && <Chip label={post.language.toUpperCase()} size="small" sx={{ borderRadius: tokens.radius.md, backgroundColor: tokens.color.coral, color: tokens.color.nearBlack }} />}
                   {post.bot && (
                     <Chip
                       icon={<BotIcon style={{ fontSize: 14, color: tokens.color.canvas }} />}
@@ -113,7 +113,7 @@ export default function PostDetail() {
               
               <Divider sx={{ my: 3, borderColor: tokens.color.border }} />
               
-              <Typography variant="caption" sx={{ color: tokens.color.textFaint }}>
+              <Typography variant="caption" sx={{ color: tokens.color.textMuted }}>
                 Created At (ISO): {post.created_at || "N/A"}
               </Typography>
             </CardContent>
@@ -133,7 +133,7 @@ export default function PostDetail() {
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2.5 }}>
-              <AiIcon sx={{ color: tokens.color.coral }} />
+              <AiIcon sx={{ color: tokens.color.coralInk }} />
               <Typography variant="h6" sx={{ fontWeight: 600, color: tokens.color.nearBlack }}>
                 Rilevamento Testo Sintetico IA (4 Detector)
               </Typography>
@@ -142,7 +142,7 @@ export default function PostDetail() {
             <Stack spacing={2}>
               {/* FastDetectGPT */}
               <Box sx={{ p: 2, borderRadius: "14px", backgroundColor: tokens.color.surfaceCoral, border: `1px solid ${tokens.color.coralLight}` }}>
-                <Typography variant="caption" sx={{ fontFamily: tokens.font.mono, color: tokens.color.coral, fontWeight: 700, display: "block", mb: 0.5 }}>
+                <Typography variant="caption" sx={{ fontFamily: tokens.font.mono, color: tokens.color.coralInk, fontWeight: 700, display: "block", mb: 0.5 }}>
                   DETECTOR 1 • FASTDETECTGPT (GPT-NEO 2.7B)
                 </Typography>
                 {ai_score ? (

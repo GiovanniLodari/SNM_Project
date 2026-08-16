@@ -97,7 +97,7 @@ export default function FiltriCorpus({
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon sx={{ fontSize: 18, color: tokens.color.textFaint }} />
+                <SearchIcon sx={{ fontSize: 18, color: tokens.color.textMuted }} />
               </InputAdornment>
             ),
             endAdornment: ricerca ? (
@@ -198,7 +198,10 @@ export default function FiltriCorpus({
                   borderRadius: tokens.radius.chip,
                   border: `1px solid ${attiva ? tokens.color.coral : tokens.color.coralLight}`,
                   backgroundColor: attiva ? tokens.color.coral : tokens.color.surfaceCoral,
-                  color: attiva ? tokens.color.canvas : tokens.color.nearBlack,
+                  // Nero anche da attiva: il bianco sul coral da' 2.6:1, il nero
+                  // 6.8:1. Lo stato lo dicono il fondo pieno e `aria-pressed`,
+                  // non l'inversione del testo.
+                  color: tokens.color.nearBlack,
                   transition: "background-color 0.15s ease, color 0.15s ease",
                   "&:hover": {
                     backgroundColor: attiva ? tokens.color.coralDark : tokens.color.coralLight,

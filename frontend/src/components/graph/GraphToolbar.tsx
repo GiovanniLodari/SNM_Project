@@ -191,10 +191,10 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
                 </Box>
                 {option.bot && (
                   <Chip
-                    icon={<BotIcon sx={{ fontSize: "12px !important", color: `${tokens.color.canvas} !important` }} />}
+                    icon={<BotIcon sx={{ fontSize: "12px !important", color: `${tokens.color.nearBlack} !important` }} />}
                     label="BOT"
                     size="small"
-                    sx={{ backgroundColor: tokens.color.coral, color: tokens.color.canvas, fontSize: "9px", fontWeight: 700 }}
+                    sx={{ backgroundColor: tokens.color.coral, color: tokens.color.nearBlack, fontSize: "9px", fontWeight: 700 }}
                   />
                 )}
               </Box>
@@ -311,6 +311,7 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
           <Tooltip title="Resetta Grafo al Network Iniziale">
             <IconButton
               onClick={onResetGraph}
+              aria-label="Ricarica il grafo da capo"
               sx={{
                 color: tokens.color.darkSlate,
                 border: "1px solid rgba(255, 255, 255, 0.1)",

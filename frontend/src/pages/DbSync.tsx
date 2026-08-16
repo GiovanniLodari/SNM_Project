@@ -177,9 +177,9 @@ export default function DbSync() {
                     borderRadius: tokens.radius.md,
                   }}
                 >
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 1, color: tokens.color.textFaint }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 1, color: tokens.color.textOnDark }}>
                     <ConsoleIcon style={{ fontSize: 14 }} />
-                    <Typography variant="caption" sx={{ color: tokens.color.textFaint }}>EXPORT CONSOLE LOG</Typography>
+                    <Typography variant="caption" sx={{ color: tokens.color.textOnDark }}>EXPORT CONSOLE LOG</Typography>
                   </Box>
                   {status.export_log_lines.map((line, idx) => (
                     <div key={idx}>{line}</div>
@@ -258,7 +258,7 @@ export default function DbSync() {
                 startIcon={actionLoading ? <CircularProgress size={16} color="inherit" /> : <UploadIcon />}
                 sx={{
                   backgroundColor: tokens.color.coral, // Coral CTA Button
-                  color: tokens.color.canvas,
+                  color: tokens.color.nearBlack,
                   borderRadius: tokens.radius.pill,
                   "&:hover": { backgroundColor: tokens.color.coralDark },
                   mt: "auto",

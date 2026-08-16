@@ -50,7 +50,7 @@ export default function HowItWorks() {
                       fontFamily: tokens.font.mono,
                       fontSize: "12px",
                       fontWeight: 600,
-                      color: tokens.color.coral,
+                      color: tokens.color.coralInk,
                       letterSpacing: "1px",
                     }}
                   >

@@ -80,8 +80,13 @@ export default function BandaScura({
         my: { xs: 6, md: 10 },
       }}
     >
+      {/* Bianco al 70% e non al 60%: sul verde di capitolo il 60% da' 4.35:1,
+          appena sotto la soglia. Sul navy passerebbe, ma un occhiello che cambia
+          opacita' con la tinta della banda sarebbe una regola in piu' da
+          ricordare per guadagnare nulla. Stesso discorso per le etichette delle
+          cifre qui sotto. */}
       {occhiello && (
-        <EtichettaMono colore="rgba(255,255,255,0.6)" sx={{ mb: 2 }}>
+        <EtichettaMono colore="rgba(255,255,255,0.7)" sx={{ mb: 2 }}>
           {occhiello}
         </EtichettaMono>
       )}
@@ -119,7 +124,7 @@ export default function BandaScura({
                 <Typography
                   sx={{
                     ...tokens.type.micro,
-                    color: "rgba(255,255,255,0.6)",
+                    color: "rgba(255,255,255,0.7)",
                     mt: 1,
                   }}
                 >

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { useReducedMotion } from "framer-motion";
 import type { Simulation, SimulationNodeDatum } from "d3-force";
 import {
   Box,
@@ -41,6 +42,18 @@ interface PhysicsNode extends GraphNode, SimulationNodeDatum {
 export default function GraphHero() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  /**
+   * Chi ha chiesto meno movimento vede la rete gia' assestata invece che
+   * costruirsi davanti.
+   *
+   * Qui il moto non e' decorativo - la rivelazione progressiva racconta come il
+   * grafo si infittisce - ma non e' nemmeno l'unico modo di leggerlo: lo stesso
+   * contenuto sta tutto nel grafo completo, che e' proprio cio' che la
+   * rivelazione produce alla fine. Quindi non si spegne l'animazione lasciando
+   * una tela vuota: si parte dal fotogramma finale.
+   */
+  const riduciMovimento = useReducedMotion();
+
   // Raw data from API
   const [allNodes, setAllNodes] = useState<GraphNode[]>([]);
   const [allLinks, setAllLinks] = useState<GraphLink[]>([]);
@@ -50,6 +63,13 @@ export default function GraphHero() {
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [speedMultiplier, setSpeedMultiplier] = useState<number>(1);
   const [hoveredNode, setHoveredNode] = useState<PhysicsNode | null>(null);
+  /**
+   * Vero quando il nodo corrente e' stato scelto con le frecce e non sfiorato
+   * col puntatore. Solo in quel caso la selezione viene annunciata: al mouse
+   * ogni nodo attraversato produrrebbe una frase, e chi usa il puntatore vede
+   * gia' la scheda comparire.
+   */
+  const [selezioneDaTastiera, setSelezioneDaTastiera] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
   // Graph mode filter: bot, human, all
@@ -306,7 +326,17 @@ export default function GraphHero() {
 
   // Interval for progressive streaming ("pochi nodi alla volta")
   useEffect(() => {
-    if (!isPlaying || allNodes.length === 0) return;
+    if (allNodes.length === 0) return;
+
+    // A movimento ridotto la rete compare intera: nessun intervallo, nessun
+    // nodo che entra in scena. E' il risultato della rivelazione, consegnato
+    // subito.
+    if (riduciMovimento) {
+      setVisibleCount(allNodes.length);
+      return;
+    }
+
+    if (!isPlaying) return;
     if (visibleCount >= allNodes.length) return;
 
     const intervalTime = Math.max(200, 1400 / speedMultiplier);
@@ -315,7 +345,7 @@ export default function GraphHero() {
     }, intervalTime);
 
     return () => clearInterval(timer);
-  }, [isPlaying, visibleCount, allNodes.length, speedMultiplier]);
+  }, [isPlaying, visibleCount, allNodes.length, speedMultiplier, riduciMovimento]);
 
   // Physics animation loop & Canvas render
   useEffect(() => {
@@ -433,7 +463,14 @@ export default function GraphHero() {
       });
 
       // 3. ANIMATED EDGE PARTICLES
-      if (timestamp - lastParticleSpawn > 350 / speedMultiplier && activeLinks.length > 0) {
+      // Le particelle non portano informazione - dicono "qui passa traffico",
+      // che il grafo dice gia' con gli archi - quindi a movimento ridotto
+      // spariscono del tutto invece di essere rallentate.
+      if (
+        !riduciMovimento &&
+        timestamp - lastParticleSpawn > 350 / speedMultiplier &&
+        activeLinks.length > 0
+      ) {
         lastParticleSpawn = timestamp;
         const randomLink = activeLinks[Math.floor(Math.random() * activeLinks.length)];
         if (randomLink) {
@@ -540,7 +577,7 @@ export default function GraphHero() {
       cancelAnimationFrame(animFrameId);
       window.removeEventListener("resize", updateCanvasSize);
     };
-  }, [allLinks, speedMultiplier, aggiornaSimulazione]);
+  }, [allLinks, speedMultiplier, aggiornaSimulazione, riduciMovimento]);
 
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -576,6 +613,8 @@ export default function GraphHero() {
       }
     }
     setHoveredNode(found);
+    // Il puntatore ha ripreso il comando: la selezione non va piu' annunciata.
+    setSelezioneDaTastiera(false);
   };
 
   const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -624,6 +663,51 @@ export default function GraphHero() {
     }
   };
 
+  /**
+   * Sposta la selezione di un nodo, nell'ordine in cui i nodi sono comparsi.
+   *
+   * E' la controparte da tastiera del passaggio del mouse: scrive nello stesso
+   * stato (`hoveredNode`), quindi il nodo si evidenzia sul canvas e la scheda in
+   * basso a sinistra si apre esattamente come col puntatore. Nessuna seconda
+   * interfaccia da mantenere allineata.
+   */
+  const spostaSelezione = (delta: number) => {
+    const nodi = Array.from(physicsNodesRef.current.values());
+    if (nodi.length === 0) return;
+    const corrente = hoveredNode ? nodi.findIndex((n) => n.id === hoveredNode.id) : -1;
+    // Da -1 (nessuna selezione) un passo avanti porta al primo nodo, uno
+    // indietro all'ultimo: entrare nel grafo da tastiera funziona in entrambi
+    // i versi senza un caso speciale.
+    const prossimo = (corrente + delta + nodi.length) % nodi.length;
+    setHoveredNode(nodi[prossimo]);
+    setSelezioneDaTastiera(true);
+  };
+
+  const handleCanvasKeyDown = (evento: React.KeyboardEvent<HTMLCanvasElement>) => {
+    switch (evento.key) {
+      case "ArrowRight":
+      case "ArrowDown":
+        evento.preventDefault();
+        spostaSelezione(1);
+        break;
+      case "ArrowLeft":
+      case "ArrowUp":
+        evento.preventDefault();
+        spostaSelezione(-1);
+        break;
+      case "Enter":
+      case " ":
+        if (hoveredNode) {
+          evento.preventDefault();
+          handleNodeClick(hoveredNode);
+        }
+        break;
+      case "Escape":
+        setHoveredNode(null);
+        break;
+    }
+  };
+
   const botRatio = useMemo(() => {
     const active = allNodes.slice(0, visibleCount);
     if (active.length === 0) return 0;
@@ -635,6 +719,36 @@ export default function GraphHero() {
     const visibleIds = new Set(allNodes.slice(0, visibleCount).map((n) => n.id));
     return allLinks.filter((l) => visibleIds.has(l.source) && visibleIds.has(l.target)).length;
   }, [allNodes, allLinks, visibleCount]);
+
+  /**
+   * Il grafo detto a parole, per chi non lo vede.
+   *
+   * Un canvas e' opaco alle tecnologie assistive: senza questo, il pezzo piu'
+   * grande della Panoramica e' un riquadro vuoto. Non descrive l'aspetto ("una
+   * rete di pallini") ma cio' che il grafo misura, che e' l'unica cosa per cui
+   * sta li'.
+   */
+  const descrizioneGrafo = graphError
+    ? `Grafo dei follow non disponibile: ${graphError}`
+    : allNodes.length === 0
+      ? "Grafo dei follow del Fediverso, in caricamento."
+      : `Grafo dei follow del Fediverso: ${visibleCount} account visibili su ${allNodes.length}, ` +
+        `${activeLinksCount} relazioni di follow fra loro, ${botRatio}% dichiarati bot. ` +
+        "Usa le frecce per scorrere gli account uno a uno e Invio per aprirne la scheda.";
+
+  /** L'account selezionato da tastiera, detto per esteso all'annuncio vocale. */
+  const descrizioneSelezione =
+    hoveredNode && selezioneDaTastiera
+      ? `${hoveredNode.label}, ${
+          hoveredNode.bot
+            ? "dichiarato bot"
+            : hoveredNode.group === "instance"
+              ? "istanza"
+              : "non dichiarato bot"
+        }, dominio ${hoveredNode.domain || "non indicato"}, ${
+          hoveredNode.degree || 1
+        } collegamenti.`
+      : "";
 
   return (
     <Paper
@@ -779,8 +893,42 @@ export default function GraphHero() {
           onMouseMove={handleCanvasMouseMove}
           onMouseDown={handleCanvasMouseDown}
           onMouseUp={handleCanvasMouseUp}
-          style={{ width: "100%", height: "100%", cursor: hoveredNode ? "pointer" : "default" }}
+          onKeyDown={handleCanvasKeyDown}
+          // Il canvas entra nell'ordine di tabulazione ed espone un nome: prima
+          // era un elemento muto e irraggiungibile, cioe' il pezzo piu' grande
+          // della pagina non esisteva per chi naviga da tastiera o con uno
+          // screen reader.
+          tabIndex={0}
+          role="img"
+          aria-label={descrizioneGrafo}
+          style={{
+            width: "100%",
+            height: "100%",
+            cursor: hoveredNode ? "pointer" : "default",
+            // Il canvas riempie il riquadro fino al bordo: l'anello globale ha
+            // offset positivo e finirebbe tagliato da `overflow: hidden` del
+            // contenitore, quindi qui rientra.
+            outlineOffset: "-3px",
+          }}
         />
+
+        {/* L'annuncio del nodo scelto con le frecce. Resta vuoto quando la
+            selezione arriva dal puntatore: la scheda visiva la' accanto dice
+            gia' tutto, e annunciare ogni nodo sfiorato dal mouse sarebbe un
+            flusso continuo di parole. */}
+        <Box
+          aria-live="polite"
+          sx={{
+            position: "absolute",
+            width: 1,
+            height: 1,
+            overflow: "hidden",
+            clip: "rect(0 0 0 0)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {descrizioneSelezione}
+        </Box>
 
         {graphError && (
           <Box
@@ -845,6 +993,8 @@ export default function GraphHero() {
         {/* Fullscreen Toggle Button (Top Right inside Canvas) */}
         <IconButton
           onClick={() => setIsFullscreen(!isFullscreen)}
+          aria-label={isFullscreen ? "Riduci il grafo" : "Ingrandisci il grafo"}
+          aria-pressed={isFullscreen}
           sx={{
             position: "absolute",
             top: 14,
@@ -879,10 +1029,10 @@ export default function GraphHero() {
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
                 {hoveredNode.bot ? (
                   <Chip
-                    icon={<BotIcon sx={{ fontSize: "14px !important", color: `${tokens.color.canvas} !important` }} />}
+                    icon={<BotIcon sx={{ fontSize: "14px !important", color: `${tokens.color.nearBlack} !important` }} />}
                     label="BOT DETECTED"
                     size="small"
-                    sx={{ backgroundColor: tokens.color.coral, color: tokens.color.canvas, fontWeight: 700, fontSize: "10px" }}
+                    sx={{ backgroundColor: tokens.color.coral, color: tokens.color.nearBlack, fontWeight: 700, fontSize: "10px" }}
                   />
                 ) : hoveredNode.group === "instance" ? (
                   <Chip
@@ -893,10 +1043,13 @@ export default function GraphHero() {
                   />
                 ) : (
                   <Chip
-                    icon={<HumanIcon sx={{ fontSize: "14px !important", color: `${tokens.color.canvas} !important` }} />}
+                    icon={<HumanIcon sx={{ fontSize: "14px !important", color: `${tokens.color.nearBlack} !important` }} />}
                     label="HUMAN USER"
                     size="small"
-                    sx={{ backgroundColor: tokens.color.success, color: tokens.color.canvas, fontWeight: 700, fontSize: "10px" }}
+                    // Nero e non bianco: il bianco sul verde di stato da' 2.6:1
+                    // a 10px in grassetto, il nero 7.0:1. Stessa scelta della
+                    // pastiglia coral nei filtri del corpus.
+                    sx={{ backgroundColor: tokens.color.success, color: tokens.color.nearBlack, fontWeight: 700, fontSize: "10px" }}
                   />
                 )}
               </Stack>

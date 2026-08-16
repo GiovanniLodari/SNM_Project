@@ -84,7 +84,7 @@ export default function MatriceBotIa({ stats }: Props) {
         {COLONNE_MATRICE.map((colonna) => (
           <Box key={colonna.id} sx={{ px: 2 }}>
             <EtichettaMono taglia="micro">{colonna.titolo}</EtichettaMono>
-            <Typography sx={{ ...tokens.type.micro, color: tokens.color.textFaint, mt: 0.5 }}>
+            <Typography sx={{ ...tokens.type.micro, color: tokens.color.textMuted, mt: 0.5 }}>
               {colonna.spiegazione}
             </Typography>
           </Box>

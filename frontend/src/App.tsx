@@ -269,7 +269,10 @@ function NavigationContent({ onNavigate }: PropsNavigazione) {
                       fontFamily: tokens.font.mono,
                       fontSize: "10px",
                       fontWeight: 700,
-                      color: tokens.color.coral,
+                      // Il coral pieno su surfaceCoral da' 2.4:1 - a 10px e'
+                      // illeggibile. La variante inchiostro tiene la tinta e
+                      // arriva a 4.8:1.
+                      color: tokens.color.coralInk,
                       backgroundColor: tokens.color.surfaceCoral,
                       px: "5px",
                       py: "1px",
@@ -401,7 +404,7 @@ function NavigationContent({ onNavigate }: PropsNavigazione) {
           sx={{
             fontFamily: tokens.font.mono,
             fontSize: "10px",
-            color: tokens.color.textFaint,
+            color: tokens.color.textMuted,
           }}
         >
           v1.0
@@ -539,7 +542,10 @@ export default function App() {
               <Suspense
                 fallback={
                   <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh" }}>
-                    <CircularProgress sx={{ color: tokens.color.coral }} />
+                    {/* Nero come `LoadingState`: erano due colori diversi per
+                        lo stesso significato, e il coral qui non diceva "bot"
+                        ne' nient'altro - era ornamento. */}
+                    <CircularProgress sx={{ color: tokens.color.nearBlack }} />
                   </Box>
                 }
               >
@@ -584,7 +590,7 @@ export default function App() {
                 <Typography variant="body2" sx={{ color: tokens.color.textMuted, fontWeight: 500 }}>
                   SNM Project — Analisi del Fediverso: testo sintetico, bot e influenza
                 </Typography>
-                <Typography variant="caption" sx={{ color: tokens.color.textFaint, fontFamily: tokens.font.mono }}>
+                <Typography variant="caption" sx={{ color: tokens.color.textMuted, fontFamily: tokens.font.mono }}>
                   © {new Date().getFullYear()}
                 </Typography>
               </Container>

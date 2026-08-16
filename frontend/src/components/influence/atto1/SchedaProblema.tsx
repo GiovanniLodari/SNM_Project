@@ -71,7 +71,7 @@ export default function SchedaProblema({ params }: SchedaProblemaProps) {
             display: "block",
             mt: 1,
             fontFamily: tokens.font.mono,
-            color: tokens.color.textFaint,
+            color: tokens.color.textMuted,
           }}
         >
           Fonte: {MODELLO_IC.sorgente}

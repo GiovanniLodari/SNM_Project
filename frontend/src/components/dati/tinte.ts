@@ -16,6 +16,18 @@ import { tokens } from "../../theme.ts";
 /** Account che si dichiara automatizzato nel proprio profilo. */
 export const TINTA_BOT = tokens.color.coral;
 
+/**
+ * La tinta dei bot quando deve essere letta invece che riempita: la cifra di
+ * una SchedaCifra, l'etichetta che la sormonta, un numero in corpo grande.
+ *
+ * `TINTA_BOT` e' pensata come fondo - una barra, una chip, un quadratino - e su
+ * fondo chiaro non arriva ne' a 4.5:1 come testo ne' a 3:1 come segno. Le altre
+ * tre tinte non hanno questo problema (il viola da' 4.8:1 sulla pietra, il
+ * verde 10.5:1), quindi la variante "inchiostro" esiste solo qui: aggiungerne
+ * altre tre inutilizzate renderebbe piu' difficile capire quando serve questa.
+ */
+export const TINTA_BOT_INK = tokens.color.coralInk;
+
 /** Account che non si dichiara tale. Non significa "verificato umano". */
 export const TINTA_UMANO = tokens.color.deepGreen;
 

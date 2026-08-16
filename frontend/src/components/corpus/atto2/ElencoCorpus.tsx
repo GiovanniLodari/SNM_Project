@@ -167,7 +167,7 @@ const ElencoCorpus = forwardRef<HTMLDivElement, Props>(function ElencoCorpus(
                         fontFamily: tokens.font.mono,
                         fontSize: "11px",
                         backgroundColor: tokens.color.surfaceCoral,
-                        color: tokens.color.coral,
+                        color: tokens.color.coralInk,
                         border: `1px solid ${tokens.color.coralLight}`,
                       }}
                     />
@@ -187,7 +187,7 @@ const ElencoCorpus = forwardRef<HTMLDivElement, Props>(function ElencoCorpus(
                     />
                   )}
                 </Box>
-                <Typography sx={{ ...tokens.type.micro, color: tokens.color.textFaint, flexShrink: 0 }}>
+                <Typography sx={{ ...tokens.type.micro, color: tokens.color.textMuted, flexShrink: 0 }}>
                   {formatDateTime(riga.created_at)}
                 </Typography>
               </Box>

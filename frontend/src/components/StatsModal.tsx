@@ -137,6 +137,9 @@ export default function StatsModal({
     <Dialog
       open={open}
       onClose={onClose}
+      // Senza, la finestra viene annunciata come "dialogo" e basta: il titolo
+      // c'e' ed e' visibile, ma nulla lo lega alla finestra che intitola.
+      aria-labelledby="titolo-statistiche"
       maxWidth="lg"
       fullWidth
       PaperProps={{
@@ -165,6 +168,8 @@ export default function StatsModal({
         <Box>
           <MonoChip label={`ANALISI STATISTICA • ${detectorLabel.toUpperCase()}`} />
           <Typography
+            id="titolo-statistiche"
+            component="h2"
             sx={{
               fontFamily: tokens.font.display,
               fontWeight: 400,
@@ -187,6 +192,7 @@ export default function StatsModal({
         </Box>
         <IconButton
           onClick={onClose}
+          aria-label="Chiudi le statistiche"
           sx={{
             color: tokens.color.textMuted,
             mt: -0.5,
@@ -253,7 +259,7 @@ export default function StatsModal({
                 <Box>
                   <Typography
                     variant="caption"
-                    sx={{ fontFamily: tokens.font.mono, color: tokens.color.coral, fontWeight: 700, display: "block", mb: 0.5 }}
+                    sx={{ fontFamily: tokens.font.mono, color: tokens.color.coralInk, fontWeight: 700, display: "block", mb: 0.5 }}
                   >
                     DISTRIBUZIONE DI PROBABILITÀ
                   </Typography>
@@ -296,11 +302,11 @@ export default function StatsModal({
                         "Frequenza",
                       ]}
                     />
-                    <ReferenceLine x="0.5-0.6" stroke={tokens.color.coral} strokeDasharray="4 3" label={{ value: "Soglia IA", fill: tokens.color.coral, fontSize: 11 }} />
+                    <ReferenceLine x="0.5-0.6" stroke={tokens.color.coralInk} strokeDasharray="4 3" label={{ value: "Soglia IA", fill: tokens.color.coralInk, fontSize: 11 }} />
                     <Area
                       type="monotone"
                       dataKey="count"
-                      stroke={tokens.color.coral}
+                      stroke={tokens.color.coralInk}
                       strokeWidth={2.5}
                       fillOpacity={1}
                       fill="url(#coralGrad)"
@@ -331,7 +337,7 @@ export default function StatsModal({
             >
               <Typography
                 variant="caption"
-                sx={{ fontFamily: tokens.font.mono, color: tokens.color.coral, fontWeight: 700, display: "block", mb: 2 }}
+                sx={{ fontFamily: tokens.font.mono, color: tokens.color.coralInk, fontWeight: 700, display: "block", mb: 2 }}
               >
                 RIEPILOGO QUANTITATIVO
               </Typography>
@@ -510,7 +516,7 @@ export default function StatsModal({
             <Box sx={{ p: 3.5, borderRadius: tokens.radius.lg, border: tokens.border.subtle, backgroundColor: tokens.color.canvas, height: "100%" }}>
               <Typography
                 variant="caption"
-                sx={{ fontFamily: tokens.font.mono, color: tokens.color.coral, fontWeight: 700, display: "block", mb: 2 }}
+                sx={{ fontFamily: tokens.font.mono, color: tokens.color.coralInk, fontWeight: 700, display: "block", mb: 2 }}
               >
                 COMPOSIZIONE ACCOUNT
               </Typography>

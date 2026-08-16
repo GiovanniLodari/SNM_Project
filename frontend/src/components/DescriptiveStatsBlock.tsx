@@ -112,7 +112,7 @@ export default function DescriptiveStatsBlock() {
                   fontFamily: tokens.font.display,
                   fontWeight: 400,
                   fontSize: "38px",
-                  color: tokens.color.coral, // Coral Accent
+                  color: tokens.color.coralInk,
                   lineHeight: 1,
                   mb: 1,
                 }}
@@ -263,7 +263,7 @@ export default function DescriptiveStatsBlock() {
                       }}
                       formatter={(val) => [`${formatNumber(Number(val || 0))} status`, "Frequenza"]}
                     />
-                    <Area type="monotone" dataKey="count" stroke={tokens.color.coral} strokeWidth={2.5} fillOpacity={1} fill="url(#dashboardProbGradient)" />
+                    <Area type="monotone" dataKey="count" stroke={tokens.color.coralInk} strokeWidth={2.5} fillOpacity={1} fill="url(#dashboardProbGradient)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </Box>

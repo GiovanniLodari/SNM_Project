@@ -5,7 +5,7 @@ import Blocco from "../../dati/Blocco.tsx";
 import BarraQuota from "../../dati/BarraQuota.tsx";
 import ClassificaBarre, { type VoceClassifica } from "../../dati/ClassificaBarre.tsx";
 import LegendaVoce from "../../dati/LegendaVoce.tsx";
-import { TINTA_BOT, TINTA_UMANO } from "../../dati/tinte.ts";
+import { TINTA_BOT, TINTA_BOT_INK, TINTA_UMANO } from "../../dati/tinte.ts";
 import { nomeLingua } from "../corpusContent.ts";
 import { tokens } from "../../../theme.ts";
 import { formatDate, formatNumber, formatPercent, NON_DISPONIBILE } from "../../../utils/format.ts";
@@ -94,7 +94,7 @@ export default function ComposizioneCorpus({ dati }: Props) {
         giorni != null
           ? `dal ${formatDate(dati.first_post_at)} al ${formatDate(dati.last_post_at)}`
           : "I post archiviati non portano una data",
-      accento: TINTA_BOT,
+      accento: TINTA_BOT_INK,
     },
   ];
 

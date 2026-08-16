@@ -1,255 +1,392 @@
-## Overview
+---
+name: SNM.Intelligence
+description: Sistema visivo dell'interfaccia di analisi del Fediverso — canvas editoriale, apparato in monospazio, tinte che significano una cosa sola.
+colors:
+  nero-marchio: "#17171c"
+  nero-marchio-premuto: "#2e2e38"
+  verde-capitolo: "#003c33"
+  navy-capitolo: "#071829"
+  coral-bot: "#ff7759"
+  coral-bot-inchiostro: "#c03d20"
+  coral-bot-premuto: "#e66043"
+  coral-bot-tenue: "#ffad9b"
+  viola-sintetico: "#7c3aed"
+  blu-azione: "#1863dc"
+  canvas: "#ffffff"
+  pietra: "#eeece7"
+  pietra-chiara: "#f9f8f6"
+  fondo-coral: "#fff0ec"
+  fondo-viola: "#f5f3ff"
+  fondo-blu: "#f1f5ff"
+  fondo-pericolo: "#fdf2f2"
+  inchiostro: "#212121"
+  testo-attenuato: "#69697e"
+  testo-su-scuro: "#93939f"
+  filetto: "#e5e7eb"
+  filetto-marcato: "#d9d9dd"
+  filetto-interno: "#f2f2f2"
+  focus: "#4c6ee6"
+  pericolo: "#b30000"
+  successo: "#10b981"
+  fondo-cascata: "#0d0d10"
+  fondo-grafo: "#131924"
+  fondo-console: "#050811"
+  fondo-modale-scura: "#0b0f19"
+  nodo-bot: "#ff5252"
+  nodo-umano: "#38bdf8"
+typography:
+  heroDisplay:
+    fontFamily: "Space Grotesk, Inter, sans-serif"
+    fontSize: "96px"
+    fontWeight: 400
+    lineHeight: 1.0
+    letterSpacing: "-1.92px"
+  productDisplay:
+    fontFamily: "Space Grotesk, Inter, sans-serif"
+    fontSize: "72px"
+    fontWeight: 400
+    lineHeight: 1.0
+    letterSpacing: "-1.44px"
+  sectionDisplay:
+    fontFamily: "Space Grotesk, Inter, sans-serif"
+    fontSize: "60px"
+    fontWeight: 400
+    lineHeight: 1.0
+    letterSpacing: "-1.2px"
+  sectionHeading:
+    fontFamily: "Space Grotesk, Inter, sans-serif"
+    fontSize: "40px"
+    fontWeight: 400
+    lineHeight: 1.2
+    letterSpacing: "-0.48px"
+  cardHeading:
+    fontFamily: "Space Grotesk, Inter, sans-serif"
+    fontSize: "32px"
+    fontWeight: 400
+    lineHeight: 1.2
+    letterSpacing: "-0.32px"
+  featureHeading:
+    fontFamily: "Space Grotesk, Inter, sans-serif"
+    fontSize: "24px"
+    fontWeight: 500
+    lineHeight: 1.3
+    letterSpacing: "0"
+  numeroGrande:
+    fontFamily: "Space Grotesk, Inter, sans-serif"
+    fontSize: "56px"
+    fontWeight: 400
+    lineHeight: 1.0
+    letterSpacing: "-1.2px"
+  bodyLarge:
+    fontFamily: "Inter, sans-serif"
+    fontSize: "18px"
+    fontWeight: 400
+    lineHeight: 1.4
+  body:
+    fontFamily: "Inter, sans-serif"
+    fontSize: "16px"
+    fontWeight: 400
+    lineHeight: 1.5
+  monoLabel:
+    fontFamily: "ui-monospace, monospace"
+    fontSize: "14px"
+    fontWeight: 400
+    lineHeight: 1.4
+    letterSpacing: "0.28px"
+  micro:
+    fontFamily: "Inter, sans-serif"
+    fontSize: "12px"
+    fontWeight: 400
+    lineHeight: 1.4
+rounded:
+  xs: "4px"
+  sm: "8px"
+  md: "12px"
+  lg: "16px"
+  xl: "22px"
+  chip: "30px"
+  pill: "32px"
+spacing:
+  xs: "8px"
+  sm: "16px"
+  md: "24px"
+  lg: "32px"
+  xl: "48px"
+  xxl: "80px"
+  xxxl: "96px"
+components:
+  button-primary:
+    backgroundColor: "{colors.nero-marchio}"
+    textColor: "{colors.canvas}"
+    rounded: "{rounded.pill}"
+    padding: "10px 24px"
+    typography: "{typography.body}"
+  button-primary-hover:
+    backgroundColor: "#000000"
+    textColor: "{colors.canvas}"
+  button-outlined:
+    backgroundColor: "transparent"
+    textColor: "{colors.inchiostro}"
+    rounded: "{rounded.pill}"
+    padding: "10px 24px"
+  button-outlined-hover:
+    backgroundColor: "{colors.pietra}"
+    textColor: "{colors.inchiostro}"
+  chip-tassonomia:
+    backgroundColor: "{colors.fondo-coral}"
+    textColor: "{colors.nero-marchio}"
+    rounded: "{rounded.chip}"
+    padding: "8px 18px"
+  chip-tassonomia-attiva:
+    backgroundColor: "{colors.coral-bot}"
+    textColor: "{colors.nero-marchio}"
+    rounded: "{rounded.chip}"
+    padding: "8px 18px"
+  blocco:
+    backgroundColor: "{colors.canvas}"
+    textColor: "{colors.inchiostro}"
+    rounded: "{rounded.xl}"
+    padding: "32px"
+  scheda-cifra:
+    backgroundColor: "{colors.pietra}"
+    textColor: "{colors.nero-marchio}"
+    rounded: "{rounded.sm}"
+    padding: "24px"
+  banda-scura:
+    backgroundColor: "{colors.verde-capitolo}"
+    textColor: "{colors.canvas}"
+    padding: "80px 48px"
+  nav-voce:
+    backgroundColor: "transparent"
+    textColor: "{colors.inchiostro}"
+    rounded: "{rounded.sm}"
+    padding: "7px 10px"
+  nav-voce-attiva:
+    backgroundColor: "{colors.nero-marchio}"
+    textColor: "{colors.canvas}"
+    rounded: "{rounded.sm}"
+    padding: "7px 10px"
+  campo-ricerca:
+    backgroundColor: "{colors.canvas}"
+    textColor: "{colors.inchiostro}"
+    rounded: "{rounded.pill}"
+    padding: "8px 14px"
+---
 
-Cohere's current web presence feels like a sober enterprise AI command center with editorial restraint. The home page opens on a huge typographic declaration over a white canvas, then uses photography, dark product mockups, trust logos, and generous empty space to make AI infrastructure feel controlled rather than speculative. Product pages invert the tone into deep green-black or dark navy bands, while blog and research pages move toward publishing-system clarity: large filters, thin rules, dense lists, and pale technical backgrounds.
+# Design System: SNM.Intelligence
 
-What makes the system distinctive is the mix of austere black-and-white UI with bursts of tactile brand imagery. The site avoids decorative chrome in the normal interface; color arrives through photography, abstract 3D media, coral blog taxonomy chips, blue research links, and dark product environments. Cards are rounded but not cute. Type is large, tight, and almost monospaced in spirit, creating a research-lab cadence across marketing, product, and editorial surfaces.
+## 1. Overview
+
+**Creative North Star: "L'edizione critica"**
+
+Un'edizione critica è un testo accompagnato dal suo apparato: le note, le varianti, le sigle dei testimoni, il rimando alla fonte. Il testo si legge da solo; l'apparato è lì per chi vuole verificare. Questo sistema è costruito su quella divisione. Il canvas bianco continuo porta il testo — le domande che aprono ogni atto, i paragrafi che spiegano come va letto un grafico. Il monospazio porta l'apparato — «ATTO III — LA CASCATA», «QUARTILI», i codici lingua, le soglie. Non si mescolano mai: se un'informazione è apparato, sta in monospazio maiuscolo; se è testo, sta in Inter e si legge come una frase.
+
+La densità cresce lungo la pagina, non è uniforme. Un capitolo apre con una domanda in corpo grande su molto bianco, attraversa i blocchi in cui il metodo viene spiegato, e solo alla fine consegna la tabella con dodici colonne di filtri. La banda scura a piena larghezza — verde di capitolo o navy — interrompe il bianco una volta per capitolo e porta il risultato: è la punteggiatura del sistema, non un elemento decorativo. Le superfici scure profonde (grafo, cascata, console) sono un'altra cosa ancora: sono strumenti, e il nero serve a far risaltare i nodi luminosi.
+
+Il sistema rifiuta tre cose per iscritto, ereditate da PRODUCT.md. Non è una **dashboard admin generica**: niente griglie di card identiche con icona, numero e freccia verde. Non è una **landing page SaaS**: niente gradienti, glassmorphism, metriche gonfiate, CTA in ogni sezione. E non è un **progetto universitario improvvisato**: niente palette di default della libreria, niente tabelle nude, niente grafici che escono dal grafico. Il pubblico primario è una commissione di tesi che guarda su proiettore: ogni scelta si giudica lì.
 
 **Key Characteristics:**
-- Monumental display headlines with very tight line height and negative tracking.
-- White editorial canvases interrupted by deep green, dark navy, and image-led CTA bands.
-- Rounded media cards and product cards, usually 8px to 22px.
-- Pill CTAs in near-black or white, with most secondary actions rendered as underlined text links.
-- Trust-logo strips with monochrome partner marks and very wide vertical spacing.
-- Agent-console mockups using dark panels, small status chips, and product integration badges.
-- Blog and research surfaces with prominent taxonomy chips, long rule-separated lists, and search fields.
+- Canvas bianco come superficie predefinita; il colore arriva dai dati, mai dall'ornamento.
+- Titoli in Space Grotesk con crenatura negativa; corpo in Inter; apparato tecnico in monospazio maiuscolo.
+- Ogni atto apre con una domanda in italiano corrente, prima di qualunque cifra.
+- Una banda scura per capitolo, a piena larghezza, che porta il risultato di quel capitolo.
+- Nessuna ombra: la profondità viene dall'alternanza di superfici e da filetti da 1px.
+- Angoli generosi sui riquadri di contenuto (22px), stretti sui marcatori dati (4px), a pastiglia sui controlli (30-32px).
+- Quattro tinte semantiche fisse — bot, umano, sintetico, non valutato — che non cambiano significato da una pagina all'altra.
+- Indice laterale sticky degli atti su desktop, che sparisce sotto `md` invece di comprimersi.
 
-## Colors
+## 2. Colors
 
-### Brand & Accent
+Una palette quasi monocroma — nero, bianco, pietra — in cui ogni tinta satura è stata assegnata a un significato e non è disponibile per altro.
 
-- **Cohere Black** (`#000000`): Announcement bar, highest-contrast text, and the global brand anchor.
-- **Near-Black Primary** (`#17171c`): Primary CTA buttons, dark footer, and deep UI cards.
-- **Deep Enterprise Green** (`#003c33`): Product hero bands for North and Command-style dark sections.
-- **Dark Navy** (`#071829`): Financial-services and security-oriented solution bands.
-- **Action Blue** (`#1863dc`): Editorial links, pagination, and secondary action emphasis.
-- **Coral** (`#ff7759`): Blog category chips, taxonomy outlines, and warm product markers.
-- **Soft Coral** (`#ffad9b`): Pale chip borders and segmented article-label details.
+### Primary
 
-### Surface & Background
+- **Nero di marchio** (`#17171c`): il colore delle azioni primarie, della voce di navigazione attiva, dei titoli, del monogramma. È il nero dell'interfaccia, non il nero puro: `#000000` resta riservato allo stato premuto del bottone pieno, dove «più scuro» non sarebbe altrimenti disponibile.
+- **Nero premuto** (`#2e2e38`): l'unica variante *più chiara* usata come hover, sui fondi che sono già quasi neri (voce di navigazione attiva, gruppi di toggle selezionati).
 
-- **Canvas White** (`#ffffff`): Dominant page background and form/card surface.
-- **Soft Stone** (`#eeece7`): Product cards, testimonial placeholders, and warm neutral surface blocks.
-- **Pale Green Wash** (`#edfce9`): North page section backdrop behind stacked dark capability panels.
-- **Pale Blue Wash** (`#f1f5ff`): Blog CTA surface behind abstract 3D imagery.
-- **Card Border** (`#f2f2f2`): Softest card containment line.
+### Secondary
 
-### Text & Rules
+Le due tinte scure di capitolo. Servono a distinguere un capitolo dall'altro senza cambiare famiglia di colore: la banda che chiude il Capitolo II non deve somigliare a quella del Capitolo III.
 
-- **Ink** (`#212121`): Default body text and most link text on light backgrounds.
-- **Muted Slate** (`#93939f`): Footer links, dates, metadata, and de-emphasized labels.
-- **Slate** (`#75758a`): Research separators and tertiary text.
-- **Hairline** (`#d9d9dd`): Standard list rules and section dividers.
-- **Border Light** (`#e5e7eb`): Secondary divider and utility rule.
+- **Verde di capitolo** (`#003c33`): fondo della banda scura per il testo sintetico e la propagazione. È anche la tinta semantica dell'account che *non* si dichiara bot.
+- **Navy di capitolo** (`#071829`): fondo della banda scura per la verifica dei fatti.
 
-### Semantic
+### Tertiary
 
-- **Focus Blue** (`#4c6ee6`): Keyboard focus and ring color.
-- **Form Focus Violet** (`#9b60aa`): Focus border for text inputs.
-- **Error Red** (`#b30000`): Extracted ring/shadow color associated with validation-like states.
+Le tinte semantiche. Ognuna significa **una cosa sola** in tutta l'applicazione, dichiarata in `frontend/src/components/dati/tinte.ts`.
 
-### Gradient System
+- **Coral dei bot** (`#ff7759`): account che si dichiara automatizzato nel proprio profilo. È anche la tinta di riconoscimento del rilevatore Desklib. Come riempimento e come marcatore su fondo scuro, mai come testo su fondo chiaro (vedi la regola qui sotto).
+- **Coral inchiostro** (`#c03d20`): la stessa tinta quando deve essere *letta* invece che riempita — la cifra di una scheda, l'etichetta che la sormonta, il numero romano del capitolo nella sidebar, il tratto di un grafico su fondo chiaro. Stessa hue OKLCH del coral, sola lightness ridotta: il legame semantico regge, la lettura anche. 5,3:1 sul canvas, 4,5:1 sulla pietra.
+- **Coral premuto** (`#e66043`) e **coral tenue** (`#ffad9b`): l'unica variante scura e l'unica chiara del coral, per stato premuto e bordo a riposo delle pastiglie di tassonomia.
+- **Viola del sintetico** (`#7c3aed`): testo che un rilevatore marca come scritto da una macchina. Tinta di riconoscimento di AdaDetectGPT.
+- **Blu d'azione** (`#1863dc`): link editoriali e tinta di riconoscimento di FastDetectGPT. Non è il colore del focus, che deve restare distinguibile da un link.
 
-Cohere does not use gradients as a generic UI fill. Gradients and color fields are media-led: abstract 3D hero imagery, deep blue open-science particle fields, red-orange product video posters, and dark green-to-black product environments. Keep UI surfaces flat; reserve gradient richness for large media panels and CTA image bands.
+### Neutral
 
-## Typography
+- **Canvas** (`#ffffff`): fondo di pagina, dei blocchi di contenuto e dei campi. La superficie predefinita del sistema.
+- **Pietra** (`#eeece7`): fondo della scheda cifra e hover del bottone contornato. Il neutro caldo che stacca un dato dal canvas senza aggiungere un bordo.
+- **Pietra chiara** (`#f9f8f6`): scheletri di caricamento e hover delle righe d'elenco, dove pietra sarebbe troppo marcata.
+- **Inchiostro** (`#212121`): testo corrente. Rapporto 15.9:1 sul canvas.
+- **Testo attenuato** (`#69697e`): descrizioni dei blocchi, note delle schede, metadati, etichette in monospazio a riposo. È il grigio delle superfici chiare, calcolato sulla peggiore fra quelle su cui compare: 5,4:1 sul canvas, 4,5:1 sulla pietra, 5,1:1 su `surfaceWarm`.
+- **Testo su scuro** (`#93939f`): il grigio secondario delle superfici scure — grafo, cascata, console, modali scure, card delle pipeline. 5,9:1 sul nero di marchio, 6,3:1 sul fondo del grafo. **Non regge sulle bande verdi** (4,1:1): lì il testo secondario è `rgba(255,255,255,0.72)` e l'occhiello `rgba(255,255,255,0.7)`.
+- **Filetto** (`#e5e7eb`), **filetto marcato** (`#d9d9dd`), **filetto interno** (`#f2f2f2`): i tre spessori di separazione, dal bordo di un blocco alla riga dentro una card.
 
-### Font Family
+### Superfici scure profonde
 
-- **Display**: `CohereText`, falling back to `Space Grotesk`, `Inter`, `ui-sans-serif`, and `system-ui`.
-- **Body/UI**: `Unica77 Cohere Web`, falling back to `Inter`, `Arial`, `ui-sans-serif`, and `system-ui`.
-- **Technical labels**: `CohereMono`, falling back to `Arial`, `ui-sans-serif`, and `system-ui`.
-- **Icons**: Cohere uses custom icon fonts and thin-line geometric illustrations.
+Quattro tinte vicine ma non intercambiabili, ognuna fondo di un contenuto diverso: **fondo cascata** (`#0d0d10`, il più scuro, per far risaltare i nodi attivati), **fondo grafo** (`#131924`, il riquadro dei follow in panoramica), **fondo console** (`#050811`, i log delle pipeline: nero bluastro da terminale), **fondo modale scura** (`#0b0f19`).
+
+### Semantiche di stato
+
+**Focus** (`#4c6ee6`, anello 2px con offset 2px), **pericolo** (`#b30000` su fondo `#fdf2f2`), **successo** (`#10b981`).
+
+### Named Rules
+
+**La regola del significato unico.** Una tinta satura significa una cosa sola in tutto il sistema. Coral è «bot dichiarato», viola è «testo sintetico», verde è «non dichiarato bot». Bot e IA non condividono la tinta *di proposito*: è la distanza fra le due che il Capitolo I mette in scena. Riusare il coral per indicare l'IA in un riquadro accanto rende la legenda da rileggere a ogni blocco, ed è il difetto che `tinte.ts` esiste per impedire.
+
+**La regola dei due coral.** Il coral pieno su fondo chiaro dà 2,2:1 sulla pietra e 2,6:1 sotto testo bianco: **vietato come colore del testo, dei numeri e delle etichette su superficie chiara.** Lì vive come riempimento con testo nero di marchio sopra, come bordo, come marcatore di 14px. Quando la tinta deve dire «bot» *ed essere letta*, si usa il coral inchiostro (`#c03d20`), che è la stessa tinta più scura. Su fondo scuro il coral pieno è corretto e resta la scelta giusta (6,8:1 sul nero di marchio). Se stai per scrivere `color: coral` su un fondo chiaro, o quella tinta va nel fondo, o è l'inchiostro che ti serve.
+
+**La regola delle quattro superfici scure.** Un grafo, una cascata, un terminale e una modale non condividono il fondo. Uniformarle appiattirebbe la distinzione fra strumenti che fanno cose diverse. La tinta si sceglie dal contenuto, non dalla comodità.
+
+**La regola del colore che viene dai dati.** Il canvas è bianco e resta bianco. Nessuna superficie prende colore per «dare energia alla sezione»: il colore entra quando c'è un dato che lo richiede (una categoria, uno stato, un rilevatore) o quando un capitolo si chiude con la sua banda.
+
+## 3. Typography
+
+**Display:** Space Grotesk (con fallback Inter, sans-serif) — titoli, cifre grandi, voci di navigazione.
+**Corpo:** Inter (con fallback sans-serif) — paragrafi, etichette, tabelle, controlli.
+**Apparato:** `ui-monospace, monospace` — marcatori di sezione, codici, unità, soglie.
+
+**Carattere:** un geometrico stretto contro un umanista neutro. Space Grotesk porta le sue forme larghe e le sue crenature negative ai titoli, dove la compressione fa apparire il testo carved anziché arioso; Inter sparisce nel corpo, che è quello che deve fare quando un paragrafo spiega come leggere un grafico. Il monospazio è la terza voce e non è decorativa: segnala che quel testo è apparato tecnico e non prosa.
 
 ### Hierarchy
 
-| Role | Font | Size | Weight | Line Height | Letter Spacing | Notes |
-|---|---|---:|---:|---:|---:|---|
-| Hero Display | CohereText | 96px | 400 | 1.00 | -1.92px | Home page declaration scale. |
-| Product Display | CohereText | 72px | 400 | 1.00 | -1.44px | Product and research hero headlines. |
-| Section Display | Unica77 | 60px | 400 | 1.00 | -1.2px | Large product-page headings. |
-| Section Heading | Unica77 | 48px | 400 | 1.20 | -0.48px | Split hero and CTA headings. |
-| Card Heading | Unica77 | 32px | 400 | 1.20 | -0.32px | Feature card and list section titles. |
-| Feature Heading | Unica77 | 24px | 400 | 1.30 | 0 | Cards, filters, and article titles. |
-| Body Large | Unica77 | 18px | 400 | 1.40 | 0 | Lead text and larger paragraphs. |
-| Body | Unica77 | 16px | 400 | 1.50 | 0 | Default copy and link text. |
-| Button | Unica77 | 14px | 500 | 1.71 | 0 | Compact CTA labels. |
-| Caption | Unica77 | 14px | 400 | 1.40 | 0 | Metadata and small explanatory text. |
-| Mono Label | CohereMono | 14px | 400 | 1.40 | 0.28px | Uppercase technical labels. |
-| Micro | Unica77 | 12px | 400 | 1.40 | 0 | Footer, nav microcopy, and small links. |
+- **heroDisplay** (400, 96px desktop → 40px mobile, LH 1.0, LS -1.92px): la dichiarazione della Panoramica. Una sola per applicazione.
+- **productDisplay** (400, 72px → 34px, LH 1.0): apertura di un capitolo.
+- **sectionDisplay** (400, 60px → 32px, LH 1.0): titolo della banda scura, con `maxWidth: 20ch`.
+- **sectionHeading** (400, 40px → 26px, LH 1.2): **la domanda che apre un atto**, con `maxWidth: 24ch`.
+- **cardHeading** (400, 32px → 24px, LH 1.2): titolo di blocco maggiore, e la cifra della scheda dati.
+- **featureHeading** (500, 24px, LH 1.3): titolo di un blocco dentro un atto. È l'unico ruolo display con peso 500.
+- **numeroGrande** (400, 56px → 40px, LH 1.0): la cifra chiave dentro una banda scura.
+- **bodyLarge** (400, 18px → 16px, LH 1.4): paragrafo guida sotto un titolo. Su fondo scuro, `maxWidth: 62ch`.
+- **body** (400, 16px, LH 1.5): testo corrente. Prosa entro 65-75ch; le descrizioni dei blocchi sono limitate a 70ch.
+- **monoLabel** (400, 14px, LS 0.28px, maiuscolo): l'apparato. Taglia `micro` a 11px/0.5px per le intestazioni di gruppo della sidebar.
+- **micro** (400, 12px, LH 1.4): piè di pagina, metadati, note.
 
-### Principles
+Le misure sono già responsive dentro il token (`tokens.type` in `frontend/src/theme.ts`): chi lo usa non reintroduce un breakpoint a mano.
 
-- Use massive type sparingly; Cohere pages often have one oversized headline and then settle into restrained 16px-24px UI copy.
-- Keep display type tight. Hero copy should feel compact and carved, not airy.
-- Avoid heavy bold weights. Size, spacing, and surface contrast do most of the hierarchy work.
-- Use uppercase mono labels for category and system markers, especially on product and research pages.
-- Editorial pages can use coral chips and blue links, but the base typography remains black and measured.
+### Named Rules
 
-## Layout
+**La regola della domanda.** Un atto apre con una domanda in italiano corrente in `sectionHeading`, non con un'etichetta funzionale. «Quanto di questo testo l'ha scritto una macchina» e non «Analisi rilevatori». La domanda viene prima dei dati e in corpo grande perché è quella a dare senso ai grafici che seguono: chi legge sa cosa sta cercando prima di trovarselo davanti.
 
-### Spacing System
+**La regola dell'occhiello che informa.** L'etichetta in monospazio sopra un titolo è consentita solo quando dice qualcosa che il titolo non dice: la posizione nella narrazione («ATTO III — LA CASCATA»), l'unità di misura, la tassonomia, la soglia. **Vietato l'occhiello che ripete il titolo con altre parole** o che esiste solo per riempire lo spazio sopra un'intestazione: è il kicker decorativo, e ripetuto sopra ogni sezione diventa grammatica automatica invece che voce.
 
-The system uses an 8px base with many one-off alignment values: `2px`, `6px`, `8px`, `10px`, `12px`, `16px`, `20px`, `22px`, `24px`, `28px`, `32px`, `36px`, `40px`, `56px`, `60px`, `64px`, and `80px`.
+**La regola del display fuori dai controlli.** Space Grotesk non entra nelle etichette dei campi, nel testo delle celle di tabella, nei valori dei dati. Titoli, cifre e navigazione: nient'altro. Un font display su un'etichetta di form fa sembrare l'interfaccia travestita.
 
-Large sections rely on dramatic vertical breathing room. The home page places a trust-logo strip far below the hero media. Product pages often hold dark panels inside fields of empty white space, then transition to dense forms or footers only near the end.
+**La regola della dichiarazione unica.** `heroDisplay` compare una volta sola, in Panoramica. Un secondo titolo da 96px in un'altra pagina non è enfasi, è rumore: la gerarchia si costruisce con la distanza fra i ruoli, non alzando il ruolo più alto.
 
-### Grid & Container
+## 4. Elevation
 
-- Global nav uses a three-zone layout: logo left, menu centered, sign-in/CTA right.
-- Home hero is centered text above a two-card media composition: a wide product mockup card beside a narrower photography card.
-- Feature sections commonly use 3-column cards on desktop.
-- Product pages alternate centered hero blocks, trust-logo strips, large single-feature bands, and 2- or 3-column card grids.
-- Research pages use full-width lists with date and chip columns instead of decorative cards.
-- Forms use two-column input rows inside a rounded white card on dark or stone section backgrounds.
+**Il sistema non usa ombre.** `MuiCard` e `MuiPaper` hanno `boxShadow: none` in tema, e `MuiButton` lo azzera anche in hover. La profondità viene da tre cose: l'alternanza di superficie (canvas → pietra → banda scura → fondo grafo), i filetti da 1px in tre spessori, e gli angoli. Un box-shadow su una card, in questo sistema, è sempre un errore.
 
-### Whitespace Philosophy
+Le uniche eccezioni sono funzionali e dichiarate: il glow da 6px del pallino di stato «Fediverso Live» nella sidebar, e le superfici scure profonde dove il contrasto col canvas fa da sé tutto il lavoro di stacco.
 
-Cohere uses whitespace as a trust signal. Large empty intervals separate the brand claim, customer proof, product proof, and CTA. Dense content appears only where it serves the information architecture: research paper rows, blog card grids, and contact form fields.
+### Vocabolario delle superfici
 
-## Elevation & Depth
+- **Piatta** (nessun bordo, fondo canvas): testo corrente, elenchi separati da filetti, aperture di atto.
+- **Contenuta** (`1px solid #e5e7eb`, raggio 22px, fondo canvas): il blocco, unità di contenuto dentro un atto.
+- **Tonale** (fondo pietra `#eeece7`, nessun bordo, raggio 8px): la scheda cifra, con filetto colorato da 3px in alto.
+- **Banda** (fondo verde o navy a piena larghezza, nessun raggio quando esce dai margini): la chiusura di un capitolo.
+- **Profonda** (fondi da `#050811` a `#131924`): grafi, cascate, console. Lo stacco è il contrasto stesso.
 
-Cohere is mostly flat. Depth comes from surface alternation, media contrast, rounded corners, and thin borders rather than drop shadows.
+### Named Rules
 
-| Level | Treatment | Use |
-|---|---|---|
-| Flat | No shadow, white or dark field | Hero copy, research lists, editorial surfaces |
-| Bordered | 1px `#d9d9dd`, `#e5e7eb`, or dark translucent rules | Research rows, forms, pale cards, footer inputs |
-| Media Lift | Rounded image or video over contrasting section color | Hero photo cards, product videos, CTA imagery |
-| Dark Product Field | Deep green or navy full-width band | Command, North, financial services, security sections |
+**La regola del piatto per difetto.** Le superfici sono piatte a riposo. Nessuna elevazione «per dare respiro»: se due elementi non si distinguono, la risposta è un filetto, un cambio di fondo o più spazio, in quest'ordine. Test in una frase: se sembra un'app del 2014, l'ombra c'è e non doveva esserci.
 
-## Shapes
+**La regola del riquadro guadagnato.** Un contenuto viene riquadrato solo se il riquadro serve a separarlo da un vicino con cui verrebbe confuso. Elenchi, righe di ricerca e aperture di sezione stanno nudi sul canvas. **Riquadri annidati: vietati.** Una scheda cifra dentro un blocco è corretta perché cambiano superficie e raggio; un blocco dentro un blocco no.
 
-### Radius Scale
+**La regola della banda unica.** Una banda scura per capitolo. Due bande nella stessa pagina non raddoppiano l'enfasi: annullano quella della prima. Nelle pagine con indice laterale la banda usa la variante `colonna` (angoli 22px, dentro la propria colonna), perché a piena larghezza scavalcherebbe l'indice.
 
-| Token | Value | Role |
-|---|---:|---|
-| `xs` | 4px | Small images, search fields, article thumbnails, utility elements |
-| `sm` | 8px | Blog chips, cards, small media, dialogs |
-| `md` | 16px | Medium product cards and grouped blocks |
-| `lg` | 22px | Signature media-card and soft placeholder radius |
-| `xl` | 30px | Research/topic filter pills |
-| `pill` | 32px | Primary CTA buttons |
-| `full` | 9999px | Round status elements and fully pill-shaped controls |
+## 5. Components
 
-### Image Treatment
+Carattere generale: **sobri ma tattili.** Bordo da 1px, nessuna ombra, angoli generosi — ma ogni controllo risponde. Transizioni brevi (150 ms, `ease` o `ease-in-out`) su colore e fondo; mai sulle proprietà di layout. Un controllo che non cambia niente al passaggio del mouse è considerato incompleto.
 
-Images are not decorative backdrops for text except in CTA bands. Most imagery sits as rounded cards with visible corners: product videos, enterprise photography, article thumbnails, and abstract 3D renders. The dominant radii are 8px and 22px.
+### Buttons
 
-## Components
+- **Forma:** pastiglia piena (32px), padding `10px 24px`, `text-transform: none`, peso 500 a 14px.
+- **Primario:** fondo nero di marchio, testo canvas. Hover: nero puro `#000000`. È la singola azione più importante della schermata.
+- **Contornato:** bordo `#d9d9dd`, testo inchiostro, fondo trasparente. Hover: fondo pietra, bordo che passa a nero di marchio.
+- **Testuale:** azione secondaria, sottolineata o allineata a filetto, senza fondo.
+- **Focus:** anello `2px solid #4c6ee6` con offset 2px, uguale su tutta l'applicazione — dichiarato una volta in `MuiCssBaseline` perché l'outline predefinito cambia tinta e spessore fra Chrome e Firefox, e navigando da tastiera la pagina sembrava di un altro progetto.
+- **Distruttivo:** pericolo `#b30000`, premuto `#800000`. Solo per l'arresto di una pipeline.
 
-### **`button-primary`**
+### Chips
 
-Near-black or white pill CTA, depending on surface contrast. Uses 14px-16px Unica77, 12px 24px padding, and a 32px pill radius. This is the primary action style for "Request a demo", "Submit", and hero CTAs.
+- **Tassonomia (lingue del corpus):** pastiglia da 30px, corpo 15px — deliberatamente più grande di un tag normale, perché la tassonomia qui è un controllo di primo piano e non un filtro accessorio. A riposo: fondo `#fff0ec`, bordo coral tenue, testo nero di marchio. Attiva: fondo coral, **testo nero di marchio** (mai bianco: 2.6:1). Il codice ISO precede il nome in monospazio 13px.
+- **Toggle (tipo di autore, ordinamento):** pastiglia contornata, fondo canvas, selezionata a fondo nero di marchio con testo canvas.
+- **Pastiglie dei rilevatori:** quattro quadrati da 14px con raggio 4px, uno per rilevatore, nel colore di riconoscimento del modello. Pieno = sintetico sopra soglia; contornato = sotto soglia; **tratteggiato = non valutato**. Accanto, in monospazio 12px, «3/4 lo dicono sintetico». Si contano a colpo d'occhio, che è la domanda che ci si pone scorrendo l'archivio; la percentuale esatta resta nel titolo e nel dettaglio.
 
-### **`button-secondary`**
+### Cards / Containers
 
-Text-only action link, usually underlined or rule-aligned, with no filled background. Used for "Explore products", "Try the Playground", newsletter signup, and secondary hero actions.
+- **Blocco** (l'unità di contenuto): raggio 22px, bordo `1px solid #e5e7eb`, fondo canvas, padding 32px (24px sotto `md`). Intestazione con occhiello mono opzionale, titolo in `featureHeading`, descrizione entro 70ch, e uno slot azione allineato a destra del titolo per filtri e menu.
+- **Scheda cifra:** fondo pietra, raggio 8px, padding 24px, **filetto superiore da 3px** nella tinta dell'accento. Etichetta mono, numero in display 32px, nota esplicativa. Non calcola e non arrotonda: riceve il valore già formattato, e chi la usa passa `n/d` quando il dato manca — uno 0 inventato sarebbe indistinguibile da uno 0 misurato.
+- **Filtri:** stessa forma del blocco ma fondo `#fafaf8`, appena più caldo del canvas, per distinguere i controlli dal contenuto senza aggiungere un bordo in più.
 
-### **`button-pill-outline`**
+### Inputs / Fields
 
-Outlined pill control with transparent fill, 1px dark border, and 30px radius. Used for research filters, topic tags, and lightweight taxonomy controls.
+- **Campo di testo:** contorno MUI, fondo canvas, **raggio a pastiglia** (32px), corpo 15px, taglia `small`. Icona di ricerca 18px in `#93939f` come adornment iniziale; quando c'è testo, un bottone tondo di cancellazione a destra.
+- **Select:** stessa forma a pastiglia, larghezza minima 180px, voci di menu a 14px.
+- **Focus:** l'anello globale. Nessun trattamento speciale per campo.
+- **Nome accessibile obbligatorio:** `inputProps={{ "aria-label": ... }}` — scritto sulla radice, MUI lo passerebbe al `FormControl` e il campo resterebbe senza nome.
 
-### **`announcement-bar`**
+### Navigation
 
-Full-width black strip above the nav, 36px tall, centered microcopy with an underlined "Learn more" link and a close control at the far right.
+- **Sidebar** (260px fissi su desktop, drawer temporaneo sotto `md`): monogramma nero 32px con «SNM», nome applicazione in display 15px/700, sottotitolo in monospazio 10px maiuscolo. Le voci sono raggruppate **per capitolo della pipeline**, ogni gruppo introdotto dal numero romano in coral su fondo `#fff0ec` (raggio 4px) e dall'etichetta in monospazio 11px.
+- **Voce:** raggio 8px, padding `7px 10px`, corpo 13.5px peso 500, icona 18px in testo attenuato. Hover: fondo pietra.
+- **Voce attiva:** fondo nero di marchio, testo canvas peso 600, **icona coral**. È l'unico punto in cui il coral appare senza significare «bot»: qui significa «sei qui».
+- **Prefetch:** su `mouseenter`, `focus` e `touchstart` la voce precarica sia il chunk della rotta sia i dati. La navigazione deve sembrare istantanea.
+- **Piè di sidebar:** pallino di stato 6px in successo con glow, «Fediverso Live» in monospazio 11px, versione a destra in testo tenue 10px.
 
-### **`hero-photo-card`**
+### Indice degli atti (componente distintivo)
 
-Rounded media card used in the home hero and solution pages. It combines photography or abstract imagery with an overlaid dark agent-console module. Radius is usually 22px on large cards and 8px on smaller thumbnails.
+Colonna sticky a sinistra (3/12) con le voci degli atti: numero romano in monospazio 12px, titolo in display 14px. La voce corrente passa a nero di marchio peso 600 e porta `aria-current`; le altre restano in testo attenuato. Sparisce sotto `md` invece di comprimersi — un indice fisso su schermo stretto coprirebbe il testo invece di accompagnarlo. Lo scorrimento è gestito a mano (l'app monta un `HashRouter`, e lasciar seguire al browser un `href="#atto"` sostituirebbe la rotta), ma l'`href` resta perché è ciò che rende queste voci dei link per la tastiera e per gli screen reader.
 
-### **`agent-console-card`**
+### Banda scura (componente distintivo)
 
-Dark product mockup panel showing agent names, status chips, integration badges, prompt fields, and generated response cards. Background is near-black, text is white or muted, and small accent chips use product colors.
+Fascia a piena larghezza che chiude un capitolo. Occhiello mono in bianco al 60%, titolo in `sectionDisplay` entro 20ch, paragrafo in bianco al 72% entro 62ch, e da due a quattro cifre chiave — oltre le quattro la banda smette di avere un fuoco. **Le cifre non sono in card:** ognuna sta sotto un filetto bianco al 24%, perché dentro una banda scura la separazione la fa la regola, non il riquadro. I margini negativi che la portano a filo dei bordi vengono dallo stesso token del padding del container, quindi non possono divergere.
 
-### **`trust-logo-strip`**
+### Stati di pagina
 
-Centered copy above a row of monochrome customer logos. It is intentionally quiet: no cards, no borders, just large horizontal spacing and black or white logos depending on the background.
+- **Caricamento:** spinner nero di marchio centrato su 60vh *solo* per la pagina intera. Dentro una sezione si usano scheletri che imitano la disposizione reale (griglie, tabelle, il riquadro del grafo) — un rettangolo generico darebbe un segnale di caricamento peggiore.
+- **Errore:** riquadro contornato pericolo su fondo `#fdf2f2`, raggio 16px, messaggio in peso 600. Se il messaggio è vuoto il componente non rende nulla.
+- **Vuoto:** riquadro contornato neutro, padding 48px, testo centrato in testo attenuato, che dice **cosa manca e perché** — non «nessun risultato».
 
-### **`capability-card`**
+## 6. Do's and Don'ts
 
-Content block with thin-line geometric illustration, 24px heading, body copy, and a text link. On light backgrounds, cards often have only a top rule or a subtle image/card relationship rather than full boxing.
+### Do:
 
-### **`dark-feature-band`**
+- **Do** partire dal canvas bianco e lasciare che il colore arrivi dai dati: una categoria, uno stato, un rilevatore, una banda di chiusura.
+- **Do** aprire ogni atto con la domanda a cui risponde, in `sectionHeading` entro 24ch, prima di qualunque cifra.
+- **Do** usare le tinte di `tinte.ts` per bot (coral), non-dichiarato-bot (verde), sintetico (viola) e non valutato (`#d9d9dd`). Se serve una quinta categoria, si dichiara lì, non nel componente.
+- **Do** usare il coral pieno come riempimento con testo nero di marchio sopra, come marcatore, o come tinta su fondo scuro; il coral inchiostro (`TINTA_BOT_INK`) quando la stessa tinta deve essere letta su fondo chiaro.
+- **Do** scegliere il grigio dalla famiglia della superficie: `textMuted` sulle chiare, `textOnDark` sulle scure, bianco trasparente al 70-72% sulle bande verdi e navy.
+- **Do** mostrare `n/d` quando il dato manca. Uno 0 inventato è indistinguibile da uno 0 misurato.
+- **Do** dare a ogni controllo interattivo default, hover, focus, premuto e disabilitato. Transizioni a 150 ms su colore e fondo.
+- **Do** usare gli scheletri di caricamento che imitano la disposizione reale della sezione, e lo spinner solo per la pagina intera.
+- **Do** dichiarare il nome accessibile dei campi con `inputProps={{ "aria-label": ... }}`, e distinguere le categorie dei grafici con forma o etichetta oltre che con la tinta.
+- **Do** importare da `tokens` (`frontend/src/theme.ts`): i colori erano finiti duplicati in oltre mille letterali esadecimali, e le varianti sbagliate passavano inosservate.
 
-Deep green or navy full-width section used for product capabilities, security claims, and feature breakdowns. Text turns white; cards use darker translucent surfaces, pale borders, and abstract line illustrations.
+### Don't:
 
-### **`product-card`**
-
-Warm stone card used for product/model summaries. Typically 3-column on desktop, with 8px radius, generous padding, a small pill button, a divider line, and checkmark bullet rows.
-
-### **`blog-filter-chip`**
-
-Large coral taxonomy chip used on the blog index. Active chips invert to coral fill with dark text; inactive chips use coral outline and pale fill. Typography is oversized relative to typical filters, making the taxonomy a hero-level control.
-
-### **`research-table`**
-
-Rule-separated publication list with title left, topic pills centered, and date right. Rows are tall, white, and border-driven; filters above use many compact outlined pills.
-
-### **`contact-form-card`**
-
-Rounded white form panel set against dark green or warm stone sections. Inputs are rectangular with thin gray borders, 12px-16px padding, and compact labels/placeholders. Submit uses the same near-black pill style as primary CTAs.
-
-### **`footer-newsletter`**
-
-Dark footer subscription block with coral "AI moves fast" label, white headline, muted legal microcopy, a single-line email field, and arrow submit marker. Footer columns use white section labels and muted links.
-
-## Do's and Don'ts
-
-### Do
-
-- Use white canvas as the default surface; introduce dark green or navy as full-width product bands.
-- Keep primary CTAs pill-shaped and near-black on light surfaces.
-- Use 22px radius on major media cards and placeholders.
-- Use coral for editorial taxonomy and small warm accents, not as the main CTA system.
-- Use monochrome trust logos with wide spacing.
-- Use thin-line geometric illustrations for research and capability icons.
-- Let photography and product mockups carry color, while the UI shell stays restrained.
-
-### Don't
-
-- Do not turn coral or blue into broad decorative surface colors.
-- Do not add heavy drop shadows to cards.
-- Do not make every section card-based; Cohere often uses unframed rows, rules, and open space.
-- Do not use rounded cards below 8px for major media.
-- Do not replace the display/body type split with one generic sans-serif voice.
-- Do not render undocumented interaction variants in documentation or previews.
-- Do not use saturated gradients as normal UI backgrounds; keep gradients media-led.
-
-## Responsive Behavior
-
-### Breakpoints
-
-| Name | Width | Key Changes |
-|---|---:|---|
-| Small Mobile | <425px | Single-column cards, compact nav, reduced hero headline scale |
-| Mobile | 425-640px | Hero media stacks, card grids become one column, form rows stack |
-| Large Mobile | 640-768px | Wider one-column layouts with larger media cards |
-| Tablet | 768-1024px | Two-column cards begin, nav spacing tightens |
-| Desktop | 1024-1440px | Full nav, 3-column card grids, split hero compositions |
-| Large Desktop | 1440-2560px | Wide containers and large empty vertical intervals |
-
-### Touch Targets
-
-Primary CTAs and pills meet comfortable touch sizing through 12px-24px padding and pill radii. Research filter chips and blog category chips are larger than standard tags, making dense taxonomy surfaces usable on touch devices.
-
-### Collapsing Strategy
-
-- Nav collapses from full horizontal links to a compact mobile menu.
-- Hero media moves from split cards to stacked cards.
-- Product and capability grids collapse from 3 columns to 2 and then 1.
-- Form fields collapse from paired rows to a single column.
-- Research rows preserve their rule-separated structure but stack metadata below titles on smaller widths.
-
-## Iteration Guide
-
-1. Start from a white canvas or a full-width dark green/navy band; avoid mid-tone page backgrounds unless the screenshot shows a specific CTA/form section.
-2. Use `button-primary` for the single highest-priority action and `button-secondary` for the companion action.
-3. Use `hero-photo-card` or `agent-console-card` when a page needs visual energy; avoid invented dashboard data.
-4. For editorial pages, combine `blog-filter-chip`, `button-pill-outline`, and `research-table` instead of generic marketing cards.
-5. Keep component examples structurally honest: placeholder product frames are better than invented product content.
-
-## Known Gaps
-
-- Exact proprietary font files are not bundled; use the documented fallbacks when implementing externally.
-- Mobile screenshots were not regenerated in this public update, so mobile behavior is documented from the desktop system and existing responsive patterns.
-- Some live pages lazy-load content blocks late; blank testimonial placeholders are documented as placeholder skeleton surfaces rather than filled testimonial cards.
+- **Don't** costruire una **dashboard admin generica**: griglie di card identiche con icona + numero + freccia verde, KPI senza contesto, template Material riconoscibile a colpo d'occhio.
+- **Don't** costruire una **landing page SaaS**: gradienti decorativi, glassmorphism, metriche gonfiate a effetto, strisce «Trusted by», CTA in ogni sezione. Compreso il template hero-metric — numero gigante, etichetta piccola, statistiche di supporto.
+- **Don't** consegnare un **progetto universitario improvvisato**: grafici grezzi della libreria, tabelle nude, palette di default, nessuna gerarchia tipografica. Un'interfaccia trascurata mette in dubbio anche la pipeline che la alimenta.
+- **Don't** mettere ombre sulle card. Nessuna. La profondità è alternanza di superficie e filetti da 1px.
+- **Don't** annidare riquadri. Un blocco dentro un blocco è sempre sbagliato.
+- **Don't** usare `border-left` o `border-right` colorati di spessore maggiore di 1px come accento. Il filetto da 3px della scheda cifra sta **in alto**, ed è l'unico consentito.
+- **Don't** mettere due bande scure nella stessa pagina, né usare la variante a piena larghezza in una pagina con indice laterale.
+- **Don't** mettere un occhiello in monospazio sopra ogni sezione. Solo quando dice qualcosa che il titolo non dice.
+- **Don't** usare Space Grotesk nelle etichette di form, nelle celle di tabella o nei valori dei dati.
+- **Don't** usare `textOnDark` (`#93939f`) su una superficie chiara: dà 3,0:1. È il grigio delle superfici scure, e sotto `textMuted` non esiste un grigio che passi AA sul bianco — se serve de-enfasi, si usa il corpo o il peso, non un grigio più chiaro.
+- **Don't** scrivere testo bianco su coral (2,6:1) né su verde di stato (2,6:1). Su una tinta satura chiara si scrive in nero di marchio.
+- **Don't** uniformare le quattro superfici scure: grafo, cascata, console e modale hanno fondi diversi perché contengono cose diverse.
+- **Don't** animare proprietà di layout, né aggiungere sequenze d'ingresso alla pagina. Il movimento comunica uno stato: cambio, risposta, caricamento. Nient'altro.
+- **Don't** reinventare affordance standard — scrollbar custom oltre il filetto da 4px già in sidebar, controlli di form fuori vocabolario, modali dove basterebbe una sezione in linea.

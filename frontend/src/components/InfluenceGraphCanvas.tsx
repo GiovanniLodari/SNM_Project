@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useReducedMotion } from "framer-motion";
 import {
   Box,
   Typography,
@@ -78,11 +79,42 @@ export default function InfluenceGraphCanvas({
   selectedSeedId = "66109",
   onSelectSeedId,
 }: InfluenceGraphCanvasProps) {
+  /**
+   * A movimento ridotto la cascata non parte da sola.
+   *
+   * E' l'animazione piu' insistente dell'applicazione: si avvia da sola, dura
+   * quanto la pagina resta aperta e riparte da capo in continuazione. Chi ha
+   * chiesto meno movimento riceve invece il fotogramma che conta - la cascata
+   * arrivata alla fine, con tutti i nodi raggiunti - e lo scrubber per
+   * ripercorrerla al proprio passo, o il comando di avvio se la vuole vedere
+   * scorrere davvero.
+   */
+  const riduciMovimento = useReducedMotion();
+
   // Timeline Simulation Controls
   const [currentStep, setCurrentStep] = useState<number>(0);
-  const [isPlaying, setIsPlaying] = useState<boolean>(true);
+  const [isPlaying, setIsPlaying] = useState<boolean>(!riduciMovimento);
   const [speedMultiplier, setSpeedMultiplier] = useState<number>(1);
   const [layoutMode, setLayoutMode] = useState<"concentric" | "force">("concentric");
+
+  /**
+   * La preferenza fissa lo stato di partenza: cascata ferma sull'esito
+   * completo.
+   *
+   * Sta in un effect suo, con la sola preferenza fra le dipendenze, perche'
+   * altrimenti annullerebbe anche le azioni esplicite: mettendo la stessa
+   * condizione dentro il ciclo di riproduzione, chi ha la preferenza attiva e
+   * preme "Avvia la cascata" vedeva lo stato tornare indietro all'istante e il
+   * comando restava inerte. La regola e' "non parte da sola", non "non parte":
+   * se lo si chiede, l'animazione si guarda.
+   */
+  useEffect(() => {
+    if (!riduciMovimento) return;
+    setIsPlaying(false);
+    // L'ultimo passo, non il primo: fermarsi a zero mostrerebbe i soli seed,
+    // cioe' il fotogramma che dice meno di tutti.
+    setCurrentStep(maxStep);
+  }, [riduciMovimento, maxStep]);
 
   // Timer loop for step playback
   useEffect(() => {
@@ -269,10 +301,10 @@ export default function InfluenceGraphCanvas({
             const isAct = step !== null && step <= currentStep;
             return `
               <div style="padding: 4px;">
-                <strong style="font-size: 14px; color: ${isSeed ? tokens.color.coral : isAct ? tokens.color.accentCyan : tokens.color.textFaint}">
+                <strong style="font-size: 14px; color: ${isSeed ? tokens.color.coral : isAct ? tokens.color.accentCyan : tokens.color.textOnDark}">
                   @${raw.acct || raw.id}
                 </strong><br/>
-                <span style="font-size: 12px; color: ${tokens.color.textFaint};">ID: ${raw.id}</span><br/>
+                <span style="font-size: 12px; color: ${tokens.color.textOnDark};">ID: ${raw.id}</span><br/>
                 <span style="font-size: 12px; color: ${tokens.color.canvas};">Followers: ${formatNumber(raw.followers ?? 0)}</span><br/>
                 <span style="font-size: 12px; font-weight: bold; color: ${isSeed ? tokens.color.coral : isAct ? tokens.color.activated : tokens.color.textMuted}">
                   Stato: ${isSeed ? "SEED BOT ORIGINE" : isAct ? `CONTAGIATO a Step ${step}` : "INATTIVO"}
@@ -285,7 +317,7 @@ export default function InfluenceGraphCanvas({
       },
       legend: {
         data: categories.map((c) => c.name),
-        textStyle: { color: tokens.color.textFaint, fontFamily: tokens.font.mono, fontSize: 11 },
+        textStyle: { color: tokens.color.textOnDark, fontFamily: tokens.font.mono, fontSize: 11 },
         top: 16,
         right: 20,
       },
@@ -387,7 +419,7 @@ export default function InfluenceGraphCanvas({
             </Typography>
             <Typography
               variant="caption"
-              sx={{ color: tokens.color.textFaint, fontFamily: tokens.font.mono, fontSize: "11px" }}
+              sx={{ color: tokens.color.textOnDark, fontFamily: tokens.font.mono, fontSize: "11px" }}
             >
               Simulazione WebGL/Canvas • Step {currentStep} / {maxStep} (Profondità max seed: Step {maxSeedStep})
             </Typography>
@@ -431,7 +463,7 @@ export default function InfluenceGraphCanvas({
             borderRadius: "10px",
             p: 0.5,
             "& .MuiToggleButton-root": {
-              color: tokens.color.textFaint,
+              color: tokens.color.textOnDark,
               border: "none",
               borderRadius: "6px",
               px: 1.5,
@@ -441,7 +473,7 @@ export default function InfluenceGraphCanvas({
               fontWeight: 600,
               "&.Mui-selected": {
                 backgroundColor: tokens.color.coral,
-                color: tokens.color.canvas,
+                color: tokens.color.nearBlack,
               },
             },
           }}
@@ -457,13 +489,53 @@ export default function InfluenceGraphCanvas({
 
       {/* Main ECharts View */}
       <Box sx={{ position: "relative", width: "100%", height: 560 }}>
-        <ReactECharts
-          option={getEChartsOption}
-          style={{ width: "100%", height: "100%" }}
-          onEvents={{ click: onChartClick }}
-          notMerge={true}
-          lazyUpdate={true}
-        />
+        {/* Il grafo ECharts e' un canvas: opaco alle tecnologie assistive
+            esattamente come quello dei follow. Il ruolo e il nome stanno sul
+            contenitore perche' la libreria non espone l'elemento interno. */}
+        <Box
+          role="img"
+          aria-label={
+            rawNodes.length === 0
+              ? "Cascata di influenza, in attesa di dati."
+              : `Cascata di influenza al passo ${currentStep} di ${maxStep}: ` +
+                `${formatNumber(activeCount)} ${
+                  activeCount === 1 ? "account raggiunto" : "account raggiunti"
+                } su ${formatNumber(rawNodes.length)}, ` +
+                `pari al ${pctInfected} per cento della rete.`
+          }
+          sx={{ width: "100%", height: "100%" }}
+        >
+          <ReactECharts
+            option={getEChartsOption}
+            style={{ width: "100%", height: "100%" }}
+            onEvents={{ click: onChartClick }}
+            notMerge={true}
+            lazyUpdate={true}
+          />
+        </Box>
+
+        {/* Il passo corrente detto a parole, ma solo a cascata ferma: in
+            riproduzione il passo cambia ogni 300-1500 ms e l'annuncio sarebbe
+            un torrente di frasi sovrapposte, peggio del silenzio. Quando il
+            comando e' in mano a chi guarda - pausa, frecce, scrubber - ogni
+            passo viene detto. */}
+        <Box
+          aria-live="polite"
+          sx={{
+            position: "absolute",
+            width: 1,
+            height: 1,
+            overflow: "hidden",
+            clip: "rect(0 0 0 0)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {!isPlaying && rawNodes.length > 0
+            ? `Passo ${currentStep} di ${maxStep}: ${formatNumber(activeCount)} ${
+                activeCount === 1 ? "account raggiunto" : "account raggiunti"
+              }, ${pctInfected} per cento della rete.`
+            : ""}
+        </Box>
 
         {/* Live Contagion Telemetry Overlay Card */}
         <Paper
@@ -504,7 +576,7 @@ export default function InfluenceGraphCanvas({
             <Typography
               variant="caption"
               sx={{
-                color: currentStep > maxSeedStep ? tokens.color.coral : newInThisStep > 0 ? tokens.color.activated : tokens.color.textFaint,
+                color: currentStep > maxSeedStep ? tokens.color.coral : newInThisStep > 0 ? tokens.color.activated : tokens.color.textOnDark,
                 fontWeight: 600,
               }}
             >
@@ -512,7 +584,7 @@ export default function InfluenceGraphCanvas({
                 ? `Cascata completata al Passo ${maxSeedStep}`
                 : `Nodi Contagiati in questo step: +${newInThisStep}`}
             </Typography>
-            <Typography variant="caption" sx={{ color: tokens.color.textFaint }}>
+            <Typography variant="caption" sx={{ color: tokens.color.textOnDark }}>
               Popolazione Raggiunta:{" "}
               <strong>
                 {activeCount} / {rawNodes.length} ({pctInfected}%)
@@ -538,9 +610,13 @@ export default function InfluenceGraphCanvas({
         <Stack direction="row" spacing={1} alignItems="center">
           <IconButton
             onClick={() => setIsPlaying(!isPlaying)}
+            // Il nome cambia con lo stato invece di descrivere l'icona: chi
+            // ascolta deve sapere cosa fa il comando adesso, non che disegno
+            // porta.
+            aria-label={isPlaying ? "Metti in pausa la cascata" : "Avvia la cascata"}
             sx={{
               backgroundColor: tokens.color.coral,
-              color: tokens.color.canvas,
+              color: tokens.color.nearBlack,
               "&:hover": { backgroundColor: tokens.color.coralDark },
             }}
           >
@@ -549,21 +625,34 @@ export default function InfluenceGraphCanvas({
 
           <IconButton
             onClick={() => setCurrentStep(0)}
-            sx={{ color: tokens.color.textFaint, "&:hover": { color: tokens.color.canvas } }}
+            aria-label="Torna al passo zero"
+            sx={{ color: tokens.color.textOnDark, "&:hover": { color: tokens.color.canvas } }}
           >
             <RestartAlt />
           </IconButton>
 
           <IconButton
             onClick={() => setCurrentStep((prev) => Math.max(0, prev - 1))}
-            sx={{ color: tokens.color.textFaint, "&:hover": { color: tokens.color.canvas } }}
+            aria-label="Passo precedente"
+            disabled={currentStep === 0}
+            sx={{
+              color: tokens.color.textOnDark,
+              "&:hover": { color: tokens.color.canvas },
+              "&.Mui-disabled": { color: "rgba(255,255,255,0.28)" },
+            }}
           >
             <SkipPrevious />
           </IconButton>
 
           <IconButton
             onClick={() => setCurrentStep((prev) => Math.min(maxStep, prev + 1))}
-            sx={{ color: tokens.color.textFaint, "&:hover": { color: tokens.color.canvas } }}
+            aria-label="Passo successivo"
+            disabled={currentStep >= maxStep}
+            sx={{
+              color: tokens.color.textOnDark,
+              "&:hover": { color: tokens.color.canvas },
+              "&.Mui-disabled": { color: "rgba(255,255,255,0.28)" },
+            }}
           >
             <SkipNext />
           </IconButton>
@@ -572,7 +661,7 @@ export default function InfluenceGraphCanvas({
         {/* Step Slider */}
         <Box sx={{ flexGrow: 1, minWidth: 200, px: 2 }}>
           <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
-            <Typography variant="caption" sx={{ color: tokens.color.textFaint, fontFamily: tokens.font.mono }}>
+            <Typography variant="caption" sx={{ color: tokens.color.textOnDark, fontFamily: tokens.font.mono }}>
               SCRUBBER TEMPORALE DELLA CASCATA (Independent Cascade)
             </Typography>
             <Typography
@@ -588,6 +677,10 @@ export default function InfluenceGraphCanvas({
             max={maxStep}
             step={1}
             onChange={(_, val) => setCurrentStep(val as number)}
+            aria-label="Passo della cascata"
+            // Senza, uno screen reader legge "7" - un numero senza unita' ne'
+            // scala. Con, legge "passo 7 di 11".
+            getAriaValueText={(valore) => `Passo ${valore} di ${maxStep}`}
             sx={{
               color: tokens.color.accentCyan,
               "& .MuiSlider-thumb": {
@@ -608,7 +701,7 @@ export default function InfluenceGraphCanvas({
 
         {/* Speed Selector */}
         <Stack direction="row" alignItems="center" spacing={1}>
-          <SpeedIcon sx={{ color: tokens.color.textFaint, fontSize: 18 }} />
+          <SpeedIcon sx={{ color: tokens.color.textOnDark, fontSize: 18 }} />
           <Select
             value={speedMultiplier}
             onChange={(e) => setSpeedMultiplier(Number(e.target.value))}

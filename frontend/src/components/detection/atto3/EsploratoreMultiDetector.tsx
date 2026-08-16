@@ -86,7 +86,7 @@ function formattaProbabilita(probabilita: number | null | undefined): string {
 }
 
 function tintaProbabilita(probabilita: number | null | undefined): string {
-  if (probabilita == null || isNaN(probabilita)) return tokens.color.textFaint;
+  if (probabilita == null || isNaN(probabilita)) return tokens.color.textMuted;
   const valore = probabilita > 1 ? probabilita / 100 : probabilita;
   if (valore >= 0.7) return tokens.color.danger;
   if (valore >= 0.5) return tokens.color.coral;

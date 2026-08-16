@@ -4,7 +4,7 @@ import type { AccountsStats } from "../../../api/client.ts";
 import Blocco from "../../dati/Blocco.tsx";
 import SchedaCifra from "../../dati/SchedaCifra.tsx";
 import ClassificaBarre, { type VoceClassifica } from "../../dati/ClassificaBarre.tsx";
-import { TINTA_BOT, TINTA_UMANO } from "../../dati/tinte.ts";
+import { TINTA_BOT, TINTA_BOT_INK, TINTA_UMANO } from "../../dati/tinte.ts";
 import { tokens } from "../../../theme.ts";
 import { formatNumber, NON_DISPONIBILE } from "../../../utils/format.ts";
 
@@ -41,7 +41,7 @@ export default function PesoNellaRete({ stats, onApriAccount }: Props) {
           ? formatNumber(stats.followers_bot.mediana, { maximumFractionDigits: 0 })
           : NON_DISPONIBILE,
       nota: `follower su ${formatNumber(stats.followers_bot.accounts)} bot che dichiarano il dato`,
-      accento: TINTA_BOT,
+      accento: TINTA_BOT_INK,
     },
     {
       etichetta: "Mediana, non bot",
@@ -75,7 +75,7 @@ export default function PesoNellaRete({ stats, onApriAccount }: Props) {
       <>
         <Typography
           component="span"
-          sx={{ fontFamily: tokens.font.mono, fontSize: "12px", color: tokens.color.textFaint }}
+          sx={{ fontFamily: tokens.font.mono, fontSize: "12px", color: tokens.color.textMuted }}
         >
           {String(indice + 1).padStart(2, "0")}
         </Typography>
