@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import {
   Box,
   Typography,
@@ -19,13 +19,24 @@ import {
 } from "recharts";
 import { useAiDetectionQuery } from "../api/queries.ts";
 import AnalyticsIcon from "@mui/icons-material/Analytics";
-import StatsModal from "./StatsModal.tsx";
 import { tokens } from "../theme.ts";
 import { formatNumber } from "../utils/format.ts";
+
+/**
+ * Il report interattivo si apre su clic e resta chiuso per la quasi totalita'
+ * delle visite: i suoi 21 kB non hanno motivo di viaggiare insieme al blocco
+ * che lo apre. Il chunk parte al primo `open`, ed e' per questo che il bottone
+ * qui sotto lo precarica al passaggio del mouse - alla pressione il codice e'
+ * gia' arrivato e la modale si apre senza attesa percepibile, come le voci
+ * della sidebar.
+ */
+const caricaStatsModal = () => import("./StatsModal.tsx");
+const StatsModal = lazy(caricaStatsModal);
 
 
 export default function DescriptiveStatsBlock() {
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalAperturaAvvenuta, setModalAperturaAvvenuta] = useState(false);
 
   // Stessa chiave di query della pagina AI Detection: TanStack riusa la
   // risposta gia' in cache invece di rifare la chiamata.
@@ -62,7 +73,13 @@ export default function DescriptiveStatsBlock() {
         <Button
           variant="outlined"
           startIcon={<AnalyticsIcon sx={{ color: tokens.color.actionBlue }} />}
-          onClick={() => setModalOpen(true)}
+          onMouseEnter={caricaStatsModal}
+          onFocus={caricaStatsModal}
+          onTouchStart={caricaStatsModal}
+          onClick={() => {
+            setModalAperturaAvvenuta(true);
+            setModalOpen(true);
+          }}
           sx={{
             borderRadius: tokens.radius.pill,
             px: 3,
@@ -312,12 +329,19 @@ export default function DescriptiveStatsBlock() {
         </Grid>
       </Box>
 
-      {/* Modale report completo */}
-      <StatsModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        stats={stats}
-      />
+      {/* Modale report completo. Montata solo dopo la prima apertura, e da
+          quel momento lasciata montata: smontarla alla chiusura toglierebbe
+          alla Dialog la transizione d'uscita, che e' il segnale di "si sta
+          chiudendo" - e la seconda apertura sarebbe di nuovo in attesa. */}
+      {modalAperturaAvvenuta && (
+        <Suspense fallback={null}>
+          <StatsModal
+            open={modalOpen}
+            onClose={() => setModalOpen(false)}
+            stats={stats}
+          />
+        </Suspense>
+      )}
     </Box>
   );
 }
