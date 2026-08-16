@@ -23,7 +23,7 @@ import {
   BubbleChart as GraphChartIcon,
   AccountTree as TreeIcon,
 } from "@mui/icons-material";
-import ReactECharts from "../utils/echarts.ts";
+import ReactECharts from "../utils/echarts.tsx";
 import { InfluenceGraphNode, InfluenceGraphLink, InfluenceSeed } from "../api/client.ts";
 
 /**

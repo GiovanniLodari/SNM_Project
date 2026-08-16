@@ -2,7 +2,8 @@ import * as echarts from "echarts/core";
 import { GraphChart, SankeyChart } from "echarts/charts";
 import { TooltipComponent, LegendComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
-import createEchartsComponent from "echarts-for-react/lib/core";
+import EChartsReactCore from "echarts-for-react/lib/core";
+import type { EChartsReactProps } from "echarts-for-react/lib/types";
 
 /**
  * Sorgente unica dell'istanza ECharts, con registrati **solo** i moduli che
@@ -28,9 +29,9 @@ import createEchartsComponent from "echarts-for-react/lib/core";
  * **Chi aggiunge un grafico ECharts registra qui il modulo che gli serve.**
  * Se manca, ECharts non lancia un errore fatale: disegna una tela vuota e
  * scrive un avviso in console. E' il motivo per cui questo file esiste al
- * posto di quattro registrazioni sparse nei componenti - un grafico che non
- * appare, in un'interfaccia che deve dimostrare che i dati ci sono, e' il
- * difetto peggiore che si possa spedire.
+ * posto di registrazioni sparse nei componenti - un grafico che non appare,
+ * in un'interfaccia che deve dimostrare che i dati ci sono, e' il difetto
+ * peggiore che si possa spedire.
  */
 echarts.use([
   GraphChart,
@@ -43,7 +44,13 @@ echarts.use([
 /**
  * Sostituto di `echarts-for-react` con la stessa API (`option`, `style`,
  * `opts`, `onEvents`, ...), legato all'istanza ridotta qui sopra.
+ *
+ * `echarts` e' iniettata qui e non ai punti di chiamata: e' esattamente la
+ * dimenticanza che riporterebbe il bundle completo, o lascerebbe una tela
+ * vuota, senza che nulla lo segnali in compilazione.
  */
-export const ReactECharts = createEchartsComponent(echarts);
+export function ReactECharts(props: Omit<EChartsReactProps, "echarts">) {
+  return <EChartsReactCore {...props} echarts={echarts} />;
+}
 
 export default ReactECharts;
