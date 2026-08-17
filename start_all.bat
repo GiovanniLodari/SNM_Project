@@ -7,8 +7,8 @@ echo   SNM Intelligence - Avvio Completo (Backend + Frontend)
 echo ===================================================
 
 :: Controlla se la cartella dell'ambiente virtuale esiste
-if not exist venv (
-    echo [ERRORE] La cartella venv non esiste in questa directory.
+if not exist .venv (
+    echo [ERRORE] La cartella .venv non esiste in questa directory.
     echo Assicurati di aver installato l'ambiente virtuale.
     pause
     exit /b 1
