@@ -33,6 +33,11 @@ from webapp.path_utils import (
 )
 
 AI_CLASSIFICATION_THRESHOLD = 0.5
+# Il rilevatore che ha prodotto AI_SCORES_PATH, cioe' l'unico dietro le cifre
+# di /api/accounts e /api/dashboard. Viaggia nella risposta perche' quelle
+# pagine parlano di un modello solo, non del consenso a quattro del confronto:
+# cambiando la sorgente dei punteggi va cambiato anche questo nome.
+AI_DETECTOR_NAME = "FastDetectGPT"
 PAGE_SIZE = 50
 FACT_CHECK_VERDICT_OPTIONS = ["vero", "perlopiù vero", "misto", "perlopiù falso", "falso", "non verificabile"]
 
@@ -67,19 +72,73 @@ def dashboard(conn=Depends(get_db)):
     }
 
 
+def _conteggio_sostenibile(
+    conn, page: int, langs: list[str], search: str, author: str,
+) -> int | None:
+    """Quanti post soddisfano i filtri, quando chiederlo non costa troppo.
+
+    Il conteggio e' esatto e quindi non gratuito: misurato su un corpus di 1,8
+    milioni di post costa circa un secondo senza filtri. Con una ricerca
+    testuale scende a una ventina di millisecondi grazie all'indice trigram su
+    `statuses.content` (DB/schema.sql) - senza quell'indice sarebbero venti
+    secondi, ma senza quell'indice sarebbe impraticabile gia' l'elenco.
+
+    Si calcola solo alla prima pagina, che e' l'unica il cui totale il frontend
+    legga, e si memorizza per cinque minuti: i blocchi successivi dello stesso
+    elenco non lo richiedono affatto. Dalla seconda in poi si restituisce None,
+    che il frontend dichiara come conteggio non disponibile invece di mostrare
+    uno zero.
+    """
+    if page != 1:
+        return None
+
+    return results.get_cached_computation(
+        ("posts_count", tuple(sorted(langs)), search.strip(), author),
+        (),
+        lambda: queries.count_posts_matching(
+            conn, langs=langs or None, search=search, author=author,
+        ),
+        ttl=300,
+    )
+
+
 @router.get("/posts")
 def posts_list(
     lang: list[str] = Query(default=[]),
     page: int = 1,
     page_size: int = Query(default=25, ge=5, le=100),
+    q: str = Query(default=""),
+    author: str = Query(default="tutti"),
+    order: str = Query(default=queries.DEFAULT_POST_ORDER),
     conn=Depends(get_db),
 ):
     page = max(page, 1)
     limit = max(5, min(100, page_size))
     offset = (page - 1) * limit
-    posts = queries.list_posts(conn, langs=lang or None, offset=offset, limit=limit)
+    # Valori fuori dall'insieme ammesso ricadono sul default invece di
+    # sollevare: una URL condivisa con un parametro vecchio deve continuare a
+    # mostrare il corpus, non un errore.
+    author = author if author in queries.POST_AUTHORS else "tutti"
+    order = order if order in queries.POST_ORDERS else queries.DEFAULT_POST_ORDER
+
+    # Si chiede una riga in piu' del blocco: la sua presenza dice se esiste un
+    # seguito, senza il conteggio totale che costerebbe una scansione completa.
+    # L'euristica precedente, `len(posts) == limit`, sbagliava sull'ultimo
+    # blocco esattamente pieno, annunciando un seguito vuoto.
+    righe = queries.list_posts(
+        conn,
+        langs=lang or None,
+        offset=offset,
+        limit=limit + 1,
+        search=q,
+        author=author,
+        order=order,
+    )
+    has_next = len(righe) > limit
+    posts = righe[:limit]
+
     available_langs = queries.distinct_languages(conn)
-    has_next = len(posts) == limit
+    total_count = _conteggio_sostenibile(conn, page, lang, q, author)
 
     fd_scores = results.load_ai_scores(AI_SCORES_PATH)
     bino_scores = results.load_binoculars_scores(BINOCULARS_SCORES_PATH)
@@ -117,8 +176,15 @@ def posts_list(
         "available_langs": available_langs,
         "selected_langs": lang,
         "page": page,
-        "page_size": PAGE_SIZE,
+        # La dimensione effettiva del blocco, non la costante PAGE_SIZE: chi
+        # chiede blocchi da 10 riceveva comunque 50 come descrizione di cio'
+        # che aveva in mano.
+        "page_size": limit,
+        "total_count": total_count,
         "has_next": has_next,
+        "search": q,
+        "author": author,
+        "order": order,
     }
 
 
@@ -185,25 +251,112 @@ def post_detail(post_id: int, conn=Depends(get_db)):
     }
 
 
+@router.get("/corpus")
+def corpus_overview(conn=Depends(get_db)):
+    """Composizione del corpus, in apertura del capitolo omonimo.
+
+    Solo interrogazioni al database: i punteggi dei rilevatori non entrano qui,
+    perche' questo e' il materiale grezzo *prima* che un modello lo giudichi -
+    ed e' anche cio' che tiene la richiesta leggera.
+    """
+    # Il database non offre un'impronta a basso costo che dica "e' cambiato
+    # qualcosa": la freschezza la garantisce il TTL, come per accounts_stats.
+    return results.get_cached_computation(
+        ("corpus_overview",), (), lambda: queries.corpus_composition(conn), ttl=300,
+    )
+
+
 @router.get("/accounts")
 def accounts_stats(conn=Depends(get_db)):
-    bot_counts = queries.count_accounts_by_bot(conn)
+    """Chi ha scritto il corpus: quanti account, dove, quanti pubblicano testo
+    che FastDetectGPT marca come sintetico.
+
+    Il rilevatore e' dichiarato nella risposta (`detector`) perche' la pagina
+    ne parla al singolare: qui non c'e' il consenso a quattro del Capitolo II,
+    c'e' un solo modello, e chi legge deve saperlo.
+    """
     ai_scores = results.load_ai_scores(AI_SCORES_PATH)
-    status_ids = list(ai_scores.keys())
-    status_to_account = queries.get_account_ids_for_statuses(conn, status_ids)
-    ai_account_ids = results.accounts_producing_ai_content(ai_scores, status_to_account)
-    bot_flags = queries.get_account_bot_flags(conn, list(ai_account_ids))
+    fp = (len(ai_scores),)
 
-    ai_and_bot = sum(1 for is_bot in bot_flags.values() if is_bot)
-    ai_and_not_bot = sum(1 for is_bot in bot_flags.values() if not is_bot)
+    def _compute():
+        bot_counts = queries.count_accounts_by_bot(conn)
+        status_to_account = queries.get_all_active_status_account_mappings(conn)
+        profili = results.ai_profile_by_account(
+            ai_scores, status_to_account, AI_CLASSIFICATION_THRESHOLD,
+        )
+        bot_flags = queries.get_account_bot_flags(conn, list(profili))
 
-    return {
-        "bot_total": bot_counts[True],
-        "nonbot_total": bot_counts[False],
-        "ai_producers_total": len(ai_account_ids),
-        "ai_and_bot": ai_and_bot,
-        "ai_and_not_bot": ai_and_not_bot,
-    }
+        # Tre categorie e non due: "non produce IA" e "non ha post valutati"
+        # sono cose diverse, e sommarle spaccerebbe un'assenza di misura per
+        # una misura. E' la distinzione che regge l'intera pagina.
+        valutati_bot = valutati_human = 0
+        ai_and_bot = ai_and_not_bot = 0
+        produttori: list[tuple[int, dict]] = []
+        for account_id, profilo in profili.items():
+            produce_ia = profilo["mean"] >= AI_CLASSIFICATION_THRESHOLD
+            if produce_ia:
+                produttori.append((account_id, profilo))
+            if bot_flags.get(account_id, False):
+                valutati_bot += 1
+                ai_and_bot += int(produce_ia)
+            else:
+                valutati_human += 1
+                ai_and_not_bot += int(produce_ia)
+
+        # Ordinati per numero di post marcati, non per media: con la media in
+        # testa alla classifica finirebbe chi ha un solo post a 0,99, che non
+        # e' il maggior produttore di alcunche'.
+        produttori.sort(key=lambda voce: (voce[1]["ai_posts"], voce[1]["mean"]), reverse=True)
+        del produttori[queries.TOP_ACCOUNT:]
+        anagrafica = queries.get_accounts_by_ids(conn, [account_id for account_id, _ in produttori])
+
+        top_produttori = []
+        for account_id, profilo in produttori:
+            # Un account puo' avere punteggi nei file dei rilevatori e non
+            # esistere piu' in tabella (post cancellato, riga ripulita): si
+            # riporta cio' che si sa, con i campi mancanti dichiarati nulli,
+            # invece di farlo sparire dalla classifica senza spiegazione.
+            profilo_db = anagrafica.get(account_id)
+            top_produttori.append({
+                "id": account_id,
+                "acct": profilo_db["acct"] if profilo_db else f"account #{account_id}",
+                "bot": bool(profilo_db["bot"]) if profilo_db else False,
+                "domain": profilo_db["domain"] if profilo_db else "",
+                "followers": profilo_db["followers"] if profilo_db else None,
+                "posts": profilo_db["posts"] if profilo_db else None,
+                "posts_scored": profilo["scored"],
+                "ai_posts": profilo["ai_posts"],
+                "mean_prob": profilo["mean"],
+            })
+
+        popolazione = queries.accounts_population(conn)
+        posts_per_bot = queries.count_posts_by_bot(conn)
+
+        return {
+            # Le cinque cifre storiche restano invariate: altre viste le leggono
+            # gia' con questi nomi.
+            "bot_total": bot_counts.get(True, 0),
+            "nonbot_total": bot_counts.get(False, 0),
+            "ai_producers_total": ai_and_bot + ai_and_not_bot,
+            "ai_and_bot": ai_and_bot,
+            "ai_and_not_bot": ai_and_not_bot,
+
+            "detector": AI_DETECTOR_NAME,
+            "ai_threshold": AI_CLASSIFICATION_THRESHOLD,
+            "accounts_total": bot_counts.get(True, 0) + bot_counts.get(False, 0),
+            "accounts_con_post": popolazione["accounts_con_post"],
+            "valutati_bot": valutati_bot,
+            "valutati_human": valutati_human,
+            "posts_bot": posts_per_bot[True],
+            "posts_human": posts_per_bot[False],
+            "istanze": popolazione["istanze"],
+            "followers_bot": popolazione["followers_bot"],
+            "followers_human": popolazione["followers_human"],
+            "piu_seguiti": popolazione["piu_seguiti"],
+            "top_produttori": top_produttori,
+        }
+
+    return results.get_cached_computation(("accounts_stats",), fp, _compute, ttl=300)
 
 
 @router.get("/graph")
@@ -559,10 +712,19 @@ def ai_detection(
     else:
         ai_scores = results.load_ai_scores(AI_SCORES_PATH)
 
-    if detector in ("binoculars", "desklib", "ada", "ada_local", "adadetect"):
-        eligible = max(len(ai_scores), 192823)
-    else:
-        eligible = results.count_eligible_posts(POST_TEXTS_PATH)
+    # Denominatore del "su N idonei": i post che questo rilevatore avrebbe
+    # potuto valutare. Prima i tre non-FastDetect ricevevano
+    # `max(len(ai_scores), 192823)`, una costante scritta a mano: finche' ogni
+    # rilevatore aveva una pagina propria la cosa passava inosservata, ma il
+    # menu a tendina del frontend mette i quattro "su N idonei" uno dopo
+    # l'altro, e tre di quei quattro erano inventati.
+    #
+    # Binoculars e' l'unico ad aver girato senza filtro di lingua - il suo file
+    # di punteggi contiene 200.040 post contro i 192.822 inglesi - quindi il suo
+    # pool idoneo e' l'intero corpus. Usare per tutti il conteggio inglese
+    # produrrebbe per Binoculars un "200.040 su 192.822", cioe' piu' del 100%.
+    lingua_idonea = None if detector == "binoculars" else "en"
+    eligible = results.count_eligible_posts(POST_TEXTS_PATH, lingua_idonea)
 
 
     histogram = results.ai_probability_histogram(ai_scores)
@@ -593,8 +755,8 @@ def ai_detection(
         for status_id, probability in page_ids if status_id in posts_by_id
     ]
 
-    bucket_samples = results.sample_posts_by_probability_bucket(ai_scores, conn, samples_per_bucket=100)
-    stats = results.get_descriptive_stats(ai_scores, conn)
+    bucket_samples = results.sample_posts_by_probability_bucket(ai_scores, conn, samples_per_bucket=100, cache_key=detector)
+    stats = results.get_descriptive_stats(ai_scores, conn, cache_key=detector)
 
     return {
         "done": len(ai_scores),
@@ -941,9 +1103,10 @@ def detector_comparison_posts(
     desklib_scores = results.load_desklib_scores(DESKLIB_SCORES_PATH)
     ada_scores = results.load_ada_scores(ADA_SCORES_PATH)
 
-    # Identifichiamo gli ID presenti in tutti e 4 o nei detector
-    all_ids = set(fastdetect_scores.keys()) | set(bino_scores.keys()) | set(desklib_scores.keys()) | set(ada_scores.keys())
-    
+    consolidated = results.get_consolidated_detector_items(
+        fastdetect_scores, bino_scores, desklib_scores, ada_scores
+    )
+
     # Se serve il filtro per bot, recuperiamo l'elenco dei post di bot dal DB
     bot_status_ids: set[int] = set()
     if filter_type == "bots_only":
@@ -952,24 +1115,10 @@ def detector_comparison_posts(
             bot_status_ids = {row[0] for row in cur.fetchall()}
 
     filtered_items: list[tuple[int, float | None, float | None, float | None, float | None, int]] = []
-    
-    for sid in all_ids:
+
+    for sid, fd_p, bino_p, desk_p, ada_p, ai_votes, fd_ai, bino_ai, desk_ai, ada_ai in consolidated:
         if filter_type == "bots_only" and sid not in bot_status_ids:
             continue
-
-        fd_p = fastdetect_scores.get(sid, {}).get("probability", None)
-        bino_p = (bino_scores.get(sid, {}).get("ai_probability_pct") / 100.0) if sid in bino_scores and bino_scores[sid].get("ai_probability_pct") is not None else None
-        desk_p = desklib_scores.get(sid, {}).get("ai_probability", None)
-        
-        ada_raw = ada_scores.get(sid, {}).get("probability", None)
-        ada_p = float(ada_raw) if (ada_raw is not None and ada_raw == ada_raw) else None
-
-        fd_ai = (fd_p >= 0.5) if fd_p is not None else False
-        bino_ai = (bino_p >= 0.5) if bino_p is not None else False
-        desk_ai = (desk_p >= 0.5) if desk_p is not None else False
-        ada_ai = (ada_p >= 0.5) if ada_p is not None else False
-
-        ai_votes = sum([1 if fd_ai else 0, 1 if bino_ai else 0, 1 if desk_ai else 0, 1 if ada_ai else 0])
 
         if filter_type in ("unanimous_ai", "unanimous_4") and ai_votes != 4:
             continue
@@ -991,9 +1140,6 @@ def detector_comparison_posts(
             continue
 
         filtered_items.append((sid, fd_p, bino_p, desk_p, ada_p, ai_votes))
-
-    # Ordiniamo per id
-    filtered_items.sort(key=lambda x: x[0])
 
     # La ricerca precede la paginazione, altrimenti total_count e la pagina
     # mostrata si riferiscono a insiemi diversi. Il testo di un post puo' stare

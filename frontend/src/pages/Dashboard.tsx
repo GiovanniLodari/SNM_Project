@@ -1,8 +1,10 @@
+import { lazy, Suspense } from "react";
 import { Grid, Typography, Box, LinearProgress, Button } from "@mui/material";
 import { Link } from "react-router-dom";
 import { useDashboardQuery } from "../api/queries.ts";
 import GraphHero from "../components/GraphHero.tsx";
-import DescriptiveStatsBlock from "../components/DescriptiveStatsBlock.tsx";
+import HomeHero from "../components/home/HomeHero.tsx";
+import HowItWorks from "../components/home/HowItWorks.tsx";
 import {
   Article as PostsIcon,
   SyncAlt as FollowsIcon,
@@ -11,36 +13,74 @@ import {
   ArrowForward as ArrowIcon,
 } from "@mui/icons-material";
 import { tokens } from "../theme.ts";
-import { LoadingState } from "../components/States.tsx";
+import { ErrorState } from "../components/States.tsx";
 import { formatNumber } from "../utils/format.ts";
+
+/**
+ * Il blocco delle statistiche descrittive e' l'unico punto della Panoramica
+ * che disegna curve, e quindi l'unico che dipenda da recharts: 352 kB
+ * minificati (106 kB gzip) che, importati normalmente, arrivavano insieme alla
+ * pagina d'ingresso e ritardavano la hero e il grafo dei follow - cioe' le due
+ * cose che si vedono per prime.
+ *
+ * Sta sotto la piega, dopo hero, "Come funziona" e il canvas del grafo, e in
+ * ogni caso non rende nulla finche' la sua query non risponde (`return null`
+ * su `loading`): il caricamento del chunk e quello dei dati corrono in
+ * parallelo e nessuno dei due aspetta l'altro. Per questo il fallback e'
+ * `null` e non uno scheletro - uno scheletro qui mostrerebbe un'attesa dove
+ * prima non si vedeva niente, che e' un segnale peggiore, non migliore.
+ */
+const DescriptiveStatsBlock = lazy(() => import("../components/DescriptiveStatsBlock.tsx"));
 
 export default function Dashboard() {
   const { data: stats, isLoading: loading, isError } = useDashboardQuery();
 
-  if (loading) {
-    return (
-      <LoadingState />
-    );
-  }
-
-  if (isError || !stats) {
-    return (
-      <Box sx={{ mt: 4, textAlign: "center" }}>
-        <Typography color="error" variant="h6">Impossibile caricare le statistiche del server.</Typography>
-      </Box>
-    );
-  }
-
-  const aiPercent = stats.ai_eligible > 0 ? (stats.ai_done / stats.ai_eligible) * 100 : 0;
-  const factPercent = stats.fact_check_eligible > 0 ? (stats.fact_check_done / stats.fact_check_eligible) * 100 : 0;
+  // Niente early return sul caricamento: la hero e' cio' che spiega il
+  // progetto, e tenerla dietro allo spinner di /api/dashboard significava
+  // accogliere chi arriva con una pagina bianca. Hero e "Come funziona" non
+  // dipendono dal fetch; i numeri dentro la hero si riempiono quando arrivano.
+  const aiPercent = stats && stats.ai_eligible > 0 ? (stats.ai_done / stats.ai_eligible) * 100 : 0;
+  const factPercent =
+    stats && stats.fact_check_eligible > 0 ? (stats.fact_check_done / stats.fact_check_eligible) * 100 : 0;
 
   return (
     <Box>
+      {/* Prima schermata: cosa e' questo progetto */}
+      <HomeHero stats={stats ?? null} loading={loading} />
+
+      {/* Indice dei quattro passi della pipeline */}
+      <HowItWorks />
+
+      {isError && (
+        <ErrorState message="Impossibile caricare le statistiche del server. Verificare che il backend sia in esecuzione." />
+      )}
+
+      {/* Intestazione del grafo: dice cosa si sta guardando prima del canvas */}
+      <Box sx={{ mb: 3 }}>
+        <Typography
+          component="h2"
+          sx={{ ...tokens.type.cardHeading, color: tokens.color.nearBlack }}
+        >
+          La rete dei follow, nodo per nodo
+        </Typography>
+        <Typography variant="body2" sx={{ color: tokens.color.textMuted, mt: 0.5, maxWidth: "70ch" }}>
+          I nodi compaiono pochi alla volta: corallo per gli account automatizzati, verde per quelli
+          umani, ciano per le istanze con molte connessioni. Trascina un nodo per spostarlo, passaci
+          sopra per vederne i dati, cliccalo per aprire la scheda completa.
+        </Typography>
+      </Box>
+
       {/* Dynamic Graph Hero Section (Incremental Render) */}
       <GraphHero />
 
+      {/* I blocchi qui sotto vivono sui dati della dashboard: senza, non si
+          disegnano barre di completamento e totali che non conosciamo. */}
+      {stats && (
+      <>
       {/* Block Statistiche Descrittive Conforme a DESIGN.md */}
-      <DescriptiveStatsBlock />
+      <Suspense fallback={null}>
+        <DescriptiveStatsBlock />
+      </Suspense>
 
       {/* Main Grid Metrics */}
       <Grid container spacing={4} sx={{ mb: 6 }}>
@@ -62,7 +102,7 @@ export default function Dashboard() {
             <Box sx={{ mb: 4 }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
                 <Typography variant="caption" sx={{ color: tokens.color.textMuted, textTransform: "uppercase" }}>
-                  INDEXED STATUSES
+                  POST INDICIZZATI
                 </Typography>
                 <PostsIcon sx={{ color: tokens.color.nearBlack }} />
               </Box>
@@ -80,7 +120,7 @@ export default function Dashboard() {
                 {formatNumber(stats.posts_total)}
               </Typography>
               <Typography variant="body2" sx={{ color: tokens.color.textMuted }}>
-                Total post records collected from monitored instance nodes.
+                Status raccolti dalle istanze del Fediverso sotto osservazione.
               </Typography>
             </Box>
 
@@ -91,7 +131,7 @@ export default function Dashboard() {
               endIcon={<ArrowIcon />}
               sx={{ alignSelf: "flex-start", borderRadius: tokens.radius.pill, px: 3 }}
             >
-              Explore Corpus
+              Esplora il corpus
             </Button>
           </Box>
         </Grid>
@@ -112,7 +152,7 @@ export default function Dashboard() {
             <Box sx={{ mb: 4 }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
                 <Typography variant="caption" sx={{ color: tokens.color.textMuted, textTransform: "uppercase" }}>
-                  GRAPH EDGES
+                  ARCHI DEL GRAFO
                 </Typography>
                 <FollowsIcon sx={{ color: tokens.color.nearBlack }} />
               </Box>
@@ -130,7 +170,7 @@ export default function Dashboard() {
                 {formatNumber(stats.follows_total)}
               </Typography>
               <Typography variant="body2" sx={{ color: tokens.color.textMuted }}>
-                Static social follow edges discovered via relationship crawler.
+                Relazioni di follow trovate dal crawler delle connessioni.
               </Typography>
             </Box>
 
@@ -141,7 +181,7 @@ export default function Dashboard() {
               endIcon={<ArrowIcon />}
               sx={{ alignSelf: "flex-start", borderRadius: tokens.radius.pill, px: 3 }}
             >
-              Account Metrics
+              Metriche account
             </Button>
           </Box>
         </Grid>
@@ -161,7 +201,7 @@ export default function Dashboard() {
           variant="caption"
           sx={{ color: tokens.color.coralLight, fontFamily: tokens.font.mono, fontSize: "11px", display: "block", mb: 2 }}
         >
-          AI SYNTHETIC & TRUTH ANALYSIS PIPELINES
+          PIPELINE DI ANALISI: TESTO SINTETICO E VERIFICA DEI FATTI
         </Typography>
 
         <Grid container spacing={4}>
@@ -171,11 +211,11 @@ export default function Dashboard() {
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
                 <AiIcon sx={{ color: tokens.color.coral }} />
                 <Typography variant="h5" sx={{ color: tokens.color.canvas, fontWeight: 500 }}>
-                  Rilevamento Testo Sintetico (3 Modelli)
+                  Rilevamento del testo sintetico (4 modelli)
                 </Typography>
               </Box>
-              <Typography variant="body2" sx={{ color: tokens.color.textFaint, mb: 2 }}>
-                Analisi comparativa del testo tramite <strong>FastDetectGPT</strong>, <strong>Binoculars (ICML 2024)</strong> e <strong>Desklib AI Detector</strong>.
+              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.72)", mb: 2 }}>
+                Analisi comparativa dello stesso testo con <strong>FastDetectGPT</strong>, <strong>Binoculars (ICML 2024)</strong>, <strong>Desklib AI Detector</strong> e <strong>AdaDetectGPT</strong>.
               </Typography>
 
               <Box sx={{ mb: 2.5 }}>
@@ -199,41 +239,23 @@ export default function Dashboard() {
                 />
               </Box>
 
-              {/* Links to all 3 models + comparison */}
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, pt: 1 }}>
-                <Button
+              {/* Un solo collegamento: i quattro modelli sono un menu a
+                  tendina dentro il capitolo, non quattro destinazioni. Prima
+                  qui c'erano cinque bottoni che portavano a cinque pagine
+                  quasi identiche. */}
+              <Box sx={{ pt: 1 }}>
+                <Box
                   component={Link}
-                  to="/ai-detection"
-                  size="small"
-                  sx={{ color: tokens.color.canvas, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: tokens.radius.lg, textTransform: "none", fontSize: "12px", "&:hover": { backgroundColor: "rgba(255,255,255,0.2)" } }}
+                  to="/detection"
+                  sx={{
+                    color: tokens.color.coral,
+                    textDecoration: "underline",
+                    fontSize: "14px",
+                    fontWeight: 500,
+                  }}
                 >
-                  FastDetectGPT
-                </Button>
-                <Button
-                  component={Link}
-                  to="/ai-detection-binoculars"
-                  size="small"
-                  sx={{ color: tokens.color.canvas, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: tokens.radius.lg, textTransform: "none", fontSize: "12px", "&:hover": { backgroundColor: "rgba(255,255,255,0.2)" } }}
-                >
-                  Binoculars
-                </Button>
-                <Button
-                  component={Link}
-                  to="/ai-detection-desklib"
-                  size="small"
-                  sx={{ color: tokens.color.canvas, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: tokens.radius.lg, textTransform: "none", fontSize: "12px", "&:hover": { backgroundColor: "rgba(255,255,255,0.2)" } }}
-                >
-                  Desklib
-                </Button>
-                <Button
-                  component={Link}
-                  to="/detector-comparison"
-                  size="small"
-                  variant="outlined"
-                  sx={{ color: tokens.color.coral, borderColor: tokens.color.coral, borderRadius: tokens.radius.lg, textTransform: "none", fontSize: "12px", fontWeight: 600, "&:hover": { backgroundColor: "rgba(255,119,89,0.1)", borderColor: tokens.color.coral } }}
-                >
-                  Confronto &rarr;
-                </Button>
+                  Apri il capitolo sul testo sintetico &rarr;
+                </Box>
               </Box>
             </Box>
           </Grid>
@@ -244,17 +266,17 @@ export default function Dashboard() {
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
                 <FactIcon sx={{ color: tokens.color.actionBlue }} />
                 <Typography variant="h5" sx={{ color: tokens.color.canvas, fontWeight: 500 }}>
-                  LLM Fact Verification
+                  Verifica dei fatti con LLM
                 </Typography>
               </Box>
-              <Typography variant="body2" sx={{ color: tokens.color.textFaint, mb: 3 }}>
-                Verified <strong>{formatNumber(stats.fact_check_done)}</strong> of <strong>{formatNumber(stats.fact_check_eligible)}</strong> checkworthy claim statuses.
+              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.72)", mb: 3 }}>
+Verificate <strong>{formatNumber(stats.fact_check_done)}</strong> affermazioni su <strong>{formatNumber(stats.fact_check_eligible)}</strong> ritenute controllabili.
               </Typography>
 
               <Box sx={{ mb: 3 }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
                   <Typography variant="caption" sx={{ color: tokens.color.canvas }}>
-                    Completion Rate
+                    Completamento
                   </Typography>
                   <Typography variant="caption" sx={{ color: tokens.color.actionBlue, fontWeight: 600 }}>
                     {factPercent.toFixed(1)}%
@@ -273,21 +295,23 @@ export default function Dashboard() {
               </Box>
 
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography variant="caption" sx={{ color: tokens.color.textFaint }}>
-                  Verification Source: DuckDuckGo + Wikipedia
+                <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.72)" }}>
+                  Fonti di verifica: DuckDuckGo + Wikipedia
                 </Typography>
                 <Box
                   component={Link}
                   to="/fact-check"
                   sx={{ color: tokens.color.actionBlue, textDecoration: "underline", fontSize: "14px", fontWeight: 500 }}
                 >
-                  View Verdicts &rarr;
+                  Vedi i verdetti &rarr;
                 </Box>
               </Box>
             </Box>
           </Grid>
         </Grid>
       </Box>
+      </>
+      )}
     </Box>
   );
 }

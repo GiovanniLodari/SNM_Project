@@ -137,6 +137,9 @@ export default function StatsModal({
     <Dialog
       open={open}
       onClose={onClose}
+      // Senza, la finestra viene annunciata come "dialogo" e basta: il titolo
+      // c'e' ed e' visibile, ma nulla lo lega alla finestra che intitola.
+      aria-labelledby="titolo-statistiche"
       maxWidth="lg"
       fullWidth
       PaperProps={{
@@ -165,6 +168,8 @@ export default function StatsModal({
         <Box>
           <MonoChip label={`ANALISI STATISTICA • ${detectorLabel.toUpperCase()}`} />
           <Typography
+            id="titolo-statistiche"
+            component="h2"
             sx={{
               fontFamily: tokens.font.display,
               fontWeight: 400,
@@ -187,6 +192,7 @@ export default function StatsModal({
         </Box>
         <IconButton
           onClick={onClose}
+          aria-label="Chiudi le statistiche"
           sx={{
             color: tokens.color.textMuted,
             mt: -0.5,
@@ -253,7 +259,7 @@ export default function StatsModal({
                 <Box>
                   <Typography
                     variant="caption"
-                    sx={{ fontFamily: tokens.font.mono, color: tokens.color.coral, fontWeight: 700, display: "block", mb: 0.5 }}
+                    sx={{ fontFamily: tokens.font.mono, color: tokens.color.coralInk, fontWeight: 700, display: "block", mb: 0.5 }}
                   >
                     DISTRIBUZIONE DI PROBABILITÀ
                   </Typography>
@@ -296,11 +302,11 @@ export default function StatsModal({
                         "Frequenza",
                       ]}
                     />
-                    <ReferenceLine x="0.5-0.6" stroke={tokens.color.coral} strokeDasharray="4 3" label={{ value: "Soglia IA", fill: tokens.color.coral, fontSize: 11 }} />
+                    <ReferenceLine x="0.5-0.6" stroke={tokens.color.coralInk} strokeDasharray="4 3" label={{ value: "Soglia IA", fill: tokens.color.coralInk, fontSize: 11 }} />
                     <Area
                       type="monotone"
                       dataKey="count"
-                      stroke={tokens.color.coral}
+                      stroke={tokens.color.coralInk}
                       strokeWidth={2.5}
                       fillOpacity={1}
                       fill="url(#coralGrad)"
@@ -331,7 +337,7 @@ export default function StatsModal({
             >
               <Typography
                 variant="caption"
-                sx={{ fontFamily: tokens.font.mono, color: tokens.color.coral, fontWeight: 700, display: "block", mb: 2 }}
+                sx={{ fontFamily: tokens.font.mono, color: tokens.color.coralInk, fontWeight: 700, display: "block", mb: 2 }}
               >
                 RIEPILOGO QUANTITATIVO
               </Typography>
@@ -359,7 +365,7 @@ export default function StatsModal({
                     justifyContent: "space-between",
                     alignItems: "center",
                     py: 1.2,
-                    borderBottom: i < arr.length - 1 ? "1px solid #f2f2f2" : "none",
+                    borderBottom: i < arr.length - 1 ? `1px solid ${tokens.color.cardBorder}` : "none",
                   }}
                 >
                   <Typography variant="body2" sx={{ color: tokens.color.textPrimary, fontSize: "13px" }}>
@@ -510,7 +516,7 @@ export default function StatsModal({
             <Box sx={{ p: 3.5, borderRadius: tokens.radius.lg, border: tokens.border.subtle, backgroundColor: tokens.color.canvas, height: "100%" }}>
               <Typography
                 variant="caption"
-                sx={{ fontFamily: tokens.font.mono, color: tokens.color.coral, fontWeight: 700, display: "block", mb: 2 }}
+                sx={{ fontFamily: tokens.font.mono, color: tokens.color.coralInk, fontWeight: 700, display: "block", mb: 2 }}
               >
                 COMPOSIZIONE ACCOUNT
               </Typography>
@@ -652,8 +658,8 @@ export default function StatsModal({
                         ? ((d.count / stats.total_analyzed) * 100).toFixed(1)
                         : "0.0";
                     return (
-                      <TableRow key={d.domain} sx={{ "&:hover": { backgroundColor: "#fafaf8" } }}>
-                        <TableCell sx={{ color: tokens.color.textPrimary, fontSize: "12px", borderBottom: "1px solid #f2f2f2", py: 0.8 }}>
+                      <TableRow key={d.domain} sx={{ "&:hover": { backgroundColor: tokens.color.surfaceWarm } }}>
+                        <TableCell sx={{ color: tokens.color.textPrimary, fontSize: "12px", borderBottom: `1px solid ${tokens.color.cardBorder}`, py: 0.8 }}>
                           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                             {idx === 0 && (
                               <Box sx={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: tokens.color.coral, flexShrink: 0 }} />
@@ -667,10 +673,10 @@ export default function StatsModal({
                             {d.domain}
                           </Box>
                         </TableCell>
-                        <TableCell align="right" sx={{ fontFamily: tokens.font.mono, fontSize: "12px", fontWeight: 600, color: tokens.color.nearBlack, borderBottom: "1px solid #f2f2f2", py: 0.8 }}>
+                        <TableCell align="right" sx={{ fontFamily: tokens.font.mono, fontSize: "12px", fontWeight: 600, color: tokens.color.nearBlack, borderBottom: `1px solid ${tokens.color.cardBorder}`, py: 0.8 }}>
                           {formatNumber(d.count)}
                         </TableCell>
-                        <TableCell align="right" sx={{ fontFamily: tokens.font.mono, fontSize: "12px", color: tokens.color.textMuted, borderBottom: "1px solid #f2f2f2", py: 0.8 }}>
+                        <TableCell align="right" sx={{ fontFamily: tokens.font.mono, fontSize: "12px", color: tokens.color.textMuted, borderBottom: `1px solid ${tokens.color.cardBorder}`, py: 0.8 }}>
                           {pct}%
                         </TableCell>
                       </TableRow>
@@ -712,7 +718,7 @@ export default function StatsModal({
               fontFamily: tokens.font.body,
               cursor: "pointer",
               transition: "background-color 0.15s ease",
-              "&:hover": { backgroundColor: "#2e2e38" },
+              "&:hover": { backgroundColor: tokens.color.nearBlackHover },
             }}
           >
             Chiudi Report

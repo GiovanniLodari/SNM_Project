@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { useMovimentoRidotto } from "../hooks/useMovimentoRidotto.ts";
 import type { Simulation, SimulationNodeDatum } from "d3-force";
 import {
   Box,
@@ -20,9 +21,13 @@ import AccountDetailModal from "./AccountDetailModal.tsx";
 import { GraphToolbar } from "./graph/GraphToolbar.tsx";
 import { tokens } from "../theme.ts";
 import {
+  ALPHA_RISCALDAMENTO,
+  PAD_CANVAS,
   centraSimulazione,
   configuraForze,
   creaSimulazione,
+  riscaldaSimulazione,
+  simulazioneFerma,
 } from "../utils/graphSimulation.ts";
 
 interface PhysicsNode extends GraphNode, SimulationNodeDatum {
@@ -37,6 +42,18 @@ interface PhysicsNode extends GraphNode, SimulationNodeDatum {
 export default function GraphHero() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  /**
+   * Chi ha chiesto meno movimento vede la rete gia' assestata invece che
+   * costruirsi davanti.
+   *
+   * Qui il moto non e' decorativo - la rivelazione progressiva racconta come il
+   * grafo si infittisce - ma non e' nemmeno l'unico modo di leggerlo: lo stesso
+   * contenuto sta tutto nel grafo completo, che e' proprio cio' che la
+   * rivelazione produce alla fine. Quindi non si spegne l'animazione lasciando
+   * una tela vuota: si parte dal fotogramma finale.
+   */
+  const riduciMovimento = useMovimentoRidotto();
+
   // Raw data from API
   const [allNodes, setAllNodes] = useState<GraphNode[]>([]);
   const [allLinks, setAllLinks] = useState<GraphLink[]>([]);
@@ -46,6 +63,13 @@ export default function GraphHero() {
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [speedMultiplier, setSpeedMultiplier] = useState<number>(1);
   const [hoveredNode, setHoveredNode] = useState<PhysicsNode | null>(null);
+  /**
+   * Vero quando il nodo corrente e' stato scelto con le frecce e non sfiorato
+   * col puntatore. Solo in quel caso la selezione viene annunciata: al mouse
+   * ogni nodo attraversato produrrebbe una frase, e chi usa il puntatore vede
+   * gia' la scheda comparire.
+   */
+  const [selezioneDaTastiera, setSelezioneDaTastiera] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
   // Graph mode filter: bot, human, all
@@ -71,7 +95,24 @@ export default function GraphHero() {
   // Simulazione d3: creata una volta e riconfigurata quando l'insieme dei nodi
   // visibili cambia, cioe' a ogni passo della rivelazione progressiva.
   const simulazioneRef = useRef<Simulation<PhysicsNode, GraphLink> | null>(null);
-  const contaNodiSimulatiRef = useRef<number>(0);
+
+  // Versione dell'insieme dei nodi: la incrementa l'effect di sincronizzazione
+  // ogni volta che aggiunge o rimuove un nodo. Prima si confrontava la sola
+  // lunghezza dell'array, e cercando un account o cambiando filtro i nodi
+  // vengono sostituiti in blocco: se il conteggio coincideva, la simulazione
+  // restava agganciata a oggetti nodo non piu' sullo schermo.
+  const versioneNodiRef = useRef<number>(0);
+  const versioneApplicataRef = useRef<number>(-1);
+
+  // Vero quando il grafo e' stato sostituito da capo (caricamento, ricerca,
+  // cambio filtro) e non semplicemente accresciuto di qualche nodo.
+  const rilancioPienoRef = useRef<boolean>(true);
+
+  // Ultime dimensioni del canvas viste dal loop, per accorgersi di un resize.
+  const dimensioniRef = useRef<{ larghezza: number; altezza: number }>({
+    larghezza: 0,
+    altezza: 0,
+  });
 
   /**
    * Allinea la simulazione ai nodi visibili. La configurazione delle forze sta
@@ -79,7 +120,7 @@ export default function GraphHero() {
    * canvas; qui resta solo il quando, non il come.
    */
   const aggiornaSimulazione = useCallback(
-    (nodi: PhysicsNode[], archi: GraphLink[], centroX: number, centroY: number) => {
+    (nodi: PhysicsNode[], archi: GraphLink[], larghezza: number, altezza: number) => {
       let sim = simulazioneRef.current;
       if (!sim) {
         sim = creaSimulazione<PhysicsNode>();
@@ -88,11 +129,30 @@ export default function GraphHero() {
 
       // Riconfigurare a ogni fotogramma azzererebbe il quadtree e il grafo
       // sobbalzerebbe: si interviene solo quando i nodi cambiano davvero.
-      if (nodi.length !== contaNodiSimulatiRef.current) {
-        contaNodiSimulatiRef.current = nodi.length;
+      // A insieme vuoto non si tocca nulla: fra lo svuotamento della mappa e
+      // l'effect che la ripopola passa un fotogramma, e configurare li'
+      // consumerebbe il rilancio pieno sul nulla, lasciando al grafo vero un
+      // riscaldamento da semplice aggiunta incrementale.
+      if (nodi.length > 0 && versioneNodiRef.current !== versioneApplicataRef.current) {
+        versioneApplicataRef.current = versioneNodiRef.current;
         configuraForze(sim, nodi, archi);
+
+        // La rivelazione progressiva aggiunge due nodi per volta: il
+        // riscaldamento pieno deciso da configuraForze rimescolerebbe un
+        // layout gia' assestato, quindi le aggiunte ripartono piu' tiepide.
+        if (!rilancioPienoRef.current) sim.alpha(ALPHA_RISCALDAMENTO);
+        rilancioPienoRef.current = false;
       }
-      centraSimulazione(sim, centroX, centroY);
+
+      centraSimulazione(sim, larghezza, altezza);
+
+      // Il canvas ha cambiato forma (resize della finestra, toggle fullscreen):
+      // la gravita' e' cambiata con lui e il layout va rifatto.
+      const precedenti = dimensioniRef.current;
+      if (precedenti.larghezza !== larghezza || precedenti.altezza !== altezza) {
+        if (precedenti.larghezza !== 0) riscaldaSimulazione(sim);
+        dimensioniRef.current = { larghezza, altezza };
+      }
     },
     [],
   );
@@ -123,6 +183,11 @@ export default function GraphHero() {
           setAllLinks(data.links);
           // Reset progressive render to start animation for new graph network
           physicsNodesRef.current.clear();
+          // Il grafo e' un altro: la simulazione va riconfigurata da zero, non
+          // accresciuta. Il conteggio dei nodi da solo non lo direbbe, perche'
+          // due grafi diversi possono avere lo stesso numero di nodi visibili.
+          versioneNodiRef.current += 1;
+          rilancioPienoRef.current = true;
           setVisibleCount(Math.min(5, data.nodes.length));
           setIsPlaying(true);
         } else {
@@ -224,9 +289,14 @@ export default function GraphHero() {
 
     const visibleSlice = allNodes.slice(0, visibleCount);
 
+    // Traccia se l'insieme dei nodi e' davvero cambiato: e' il segnale che fa
+    // riconfigurare la simulazione nel loop di animazione.
+    let insiemeCambiato = false;
+
     // Add newly revealed nodes
     visibleSlice.forEach((node) => {
       if (!currentMap.has(node.id)) {
+        insiemeCambiato = true;
         const angle = Math.random() * Math.PI * 2;
         const dist = 40 + Math.random() * 140;
         const radius = node.bot ? 10 : node.group === "instance" ? 14 : 9;
@@ -247,13 +317,26 @@ export default function GraphHero() {
     Array.from(currentMap.keys()).forEach((id) => {
       if (!visibleSlice.some((n) => n.id === id)) {
         currentMap.delete(id);
+        insiemeCambiato = true;
       }
     });
+
+    if (insiemeCambiato) versioneNodiRef.current += 1;
   }, [visibleCount, allNodes]);
 
   // Interval for progressive streaming ("pochi nodi alla volta")
   useEffect(() => {
-    if (!isPlaying || allNodes.length === 0) return;
+    if (allNodes.length === 0) return;
+
+    // A movimento ridotto la rete compare intera: nessun intervallo, nessun
+    // nodo che entra in scena. E' il risultato della rivelazione, consegnato
+    // subito.
+    if (riduciMovimento) {
+      setVisibleCount(allNodes.length);
+      return;
+    }
+
+    if (!isPlaying) return;
     if (visibleCount >= allNodes.length) return;
 
     const intervalTime = Math.max(200, 1400 / speedMultiplier);
@@ -262,7 +345,7 @@ export default function GraphHero() {
     }, intervalTime);
 
     return () => clearInterval(timer);
-  }, [isPlaying, visibleCount, allNodes.length, speedMultiplier]);
+  }, [isPlaying, visibleCount, allNodes.length, speedMultiplier, riduciMovimento]);
 
   // Physics animation loop & Canvas render
   useEffect(() => {
@@ -297,8 +380,6 @@ export default function GraphHero() {
       const rect = canvas.getBoundingClientRect();
       const width = rect.width;
       const height = rect.height;
-      const centerX = width / 2;
-      const centerY = height / 2;
 
       ctx.clearRect(0, 0, width, height);
 
@@ -316,16 +397,40 @@ export default function GraphHero() {
       // costo veniva contenuto ignorando le coppie oltre i 220px - un rimedio
       // che falsa il campo di forze. forceManyBody usa un quadtree
       // (Barnes-Hut) e scende a O(n log n) senza troncare nulla.
-      aggiornaSimulazione(nodes, activeLinks, centerX, centerY);
-      simulazioneRef.current?.tick();
+      aggiornaSimulazione(nodes, activeLinks, width, height);
 
-      // Il nodo trascinato resta dove lo tiene il puntatore: `fx`/`fy` sono la
-      // convenzione d3 per fissare una posizione durante il drag.
-      const pad = 24;
-      nodes.forEach((n) => {
-        n.x = Math.max(pad, Math.min(width - pad, n.x));
-        n.y = Math.max(pad, Math.min(height - pad, n.y));
-      });
+      // A rete assestata non si calcola piu' nulla: si ferma solo la fisica,
+      // il disegno (archi, particelle, hover, onda di comparsa) continua.
+      const sim = simulazioneRef.current;
+      if (sim && !simulazioneFerma(sim)) sim.tick();
+
+      // Rete di sicurezza sui bordi. Azzerare la velocita' e' la parte che
+      // conta: correggendo solo la posizione, il nodo continuava a spingere
+      // verso l'esterno a ogni tick e restava incollato al bordo.
+      const xMin = PAD_CANVAS;
+      const xMax = width - PAD_CANVAS;
+      const yMin = PAD_CANVAS;
+      const yMax = height - PAD_CANVAS;
+
+      if (xMax > xMin && yMax > yMin) {
+        nodes.forEach((n) => {
+          if (n.x < xMin) {
+            n.x = xMin;
+            n.vx = 0;
+          } else if (n.x > xMax) {
+            n.x = xMax;
+            n.vx = 0;
+          }
+
+          if (n.y < yMin) {
+            n.y = yMin;
+            n.vy = 0;
+          } else if (n.y > yMax) {
+            n.y = yMax;
+            n.vy = 0;
+          }
+        });
+      }
 
       // 2. RENDER EDGES
       const activeHovered = hoveredNodeRef.current;
@@ -358,7 +463,14 @@ export default function GraphHero() {
       });
 
       // 3. ANIMATED EDGE PARTICLES
-      if (timestamp - lastParticleSpawn > 350 / speedMultiplier && activeLinks.length > 0) {
+      // Le particelle non portano informazione - dicono "qui passa traffico",
+      // che il grafo dice gia' con gli archi - quindi a movimento ridotto
+      // spariscono del tutto invece di essere rallentate.
+      if (
+        !riduciMovimento &&
+        timestamp - lastParticleSpawn > 350 / speedMultiplier &&
+        activeLinks.length > 0
+      ) {
         lastParticleSpawn = timestamp;
         const randomLink = activeLinks[Math.floor(Math.random() * activeLinks.length)];
         if (randomLink) {
@@ -368,7 +480,7 @@ export default function GraphHero() {
             targetId: randomLink.target,
             progress: 0,
             speed: 0.015 + Math.random() * 0.02,
-            color: srcNode?.bot ? "#ff5252" : "#38bdf8",
+            color: srcNode?.bot ? tokens.color.graphBot : tokens.color.graphHuman,
           });
         }
       }
@@ -402,12 +514,24 @@ export default function GraphHero() {
 
         ctx.save();
 
-        let baseColor = tokens.color.success;
-        let glowColor = "rgba(16, 185, 129, 0.4)";
+        // Le tinte dei nodi sono `graphBot` / `graphHuman`, cioe' i due token
+        // che DESIGN.md dichiara proprio per questo ("nodo bot e nodo umano nel
+        // grafo dei follow, su fondo scuro").
+        //
+        // Prima i nodi usavano `coral` e `success` mentre le particelle che
+        // corrono sugli archi usavano gia' `graphBot` / `graphHuman`: due
+        // sistemi di colore per la stessa distinzione, nello stesso canvas.
+        // Non era un dettaglio estetico - rendeva la legenda **falsa**, perche'
+        // descriveva i pallini con tinte diverse da quelle che si vedevano
+        // scorrere sugli archi. `success` per giunta significa "stato positivo"
+        // altrove, e qui veniva usato per dire "non dichiarato bot", che non e'
+        // affatto la stessa cosa.
+        let baseColor = tokens.color.graphHuman;
+        let glowColor = "rgba(56, 189, 248, 0.4)";
 
         if (n.bot) {
-          baseColor = tokens.color.coral;
-          glowColor = "rgba(255, 119, 89, 0.5)";
+          baseColor = tokens.color.graphBot;
+          glowColor = "rgba(255, 82, 82, 0.5)";
         } else if (n.group === "instance" || (n.degree && n.degree >= 5)) {
           baseColor = tokens.color.accentCyan;
           glowColor = "rgba(0, 229, 255, 0.5)";
@@ -465,7 +589,7 @@ export default function GraphHero() {
       cancelAnimationFrame(animFrameId);
       window.removeEventListener("resize", updateCanvasSize);
     };
-  }, [allLinks, speedMultiplier, aggiornaSimulazione]);
+  }, [allLinks, speedMultiplier, aggiornaSimulazione, riduciMovimento]);
 
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -482,6 +606,10 @@ export default function GraphHero() {
       nodo.y = my;
       nodo.fx = mx;
       nodo.fy = my;
+      // Ora che la rete si ferma da sola, trascinare su una rete fredda non
+      // muoverebbe nient'altro: si tiene calda finche' il puntatore si muove,
+      // cosi' al rilascio il gruppo si riassesta e poi torna fermo.
+      if (simulazioneRef.current) riscaldaSimulazione(simulazioneRef.current);
       return;
     }
 
@@ -497,6 +625,8 @@ export default function GraphHero() {
       }
     }
     setHoveredNode(found);
+    // Il puntatore ha ripreso il comando: la selezione non va piu' annunciata.
+    setSelezioneDaTastiera(false);
   };
 
   const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -545,6 +675,51 @@ export default function GraphHero() {
     }
   };
 
+  /**
+   * Sposta la selezione di un nodo, nell'ordine in cui i nodi sono comparsi.
+   *
+   * E' la controparte da tastiera del passaggio del mouse: scrive nello stesso
+   * stato (`hoveredNode`), quindi il nodo si evidenzia sul canvas e la scheda in
+   * basso a sinistra si apre esattamente come col puntatore. Nessuna seconda
+   * interfaccia da mantenere allineata.
+   */
+  const spostaSelezione = (delta: number) => {
+    const nodi = Array.from(physicsNodesRef.current.values());
+    if (nodi.length === 0) return;
+    const corrente = hoveredNode ? nodi.findIndex((n) => n.id === hoveredNode.id) : -1;
+    // Da -1 (nessuna selezione) un passo avanti porta al primo nodo, uno
+    // indietro all'ultimo: entrare nel grafo da tastiera funziona in entrambi
+    // i versi senza un caso speciale.
+    const prossimo = (corrente + delta + nodi.length) % nodi.length;
+    setHoveredNode(nodi[prossimo]);
+    setSelezioneDaTastiera(true);
+  };
+
+  const handleCanvasKeyDown = (evento: React.KeyboardEvent<HTMLCanvasElement>) => {
+    switch (evento.key) {
+      case "ArrowRight":
+      case "ArrowDown":
+        evento.preventDefault();
+        spostaSelezione(1);
+        break;
+      case "ArrowLeft":
+      case "ArrowUp":
+        evento.preventDefault();
+        spostaSelezione(-1);
+        break;
+      case "Enter":
+      case " ":
+        if (hoveredNode) {
+          evento.preventDefault();
+          handleNodeClick(hoveredNode);
+        }
+        break;
+      case "Escape":
+        setHoveredNode(null);
+        break;
+    }
+  };
+
   const botRatio = useMemo(() => {
     const active = allNodes.slice(0, visibleCount);
     if (active.length === 0) return 0;
@@ -557,45 +732,58 @@ export default function GraphHero() {
     return allLinks.filter((l) => visibleIds.has(l.source) && visibleIds.has(l.target)).length;
   }, [allNodes, allLinks, visibleCount]);
 
+  /**
+   * Il grafo detto a parole, per chi non lo vede.
+   *
+   * Un canvas e' opaco alle tecnologie assistive: senza questo, il pezzo piu'
+   * grande della Panoramica e' un riquadro vuoto. Non descrive l'aspetto ("una
+   * rete di pallini") ma cio' che il grafo misura, che e' l'unica cosa per cui
+   * sta li'.
+   */
+  const descrizioneGrafo = graphError
+    ? `Grafo dei follow non disponibile: ${graphError}`
+    : allNodes.length === 0
+      ? "Grafo dei follow del Fediverso, in caricamento."
+      : `Grafo dei follow del Fediverso: ${visibleCount} account visibili su ${allNodes.length}, ` +
+        `${activeLinksCount} relazioni di follow fra loro, ${botRatio}% dichiarati bot. ` +
+        "Usa le frecce per scorrere gli account uno a uno e Invio per aprirne la scheda.";
+
+  /** L'account selezionato da tastiera, detto per esteso all'annuncio vocale. */
+  const descrizioneSelezione =
+    hoveredNode && selezioneDaTastiera
+      ? `${hoveredNode.label}, ${
+          hoveredNode.bot
+            ? "dichiarato bot"
+            : hoveredNode.group === "instance"
+              ? "istanza"
+              : "non dichiarato bot"
+        }, dominio ${hoveredNode.domain || "non indicato"}, ${
+          hoveredNode.degree || 1
+        } collegamenti.`
+      : "";
+
   return (
     <Paper
       elevation={0}
       sx={{
-        borderRadius: "28px",
-        backgroundColor: "#131924",
+        // Raggio dalla scala token (22px, "angoli generosi sui riquadri di
+        // contenuto"): erano 28px, un valore che non esiste nel sistema.
+        borderRadius: tokens.radius.xl,
+        backgroundColor: tokens.color.darkGraph,
         color: tokens.color.canvas,
         p: { xs: 3, md: 4 },
         mb: 6,
         position: "relative",
         overflow: "hidden",
         border: "1px solid rgba(255, 255, 255, 0.08)",
-        boxShadow: "0 20px 40px -15px rgba(0,0,0,0.5)",
+        // Nessuna ombra: in questo sistema la profondita' viene dall'alternanza
+        // di superficie, e il salto dal canvas bianco a questo fondo scuro la
+        // fa gia' tutta da solo. I due gradienti radiali che stavano qui -
+        // uno coral in alto a sinistra, uno ciano in basso a destra - erano
+        // ornamento puro, cioe' esattamente cio' che DESIGN.md vieta quando
+        // dice che il colore arriva dai dati.
       }}
     >
-      {/* Background Decorative Ambient Radial Gradients */}
-      <Box
-        sx={{
-          position: "absolute",
-          top: "-20%",
-          left: "-10%",
-          width: "50%",
-          height: "80%",
-          background: "radial-gradient(circle, rgba(255,119,89,0.15) 0%, rgba(0,0,0,0) 70%)",
-          pointerEvents: "none",
-        }}
-      />
-      <Box
-        sx={{
-          position: "absolute",
-          bottom: "-20%",
-          right: "-10%",
-          width: "50%",
-          height: "80%",
-          background: "radial-gradient(circle, rgba(0,229,255,0.15) 0%, rgba(0,0,0,0) 70%)",
-          pointerEvents: "none",
-        }}
-      />
-
       {/* Header, Search & Controls Toolbar */}
       <GraphToolbar
         graphMode={graphMode}
@@ -638,7 +826,7 @@ export default function GraphHero() {
           }}
         >
           <Typography variant="caption" sx={{ color: tokens.color.darkSlateDeep, textTransform: "uppercase", fontSize: "10px" }}>
-            NODES LOADED
+            ACCOUNT MOSTRATI
           </Typography>
           <Typography variant="h6" sx={{ fontFamily: tokens.font.display, fontWeight: 700, color: tokens.color.canvas }}>
             {visibleCount} <span style={{ fontSize: "12px", color: tokens.color.darkSlateDeep }}>/ {allNodes.length}</span>
@@ -656,9 +844,11 @@ export default function GraphHero() {
           }}
         >
           <Typography variant="caption" sx={{ color: tokens.color.darkSlateDeep, textTransform: "uppercase", fontSize: "10px" }}>
-            ACTIVE EDGES
+            RELAZIONI ATTIVE
           </Typography>
-          <Typography variant="h6" sx={{ fontFamily: tokens.font.display, fontWeight: 700, color: tokens.color.accentCyan }}>
+          {/* Bianco e non ciano: e' un conteggio, non un'istanza hub, e il
+              ciano su questa superficie significa gia' quello. */}
+          <Typography variant="h6" sx={{ fontFamily: tokens.font.display, fontWeight: 700, color: tokens.color.canvas }}>
             {activeLinksCount}
           </Typography>
         </Box>
@@ -674,9 +864,12 @@ export default function GraphHero() {
           }}
         >
           <Typography variant="caption" sx={{ color: tokens.color.darkSlateDeep, textTransform: "uppercase", fontSize: "10px" }}>
-            BOT RATIO
+            DICHIARATI BOT
           </Typography>
-          <Typography variant="h6" sx={{ fontFamily: tokens.font.display, fontWeight: 700, color: tokens.color.coral }}>
+          {/* `graphBot` e non `coral`: sulla stessa superficie i nodi bot sono
+              gia' di questa tinta, e affiancare i due rossi del sistema
+              farebbe leggere due categorie dove ce n'e' una. */}
+          <Typography variant="h6" sx={{ fontFamily: tokens.font.display, fontWeight: 700, color: tokens.color.graphBot }}>
             {botRatio}%
           </Typography>
         </Box>
@@ -688,11 +881,14 @@ export default function GraphHero() {
           position: "relative",
           width: "100%",
           height: isFullscreen ? "75vh" : "440px",
-          borderRadius: "20px",
+          borderRadius: tokens.radius.lg,
           backgroundColor: tokens.color.darkSurface,
           border: "1px solid rgba(255, 255, 255, 0.08)",
           overflow: "hidden",
-          transition: "all 0.3s ease",
+          // Nessuna transizione: `all` includeva `height`, cioe' una proprieta'
+          // di layout, e ingrandire il riquadro costringeva il browser a
+          // rifare il layout e a ridimensionare il canvas per 300 ms - proprio
+          // mentre l'animazione dei nodi sta girando.
         }}
       >
         <canvas
@@ -700,8 +896,42 @@ export default function GraphHero() {
           onMouseMove={handleCanvasMouseMove}
           onMouseDown={handleCanvasMouseDown}
           onMouseUp={handleCanvasMouseUp}
-          style={{ width: "100%", height: "100%", cursor: hoveredNode ? "pointer" : "default" }}
+          onKeyDown={handleCanvasKeyDown}
+          // Il canvas entra nell'ordine di tabulazione ed espone un nome: prima
+          // era un elemento muto e irraggiungibile, cioe' il pezzo piu' grande
+          // della pagina non esisteva per chi naviga da tastiera o con uno
+          // screen reader.
+          tabIndex={0}
+          role="img"
+          aria-label={descrizioneGrafo}
+          style={{
+            width: "100%",
+            height: "100%",
+            cursor: hoveredNode ? "pointer" : "default",
+            // Il canvas riempie il riquadro fino al bordo: l'anello globale ha
+            // offset positivo e finirebbe tagliato da `overflow: hidden` del
+            // contenitore, quindi qui rientra.
+            outlineOffset: "-3px",
+          }}
         />
+
+        {/* L'annuncio del nodo scelto con le frecce. Resta vuoto quando la
+            selezione arriva dal puntatore: la scheda visiva la' accanto dice
+            gia' tutto, e annunciare ogni nodo sfiorato dal mouse sarebbe un
+            flusso continuo di parole. */}
+        <Box
+          aria-live="polite"
+          sx={{
+            position: "absolute",
+            width: 1,
+            height: 1,
+            overflow: "hidden",
+            clip: "rect(0 0 0 0)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {descrizioneSelezione}
+        </Box>
 
         {graphError && (
           <Box
@@ -735,30 +965,54 @@ export default function GraphHero() {
             position: "absolute",
             top: 16,
             left: 16,
-            backgroundColor: "rgba(15, 23, 42, 0.75)",
-            backdropFilter: "blur(8px)",
+            backgroundColor: tokens.color.darkSurface,
             px: 2,
             py: 1,
-            borderRadius: "24px",
+            borderRadius: tokens.radius.pill,
             border: "1px solid rgba(255, 255, 255, 0.1)",
           }}
         >
+          {/*
+            I pallini portano le stesse tinte con cui il canvas disegna i nodi
+            (`graphBot` / `graphHuman`): finche' la legenda diceva coral e
+            verde mentre il grafo mostrava altro, era una legenda sbagliata,
+            non solo incoerente.
+
+            Il pallino dei bot ha il punto bianco al centro perche' **ce l'ha
+            anche il nodo**: e' l'unico tratto che distingue le due categorie
+            senza affidarsi al colore, e una legenda che lo omette lascia chi
+            non distingue rosso e azzurro senza alcun appiglio.
+          */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: tokens.color.coral }} />
+            <Box
+              sx={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                backgroundColor: tokens.color.graphBot,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Box sx={{ width: 4, height: 4, borderRadius: "50%", backgroundColor: tokens.color.canvas }} />
+            </Box>
             <Typography variant="caption" sx={{ color: tokens.color.darkSlateLight, fontSize: "11px" }}>
-              Bot Node
+              Dichiarato bot
             </Typography>
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: tokens.color.success }} />
+            <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: tokens.color.graphHuman }} />
+            {/* "Non dichiarato bot", non "utente umano": il campo del profilo e'
+                auto-dichiarato e la sua assenza non certifica una persona. */}
             <Typography variant="caption" sx={{ color: tokens.color.darkSlateLight, fontSize: "11px" }}>
-              Human User
+              Non dichiarato bot
             </Typography>
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: tokens.color.accentCyan }} />
             <Typography variant="caption" sx={{ color: tokens.color.darkSlateLight, fontSize: "11px" }}>
-              Hub Instance
+              Istanza molto collegata
             </Typography>
           </Box>
         </Stack>
@@ -766,12 +1020,14 @@ export default function GraphHero() {
         {/* Fullscreen Toggle Button (Top Right inside Canvas) */}
         <IconButton
           onClick={() => setIsFullscreen(!isFullscreen)}
+          aria-label={isFullscreen ? "Riduci il grafo" : "Ingrandisci il grafo"}
+          aria-pressed={isFullscreen}
           sx={{
             position: "absolute",
             top: 14,
             right: 14,
-            backgroundColor: "rgba(15, 23, 42, 0.75)",
-            backdropFilter: "blur(8px)",
+            backgroundColor: tokens.color.darkSurface,
+            border: "1px solid rgba(255, 255, 255, 0.1)",
             color: tokens.color.canvas,
             "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.2)" },
           }}
@@ -782,15 +1038,14 @@ export default function GraphHero() {
         {/* Hover / Selected Node Tooltip Card (Bottom Left inside Canvas) */}
         {hoveredNode && (
           <Paper
-            elevation={6}
+            elevation={0}
             sx={{
               position: "absolute",
               bottom: 16,
               left: 16,
               p: 2,
               borderRadius: tokens.radius.lg,
-              backgroundColor: "rgba(15, 23, 42, 0.9)",
-              backdropFilter: "blur(12px)",
+              backgroundColor: tokens.color.darkSurface,
               border: "1px solid rgba(255, 255, 255, 0.15)",
               maxWidth: 320,
               zIndex: 10,
@@ -800,24 +1055,34 @@ export default function GraphHero() {
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
                 {hoveredNode.bot ? (
                   <Chip
-                    icon={<BotIcon sx={{ fontSize: "14px !important", color: `${tokens.color.canvas} !important` }} />}
-                    label="BOT DETECTED"
+                    icon={<BotIcon sx={{ fontSize: "14px !important", color: `${tokens.color.nearBlack} !important` }} />}
+                    // "DICHIARATO BOT" e non "BOT DETECTED": nessuno ha
+                    // *rilevato* nulla: e' il profilo stesso a dichiararsi
+                    // automatizzato. La formula inglese prometteva un
+                    // accertamento che questa cifra non ha fatto.
+                    label="DICHIARATO BOT"
                     size="small"
-                    sx={{ backgroundColor: tokens.color.coral, color: tokens.color.canvas, fontWeight: 700, fontSize: "10px" }}
+                    sx={{ backgroundColor: tokens.color.graphBot, color: tokens.color.nearBlack, fontWeight: 700, fontSize: "10px" }}
                   />
                 ) : hoveredNode.group === "instance" ? (
                   <Chip
                     icon={<HubIcon sx={{ fontSize: "14px !important", color: `${tokens.color.black} !important` }} />}
-                    label="HUB INSTANCE"
+                    label="ISTANZA HUB"
                     size="small"
                     sx={{ backgroundColor: tokens.color.accentCyan, color: tokens.color.black, fontWeight: 700, fontSize: "10px" }}
                   />
                 ) : (
                   <Chip
-                    icon={<HumanIcon sx={{ fontSize: "14px !important", color: `${tokens.color.canvas} !important` }} />}
-                    label="HUMAN USER"
+                    icon={<HumanIcon sx={{ fontSize: "14px !important", color: `${tokens.color.nearBlack} !important` }} />}
+                    // Non "HUMAN USER": `tinte.ts` lo dice per esteso - questa
+                    // categoria significa "account che non si dichiara bot", e
+                    // *non* "verificato umano". L'etichetta precedente
+                    // affermava piu' di quanto il dato sostenga.
+                    label="NON DICHIARATO BOT"
                     size="small"
-                    sx={{ backgroundColor: tokens.color.success, color: tokens.color.canvas, fontWeight: 700, fontSize: "10px" }}
+                    // Nero e non bianco: il nero su questa tinta da' 7.8:1 a
+                    // 10px in grassetto, il bianco resterebbe sotto soglia.
+                    sx={{ backgroundColor: tokens.color.graphHuman, color: tokens.color.nearBlack, fontWeight: 700, fontSize: "10px" }}
                   />
                 )}
               </Stack>
@@ -825,13 +1090,18 @@ export default function GraphHero() {
                 {hoveredNode.label}
               </Typography>
               <Typography variant="caption" sx={{ color: tokens.color.darkSlate, display: "block", mt: 0.5 }}>
-                Domain: <strong style={{ color: tokens.color.darkSlateLight }}>{hoveredNode.domain || "fediverse"}</strong>
+                Dominio: <strong style={{ color: tokens.color.darkSlateLight }}>{hoveredNode.domain || "non indicato"}</strong>
               </Typography>
               <Typography variant="caption" sx={{ color: tokens.color.darkSlate, display: "block" }}>
-                Network Connections: <strong style={{ color: tokens.color.accentCyan }}>{hoveredNode.degree || 1}</strong>
+                Collegamenti: <strong style={{ color: tokens.color.darkSlateLight }}>{hoveredNode.degree || 1}</strong>
               </Typography>
-              <Typography variant="caption" sx={{ color: tokens.color.coral, fontSize: "10px", display: "block", mt: 0.5 }}>
-                👉 Clicca per aprire il popup metadati completo!
+              {/* Era «👉 Clicca per aprire il popup metadati completo!»: emoji
+                  direzionale, gergo («popup») ed esclamativo, nel punto piu'
+                  guardato di una pagina il cui tono dichiarato e' da
+                  laboratorio. Cita anche Invio, perche' il canvas si percorre
+                  con le frecce e la scheda si apre da tastiera. */}
+              <Typography variant="caption" sx={{ color: tokens.color.darkSlate, fontSize: "11px", display: "block", mt: 0.5 }}>
+                Clicca o premi Invio per aprire la scheda dell'account.
               </Typography>
             </Box>
           </Paper>

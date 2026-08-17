@@ -1,4 +1,4 @@
-import ReactECharts from "echarts-for-react";
+import ReactECharts from "../utils/echarts.tsx";
 import { Box, Paper, Typography } from "@mui/material";
 import { tokens } from "../theme.ts";
 

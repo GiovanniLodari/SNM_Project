@@ -84,7 +84,7 @@ function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }
           <Typography variant="h6" sx={{ color: tokens.color.canvas, fontWeight: 600 }}>
             {job.label}
           </Typography>
-          <Typography variant="caption" sx={{ color: tokens.color.textFaint, fontFamily: "CohereMono, monospace" }}>
+          <Typography variant="caption" sx={{ color: tokens.color.textOnDark, fontFamily: "CohereMono, monospace" }}>
             AGENT ID: {job.name}
           </Typography>
         </Box>
@@ -93,7 +93,7 @@ function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }
           sx={{
             borderRadius: tokens.radius.lg,
             backgroundColor: job.running ? tokens.color.deepGreen : "rgba(255, 255, 255, 0.1)",
-            color: job.running ? tokens.color.canvas : tokens.color.textFaint,
+            color: job.running ? tokens.color.canvas : tokens.color.textOnDark,
             fontFamily: tokens.font.mono,
             fontSize: "10px",
             fontWeight: 600,
@@ -102,7 +102,7 @@ function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }
         />
       </Box>
 
-      <Typography variant="body2" sx={{ color: tokens.color.textFaint, mb: 3, flexGrow: 1 }}>
+      <Typography variant="body2" sx={{ color: tokens.color.textOnDark, mb: 3, flexGrow: 1 }}>
         {job.description || "No description specified."}
       </Typography>
 
@@ -143,7 +143,7 @@ function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }
             sx={{
               backgroundColor: "rgba(255, 255, 255, 0.05)",
               borderRadius: tokens.radius.md,
-              "& .MuiInputLabel-root": { color: tokens.color.textFaint },
+              "& .MuiInputLabel-root": { color: tokens.color.textOnDark },
               "& .MuiOutlinedInput-root": {
                 color: tokens.color.canvas,
                 "& fieldset": { borderColor: "rgba(255, 255, 255, 0.2)" },
@@ -179,7 +179,7 @@ function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }
             <Box
               sx={{
                 p: 1.5,
-                backgroundColor: "#050811",
+                backgroundColor: tokens.color.darkConsole,
                 color: tokens.color.accentCyan,
                 fontFamily: tokens.font.mono,
                 fontSize: "11px",
@@ -209,7 +209,7 @@ function PipelineCard({ job, onRefresh }: { job: JobRow; onRefresh: () => void }
               backgroundColor: tokens.color.danger, // Error Red
               color: tokens.color.canvas,
               borderRadius: tokens.radius.pill,
-              "&:hover": { backgroundColor: "#800000" },
+              "&:hover": { backgroundColor: tokens.color.dangerDark },
             }}
           >
             Halt Agent

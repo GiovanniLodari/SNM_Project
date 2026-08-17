@@ -502,6 +502,10 @@ def get_algo_comparison() -> Dict[str, Any]:
             "algorithms": clean_algos,
             "seed_overlap_jaccard": data.get("seed_overlap_jaccard", {}),
             "winner_by_mc_spread": data.get("winner_by_mc_spread", "CELF++"),
+            # Assente nelle run precedenti all'introduzione del campo: si passa
+            # None e la pagina dichiara i parametri non registrati, invece di
+            # attribuire alla run valori che potrebbero non essere i suoi.
+            "params": data.get("params"),
         }
         return _ALGO_COMPARISON_CACHE
 

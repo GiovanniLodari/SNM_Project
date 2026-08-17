@@ -53,6 +53,7 @@ export default function AccountDetailModal({
       <Dialog
         open={open}
         onClose={onClose}
+        aria-labelledby="titolo-account-errore"
         maxWidth="sm"
         fullWidth
         TransitionComponent={Transition}
@@ -69,7 +70,7 @@ export default function AccountDetailModal({
         }}
       >
         <DialogContent sx={{ p: 4, textAlign: "center" }}>
-          <Typography sx={{ fontSize: "1rem", fontWeight: 600, mb: 1 }}>
+          <Typography id="titolo-account-errore" component="h2" sx={{ fontSize: "1rem", fontWeight: 600, mb: 1 }}>
             Dettagli non disponibili
           </Typography>
           <Typography sx={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.6)", mb: 3 }}>
@@ -95,6 +96,7 @@ export default function AccountDetailModal({
     <Dialog
       open={open}
       onClose={onClose}
+      aria-labelledby="titolo-account"
       maxWidth="sm"
       fullWidth
       TransitionComponent={Transition}
@@ -116,7 +118,7 @@ export default function AccountDetailModal({
         sx={{
           height: 120,
           width: "100%",
-          backgroundColor: "#071829",
+          backgroundColor: tokens.color.darkNavy,
           backgroundImage: account?.header ? `url(${account.header})` : "none",
           backgroundSize: "cover",
           backgroundPosition: "center",
@@ -127,6 +129,7 @@ export default function AccountDetailModal({
         {/* Close Button */}
         <IconButton
           onClick={onClose}
+          aria-label="Chiudi la scheda dell'account"
           sx={{
             position: "absolute",
             top: 12,
@@ -199,7 +202,9 @@ export default function AccountDetailModal({
 
         {/* User Handle & Display Name */}
         <Typography
+          id="titolo-account"
           variant="h4"
+          component="h2"
           sx={{
             fontFamily: tokens.font.display,
             fontWeight: 400,
@@ -217,7 +222,7 @@ export default function AccountDetailModal({
             variant="body2"
             sx={{
               fontFamily: tokens.font.mono,
-              color: tokens.color.textFaint,
+              color: tokens.color.textOnDark,
               fontSize: "14px",
               wordBreak: "break-all",
             }}
@@ -231,7 +236,7 @@ export default function AccountDetailModal({
             sx={{
               backgroundColor: "transparent",
               border: "1px solid rgba(255, 255, 255, 0.12)",
-              color: tokens.color.textFaint,
+              color: tokens.color.textOnDark,
               fontSize: "12px",
               fontFamily: tokens.font.mono,
               borderRadius: tokens.radius.chip,
@@ -304,7 +309,7 @@ export default function AccountDetailModal({
 
         {/* Bio / Description Note */}
         <Box sx={{ mb: 4 }}>
-          <Typography variant="caption" sx={{ color: tokens.color.textFaint, textTransform: "uppercase", fontSize: "12px", display: "block", mb: 1, fontFamily: tokens.font.mono }}>
+          <Typography variant="caption" sx={{ color: tokens.color.textOnDark, textTransform: "uppercase", fontSize: "12px", display: "block", mb: 1, fontFamily: tokens.font.mono }}>
             BIOGRAFIA & PROFILO
           </Typography>
           <Typography
@@ -323,7 +328,7 @@ export default function AccountDetailModal({
         {/* Registration & Activity Dates */}
         {account?.created_at && (
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
-            <Typography variant="caption" sx={{ color: tokens.color.textFaint, fontFamily: tokens.font.mono, fontSize: "12px" }}>
+            <Typography variant="caption" sx={{ color: tokens.color.textOnDark, fontFamily: tokens.font.mono, fontSize: "12px" }}>
               Registrato il: <strong style={{ color: tokens.color.canvas }}>{formatDate(account.created_at)}</strong>
             </Typography>
           </Stack>

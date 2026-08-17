@@ -30,6 +30,7 @@ import networkx as nx
 import PMIA
 import CELFpp
 import SKIM
+import graph_builder
 from IM_common import monte_carlo_spread
 
 
@@ -112,6 +113,24 @@ def compare_on_subgraph(h, candidates, k, args, rng):
         "subgraph": {"nodes": h.number_of_nodes(), "edges": h.number_of_edges(),
                      "candidates": len(cand)},
         "k": k, "eval_runs": args.eval_runs,
+        # Parametri effettivamente usati da QUESTA esecuzione. Senza, il JSON non
+        # e' autodescrittivo e chi lo legge non sa con che taratura sono stati
+        # prodotti i numeri: la webapp preferisce dichiararli mancanti piuttosto
+        # che leggerli dalle costanti del modulo, che nel frattempo possono essere
+        # cambiate senza rilanciare il confronto.
+        "params": {
+            "n_sub": args.n_sub,
+            "k": k,
+            "theta": args.theta,
+            "num_rr": args.num_rr,
+            "mc_runs_celf": args.mc_runs_celf,
+            "eval_runs": args.eval_runs,
+            "snowball_starts": args.snowball_starts,
+            "random_seed": args.random_seed,
+            "ic_p0": graph_builder.IC_BASE_PROB,
+            "ic_cap": graph_builder.IC_PROB_CAP,
+            "ic_method": "independent_trials",
+        },
         "algorithms": algos,
         "seed_overlap_jaccard": overlap,
         "winner_by_mc_spread": winner,

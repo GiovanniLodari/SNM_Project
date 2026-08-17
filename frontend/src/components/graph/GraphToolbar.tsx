@@ -96,7 +96,14 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
               color: tokens.color.canvas,
             }}
           >
-            Fediverse Intelligence Command Center
+            Rete dei follow
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{ color: tokens.color.darkSlate, mt: 1, maxWidth: "58ch" }}
+          >
+            Cerca un account per isolarne le connessioni, oppure lascia scorrere la rivelazione
+            progressiva dei nodi.
           </Typography>
         </Box>
 
@@ -108,18 +115,20 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
           sx={{
             minWidth: 150,
             borderRadius: tokens.radius.pill,
-            backgroundColor: "rgba(15, 23, 42, 0.8)",
-            backdropFilter: "blur(8px)",
+            // Fondo pieno invece di semitrasparente + `backdrop-filter`: il
+            // vetro smerigliato e' bandito da DESIGN.md, e su un canvas che
+            // ridisegna a ogni frame costringeva il browser a ricomporre la
+            // sfocatura di continuo.
+            backgroundColor: tokens.color.darkSurface,
             color: tokens.color.canvas,
             fontSize: "13px",
             fontWeight: 600,
             border: "1px solid rgba(255, 255, 255, 0.15)",
             "& .MuiSelect-icon": { color: tokens.color.darkSlate },
-            "&:hover": { borderColor: tokens.color.accentCyan },
-            "&.Mui-focused": {
-              borderColor: tokens.color.accentCyan,
-              boxShadow: "0 0 12px rgba(0, 229, 255, 0.3)",
-            },
+            "&:hover": { borderColor: "rgba(255, 255, 255, 0.4)" },
+            // Nessun trattamento di focus locale: l'anello dichiarato una volta
+            // in `MuiCssBaseline` vale anche qui. Il glow ciano che c'era prima
+            // era un secondo linguaggio di focus sulla stessa applicazione.
             "& .MuiOutlinedInput-notchedOutline": { border: "none" },
           }}
           MenuProps={{
@@ -141,12 +150,15 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
           </MenuItem>
           <MenuItem value="bot">
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <BotIcon sx={{ fontSize: 16 }} /> Solo Bot
+              <BotIcon sx={{ fontSize: 16 }} /> Solo dichiarati bot
             </Box>
           </MenuItem>
           <MenuItem value="human">
+            {/* "Non dichiarati bot" e non "Solo utenti": il campo `bot` del
+                profilo e' auto-dichiarato, quindi la sua assenza non certifica
+                che dietro l'account ci sia una persona. */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <HumanIcon sx={{ fontSize: 16 }} /> Solo Utenti
+              <HumanIcon sx={{ fontSize: 16 }} /> Solo non dichiarati bot
             </Box>
           </MenuItem>
         </Select>
@@ -171,7 +183,7 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  "&:hover": { backgroundColor: "rgba(0, 229, 255, 0.15)" },
+                  "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.08)" },
                 }}
               >
                 <Box>
@@ -179,15 +191,15 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
                     {option.acct}
                   </Typography>
                   <Typography variant="caption" sx={{ color: tokens.color.darkSlate }}>
-                    Domain: {option.domain}
+                    Dominio: {option.domain}
                   </Typography>
                 </Box>
                 {option.bot && (
                   <Chip
-                    icon={<BotIcon sx={{ fontSize: "12px !important", color: `${tokens.color.canvas} !important` }} />}
+                    icon={<BotIcon sx={{ fontSize: "12px !important", color: `${tokens.color.nearBlack} !important` }} />}
                     label="BOT"
                     size="small"
-                    sx={{ backgroundColor: tokens.color.coral, color: tokens.color.canvas, fontSize: "9px", fontWeight: 700 }}
+                    sx={{ backgroundColor: tokens.color.graphBot, color: tokens.color.nearBlack, fontSize: "9px", fontWeight: 700 }}
                   />
                 )}
               </Box>
@@ -195,14 +207,14 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
             renderInput={(params) => (
               <TextField
                 {...params}
-                placeholder="Cerca Utente per rete follower..."
+                placeholder="Cerca un account per isolarne la rete"
                 variant="outlined"
                 size="small"
                 InputProps={{
                   ...params.InputProps,
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon sx={{ color: tokens.color.accentCyan }} />
+                      <SearchIcon sx={{ color: tokens.color.darkSlate }} />
                     </InputAdornment>
                   ),
                   endAdornment: (
@@ -215,17 +227,12 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
                 sx={{
                   "& .MuiOutlinedInput-root": {
                     borderRadius: tokens.radius.pill,
-                    backgroundColor: "rgba(15, 23, 42, 0.8)",
-                    backdropFilter: "blur(8px)",
+                    backgroundColor: tokens.color.darkSurface,
                     color: tokens.color.canvas,
                     fontSize: "13px",
                     border: "1px solid rgba(255, 255, 255, 0.15)",
                     "&:hover": {
-                      borderColor: tokens.color.accentCyan,
-                    },
-                    "&.Mui-focused": {
-                      borderColor: tokens.color.accentCyan,
-                      boxShadow: "0 0 12px rgba(0, 229, 255, 0.3)",
+                      borderColor: "rgba(255, 255, 255, 0.4)",
                     },
                   },
                 }}
@@ -234,7 +241,7 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
             PaperComponent={(props) => (
               <Paper
                 {...props}
-                elevation={8}
+                elevation={0}
                 sx={{
                   backgroundColor: tokens.color.darkSurface,
                   color: tokens.color.canvas,
@@ -253,7 +260,7 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
         sx={{
           mt: 3,
           p: 2,
-          borderRadius: "20px",
+          borderRadius: tokens.radius.lg,
           backgroundColor: "rgba(255, 255, 255, 0.03)",
           border: "1px solid rgba(255, 255, 255, 0.08)",
           display: "flex",
@@ -264,46 +271,71 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
         }}
       >
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <Tooltip title={isPlaying ? "Pausa Streaming" : "Avvia Streaming Progressivo"}>
+          {/*
+            `describeChild` non e' un dettaglio: senza, il Tooltip di MUI
+            scrive il proprio titolo come `aria-label` del figlio e **sostituisce**
+            il nome accessibile del bottone. Il risultato era che a schermo si
+            leggeva "Avvia" e lo screen reader annunciava un'altra frase - il
+            nome accessibile non conteneva l'etichetta visibile, che e' quanto
+            WCAG 2.5.3 (Label in Name) vieta, e che rende inutilizzabile il
+            comando vocale ("clicca Avvia" non trova nulla).
+            Con `describeChild` il titolo diventa una descrizione aggiuntiva e
+            il nome resta il testo del bottone.
+          */}
+          <Tooltip describeChild title={isPlaying ? "Metti in pausa la rivelazione" : "Riprendi la rivelazione progressiva"}>
+            {/*
+              Il comando non cambia tinta fra i due stati, e non e' una svista.
+              Prima era coral quando in riproduzione e verde quando in pausa:
+              due tinte che in questo sistema significano gia' "account
+              dichiarato bot" e "stato positivo", prese in prestito per dire
+              "play" e "pausa". Sulla stessa superficie in cui coral marca i
+              nodi bot, un bottone coral che vuol dire "pausa" rende la legenda
+              ambigua. Lo stato lo dicono l'icona e l'etichetta, che e' il loro
+              mestiere.
+            */}
             <Button
               variant="contained"
               onClick={onTogglePlay}
               startIcon={isPlaying ? <Pause /> : <PlayArrow />}
               sx={{
-                borderRadius: "24px",
-                backgroundColor: isPlaying ? tokens.color.coral : tokens.color.success,
-                color: tokens.color.canvas,
+                borderRadius: tokens.radius.pill,
+                backgroundColor: tokens.color.canvas,
+                color: tokens.color.nearBlack,
                 fontWeight: 600,
                 px: 2.5,
                 "&:hover": {
-                  backgroundColor: isPlaying ? "#e05b3d" : "#0d9668",
+                  backgroundColor: tokens.color.softStone,
                 },
               }}
             >
-              {isPlaying ? "PAUSE STREAM" : "PLAY STREAM"}
+              {isPlaying ? "Pausa" : "Avvia"}
             </Button>
           </Tooltip>
 
-          <Tooltip title="Aggiungi +3 Nodi Ora">
+          <Tooltip describeChild title="Mostra tre account in piu'">
             <Button
               variant="outlined"
               onClick={onStepIncrement}
               disabled={visibleCount >= totalNodesCount}
               startIcon={<SkipNext />}
               sx={{
-                borderRadius: "24px",
+                borderRadius: tokens.radius.pill,
                 borderColor: "rgba(255, 255, 255, 0.2)",
                 color: tokens.color.canvas,
-                "&:hover": { borderColor: tokens.color.accentCyan, backgroundColor: "rgba(0, 229, 255, 0.1)" },
+                "&:hover": { borderColor: "rgba(255, 255, 255, 0.5)", backgroundColor: "rgba(255, 255, 255, 0.08)" },
               }}
             >
-              STEP (+3)
+              +3 account
             </Button>
           </Tooltip>
 
-          <Tooltip title="Resetta Grafo al Network Iniziale">
+          {/* Stesso testo dell'`aria-label` qui sotto: il bottone non ha
+              etichetta visibile, quindi il suggerimento e' l'unica cosa che
+              chi vede legge, e deve coincidere con cio' che viene annunciato. */}
+          <Tooltip title="Ricarica il grafo da capo">
             <IconButton
               onClick={onResetGraph}
+              aria-label="Ricarica il grafo da capo"
               sx={{
                 color: tokens.color.darkSlate,
                 border: "1px solid rgba(255, 255, 255, 0.1)",
@@ -318,10 +350,10 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
         <Box sx={{ flex: 1, width: "100%", px: 2 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
             <Typography variant="caption" sx={{ color: tokens.color.darkSlate, fontFamily: tokens.font.mono }}>
-              RENDER PROGRESSION ("POCHI NODI ALLA VOLTA")
+              RIVELAZIONE PROGRESSIVA
             </Typography>
-            <Typography variant="caption" sx={{ color: tokens.color.accentCyan, fontWeight: 700, fontFamily: tokens.font.mono }}>
-              {visibleCount} / {totalNodesCount} Nodes
+            <Typography variant="caption" sx={{ color: tokens.color.canvas, fontWeight: 700, fontFamily: tokens.font.mono }}>
+              {visibleCount} / {totalNodesCount} account
             </Typography>
           </Box>
           <Slider
@@ -330,17 +362,17 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
             max={totalNodesCount || 20}
             step={1}
             onChange={(_, val) => onVisibleCountChange(val as number)}
+            aria-label="Quanti account mostrare nel grafo"
             sx={{
-              color: tokens.color.accentCyan,
+              color: tokens.color.canvas,
               height: 6,
               "& .MuiSlider-thumb": {
                 width: 14,
                 height: 14,
                 backgroundColor: tokens.color.canvas,
-                boxShadow: `0 0 10px ${tokens.color.accentCyan}`,
               },
               "& .MuiSlider-track": {
-                backgroundColor: tokens.color.accentCyan,
+                backgroundColor: tokens.color.canvas,
               },
               "& .MuiSlider-rail": {
                 backgroundColor: "rgba(255, 255, 255, 0.1)",
@@ -357,13 +389,14 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
               label={`${mult}x`}
               size="small"
               onClick={() => onSpeedMultiplierChange(mult)}
+              aria-pressed={speedMultiplier === mult}
               sx={{
                 fontSize: "11px",
                 fontWeight: 700,
                 cursor: "pointer",
-                backgroundColor: speedMultiplier === mult ? tokens.color.accentCyan : "rgba(255, 255, 255, 0.06)",
-                color: speedMultiplier === mult ? tokens.color.black : tokens.color.darkSlate,
-                "&:hover": { backgroundColor: speedMultiplier === mult ? tokens.color.accentCyan : "rgba(255, 255, 255, 0.15)" },
+                backgroundColor: speedMultiplier === mult ? tokens.color.canvas : "rgba(255, 255, 255, 0.06)",
+                color: speedMultiplier === mult ? tokens.color.nearBlack : tokens.color.darkSlate,
+                "&:hover": { backgroundColor: speedMultiplier === mult ? tokens.color.softStone : "rgba(255, 255, 255, 0.15)" },
               }}
             />
           ))}

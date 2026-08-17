@@ -1,5 +1,14 @@
 import { useState, lazy, Suspense } from "react";
-import { HashRouter, Routes, Route, Link, useLocation } from "react-router-dom";
+import {
+  HashRouter,
+  Routes,
+  Route,
+  Link,
+  Navigate,
+  useLocation,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import {
   ThemeProvider,
   CssBaseline,
@@ -31,135 +40,396 @@ const queryClient = new QueryClient({
 });
 
 
-import {
-  Menu as MenuIcon,
-  Dashboard as DashboardIcon,
-  Article as PostsIcon,
-  Psychology as AiIcon,
-  FactCheck as FactCheckIcon,
-  People as AccountsIcon,
-  PlayCircle as PipelineIcon,
-  Sync as SyncIcon,
-  CompareArrows as CompareIcon,
-  TrendingUp as InfluenceIcon,
-} from "@mui/icons-material";
+import { Menu as MenuIcon } from "@mui/icons-material";
 
-// Pagine in caricamento Lazy (Code-Splitting per prestazioni elevate)
-const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
-const Posts = lazy(() => import("./pages/Posts.tsx"));
-const PostDetail = lazy(() => import("./pages/PostDetail.tsx"));
-const AiDetection = lazy(() => import("./pages/AiDetection.tsx"));
-const FactChecking = lazy(() => import("./pages/FactChecking.tsx"));
-const Accounts = lazy(() => import("./pages/Accounts.tsx"));
-const Pipelines = lazy(() => import("./pages/Pipelines.tsx"));
-const DbSync = lazy(() => import("./pages/DbSync.tsx"));
-const DetectorComparison = lazy(() => import("./pages/DetectorComparison.tsx"));
-const InfluenceMaximization = lazy(() => import("./pages/InfluenceMaximization.tsx"));
+// Pagine in caricamento Lazy con loader tracciati per il prefetch istantaneo
+const loadDashboard = () => import("./pages/Dashboard.tsx");
+const loadPosts = () => import("./pages/Posts.tsx");
+const loadPostDetail = () => import("./pages/PostDetail.tsx");
+const loadDetection = () => import("./pages/Detection.tsx");
+const loadFactChecking = () => import("./pages/FactChecking.tsx");
+const loadAccounts = () => import("./pages/Accounts.tsx");
+const loadPipelines = () => import("./pages/Pipelines.tsx");
+const loadDbSync = () => import("./pages/DbSync.tsx");
+const loadInfluenceMaximization = () => import("./pages/InfluenceMaximization.tsx");
+
+const Dashboard = lazy(loadDashboard);
+const Posts = lazy(loadPosts);
+const PostDetail = lazy(loadPostDetail);
+const Detection = lazy(loadDetection);
+const FactChecking = lazy(loadFactChecking);
+const Accounts = lazy(loadAccounts);
+const Pipelines = lazy(loadPipelines);
+const DbSync = lazy(loadDbSync);
+const InfluenceMaximization = lazy(loadInfluenceMaximization);
+
+const routeLoaders: Record<string, () => Promise<unknown>> = {
+  "/": loadDashboard,
+  "/posts": loadPosts,
+  "/accounts": loadAccounts,
+  "/detection": loadDetection,
+  "/fact-check": loadFactChecking,
+  "/influence-maximization": loadInfluenceMaximization,
+  "/pipelines": loadPipelines,
+  "/db-sync": loadDbSync,
+};
+
 import { NotificationProvider } from "./context/NotificationContext.tsx";
 import ErrorBoundary from "./components/ErrorBoundary.tsx";
+import EtichettaMono from "./components/narrativa/EtichettaMono.tsx";
 import { tokens } from "./theme.ts";
+import { isRouteActive } from "./utils/navigation.ts";
+import { prefetchRouteData } from "./api/queries.ts";
+import { CAPITOLI, capitoloDaRotta } from "./navigazione.ts";
+import { useQueryClient } from "@tanstack/react-query";
 
-const drawerWidth = 270;
+/**
+ * Larghezza della sidebar aperta e a riposo.
+ *
+ * A riposo resta la colonna delle icone; l'area contenuto e' dimensionata su
+ * quella misura e non si muove mai, perche' la sidebar aperta scorre *sopra* il
+ * contenuto invece di spingerlo. Spingerlo significherebbe ricalcolare il
+ * layout dell'intera pagina a ogni passaggio del mouse - e su questa
+ * applicazione vuol dire ridisegnare il canvas del grafo e i grafici recharts,
+ * che sarebbe visibilmente lento oltre che inutile.
+ */
+/** Larghezza fissa della sidebar su desktop. */
+const LARGHEZZA_SIDEBAR = 260;
 
-function NavigationContent() {
+/**
+ * Reindirizza le vecchie rotte per detector al capitolo unificato.
+ *
+ * Le quattro pagine "IA:" erano lo stesso componente con un parametro diverso;
+ * ora quel parametro e' un menu a tendina dentro un solo capitolo. I vecchi
+ * indirizzi restano validi perche' erano condivisibili, e un segnalibro che si
+ * apre su una pagina vuota e' peggio di una pagina cambiata.
+ */
+function RedirezioneDetector({ modello }: { modello?: string }) {
+  const params = useParams<{ detector?: string }>();
+  const scelto = modello ?? params.detector ?? "fastdetect";
+  return <Navigate to={`/detection?modello=${scelto}`} replace />;
+}
+
+/**
+ * Reindirizza il vecchio confronto fra detector all'Atto III del capitolo,
+ * traducendo i parametri che ha cambiato nome.
+ *
+ * `page` e `filter` non potevano restare tali e quali: nella pagina unificata
+ * `page` appartiene gia' all'elenco post dell'Atto II, e i due esploratori
+ * convivono nella stessa URL. Senza questa traduzione un segnalibro con dei
+ * filtri si aprirebbe sull'elenco completo, il che e' peggio di un errore
+ * perche' sembra funzionare.
+ */
+function RedirezioneConfronto() {
+  const [params] = useSearchParams();
+  const destinazione = new URLSearchParams();
+
+  const filtro = params.get("filter");
+  if (filtro) destinazione.set("filtro", filtro);
+  const pagina = params.get("page");
+  if (pagina) destinazione.set("cpage", pagina);
+  const ricerca = params.get("q");
+  if (ricerca) destinazione.set("q", ricerca);
+
+  const query = destinazione.toString();
+  return <Navigate to={`/detection${query ? `?${query}` : ""}`} replace />;
+}
+
+interface PropsNavigazione {
+  /** Chiude il pannello temporaneo su mobile dopo un clic. */
+  onNavigate?: () => void;
+}
+
+function NavigationContent({ onNavigate }: PropsNavigazione) {
   const location = useLocation();
-  
-  const menuItems = [
-    { text: "Dashboard", path: "/", icon: <DashboardIcon sx={{ fontSize: 20 }} /> },
-    { text: "Tutti i Post", path: "/posts", icon: <PostsIcon sx={{ fontSize: 20 }} /> },
-    { text: "IA: FastDetectGPT", path: "/ai-detection", icon: <AiIcon sx={{ fontSize: 20 }} /> },
-    { text: "IA: Binoculars", path: "/ai-detection-binoculars", icon: <AiIcon sx={{ fontSize: 20 }} /> },
-    { text: "IA: Desklib Detector", path: "/ai-detection-desklib", icon: <AiIcon sx={{ fontSize: 20 }} /> },
-    { text: "IA: AdaDetectGPT", path: "/ai-detection-ada", icon: <AiIcon sx={{ fontSize: 20 }} /> },
-    { text: "Confronto Detector", path: "/detector-comparison", icon: <CompareIcon sx={{ fontSize: 20 }} /> },
-    { text: "Fact Checking", path: "/fact-check", icon: <FactCheckIcon sx={{ fontSize: 20 }} /> },
-    { text: "Accounts & Bot", path: "/accounts", icon: <AccountsIcon sx={{ fontSize: 20 }} /> },
-    { text: "Influence Maximization", path: "/influence-maximization", icon: <InfluenceIcon sx={{ fontSize: 20 }} /> },
-    { text: "Pipelines", path: "/pipelines", icon: <PipelineIcon sx={{ fontSize: 20 }} /> },
-    { text: "Database Sync", path: "/db-sync", icon: <SyncIcon sx={{ fontSize: 20 }} /> },
-  ];
+  const queryClient = useQueryClient();
+
+  const handlePrefetch = (path: string) => {
+    // 1. Pre-scarica il bundle JS del componente lazy
+    if (routeLoaders[path]) {
+      routeLoaders[path]();
+    }
+    // 2. Pre-scarica i dati delle API via TanStack Query
+    prefetchRouteData(queryClient, path);
+  };
 
   return (
-    <Box sx={{ backgroundColor: tokens.color.canvas, height: "100%", borderRight: tokens.border.subtle, p: 2 }}>
-      {/* Brand Header */}
-      <Box sx={{ px: 1, py: 2, mb: 2 }}>
-        <Typography
-          variant="h6"
+    <Box
+      sx={{
+        backgroundColor: tokens.color.canvas,
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        p: 2,
+        overflowX: "hidden",
+        overflowY: "auto",
+        scrollbarWidth: "thin",
+        "&::-webkit-scrollbar": {
+          width: "4px",
+        },
+        "&::-webkit-scrollbar-thumb": {
+          backgroundColor: tokens.color.borderStrong,
+          borderRadius: "4px",
+        },
+      }}
+    >
+      {/* Brand & Monogram Lockup */}
+      <Box
+        component={Link}
+        to="/"
+        onClick={onNavigate}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
+          px: 1,
+          py: 1.5,
+          mb: 1.5,
+          textDecoration: "none",
+          color: "inherit",
+          borderRadius: "8px",
+          transition: "background-color 0.15s ease",
+          "&:hover": {
+            backgroundColor: tokens.color.surfaceStone,
+          },
+        }}
+      >
+        <Box
           sx={{
+            width: 32,
+            height: 32,
+            borderRadius: "8px",
+            backgroundColor: tokens.color.nearBlack,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: tokens.color.canvas,
             fontFamily: tokens.font.display,
             fontWeight: 700,
-            fontSize: "20px",
-            color: tokens.color.nearBlack,
+            fontSize: "13px",
             letterSpacing: "-0.5px",
+            flexShrink: 0,
           }}
         >
-          SNM.Intelligence
-        </Typography>
-        <Typography
-          variant="caption"
-          sx={{
-            fontFamily: tokens.font.mono,
-            fontSize: "11px",
-            color: tokens.color.textMuted,
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-            display: "block",
-            mt: 0.5,
-          }}
-        >
-          Enterprise AI Command
-        </Typography>
+          SNM
+        </Box>
+        <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+          <Typography
+            sx={{
+              fontFamily: tokens.font.display,
+              fontWeight: 700,
+              fontSize: "15px",
+              lineHeight: 1.2,
+              color: tokens.color.nearBlack,
+              letterSpacing: "-0.3px",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            SNM.Intelligence
+          </Typography>
+          <Typography
+            sx={{
+              fontFamily: tokens.font.mono,
+              fontSize: "10px",
+              fontWeight: 600,
+              letterSpacing: "0.06em",
+              color: tokens.color.textMuted,
+              textTransform: "uppercase",
+              lineHeight: 1.2,
+              mt: 0.25,
+            }}
+          >
+            Analisi del Fediverso
+          </Typography>
+        </Box>
       </Box>
 
-      <List sx={{ p: 0 }}>
-        {menuItems.map((item) => {
-          const isSelected =
-            item.path === "/"
-              ? location.pathname === "/"
-              : location.pathname.startsWith(item.path);
-          return (
-            <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
-              <ListItemButton
-                component={Link}
-                to={item.path}
-                selected={isSelected}
+      {/* Navigazione ordinata per capitoli della pipeline */}
+      <Box sx={{ flexGrow: 1 }}>
+        {CAPITOLI.map((capitolo, indice) => (
+          <Box key={capitolo.id} component="section" sx={{ mb: 1.5 }}>
+            {capitolo.id !== "panoramica" && (
+              <Box
                 sx={{
-                  py: 1.2,
-                  px: 2,
-                  borderRadius: "24px",
-                  transition: "all 0.15s ease-in-out",
-                  "&.Mui-selected": {
-                    backgroundColor: tokens.color.nearBlack,
-                    color: tokens.color.canvas,
-                    "&:hover": {
-                      backgroundColor: tokens.color.nearBlack,
-                    },
-                    "& .MuiListItemIcon-root": {
-                      color: tokens.color.canvas,
-                    },
-                  },
-                  "&:hover": {
-                    backgroundColor: isSelected ? tokens.color.nearBlack : tokens.color.softStone,
-                  },
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  px: 1,
+                  pt: 1.5,
+                  pb: 0.5,
+                  mt: indice > 1 ? 0.5 : 0,
                 }}
               >
-                <ListItemIcon sx={{ minWidth: 34, color: isSelected ? tokens.color.canvas : tokens.color.textMuted }}>
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText
-                  primary={item.text}
-                  primaryTypographyProps={{
-                    fontFamily: tokens.font.body,
-                    fontWeight: isSelected ? 600 : 500,
-                    fontSize: "14px",
+                {capitolo.numero && (
+                  <Box
+                    component="span"
+                    sx={{
+                      fontFamily: tokens.font.mono,
+                      fontSize: "10px",
+                      fontWeight: 700,
+                      // Il coral pieno su surfaceCoral da' 2.4:1 - a 10px e'
+                      // illeggibile. La variante inchiostro tiene la tinta e
+                      // arriva a 4.8:1.
+                      color: tokens.color.coralInk,
+                      backgroundColor: tokens.color.surfaceCoral,
+                      px: "5px",
+                      py: "1px",
+                      borderRadius: "4px",
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {capitolo.numero}
+                  </Box>
+                )}
+                <Typography
+                  sx={{
+                    fontFamily: tokens.font.mono,
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    color: tokens.color.textMuted,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
                   }}
-                />
-              </ListItemButton>
-            </ListItem>
-          );
-        })}
-      </List>
+                >
+                  {capitolo.etichetta}
+                </Typography>
+              </Box>
+            )}
+
+            <List sx={{ p: 0 }}>
+              {capitolo.voci.map((voce) => {
+                const isSelected = isRouteActive(location.pathname, voce.path);
+                const Icona = voce.icona;
+                return (
+                  <ListItem key={voce.path} disablePadding sx={{ mb: 0.3 }}>
+                    <ListItemButton
+                      component={Link}
+                      to={voce.path}
+                      selected={isSelected}
+                      onClick={onNavigate}
+                      onMouseEnter={() => handlePrefetch(voce.path)}
+                      onFocus={() => handlePrefetch(voce.path)}
+                      onTouchStart={() => handlePrefetch(voce.path)}
+                      sx={{
+                        py: 0.85,
+                        px: 1.25,
+                        borderRadius: "8px",
+                        transition: "all 0.15s ease-in-out",
+                        "&.Mui-selected": {
+                          backgroundColor: tokens.color.nearBlack,
+                          color: tokens.color.canvas,
+                          "&:hover": {
+                            backgroundColor: tokens.color.nearBlackHover,
+                          },
+                          "& .MuiListItemIcon-root": {
+                            color: tokens.color.coral,
+                          },
+                          "& .MuiListItemText-primary": {
+                            color: tokens.color.canvas,
+                            fontWeight: 600,
+                          },
+                        },
+                        "&:hover": {
+                          backgroundColor: isSelected
+                            ? tokens.color.nearBlackHover
+                            : tokens.color.softStone,
+                        },
+                      }}
+                    >
+                      <ListItemIcon
+                        sx={{
+                          minWidth: 28,
+                          color: isSelected ? tokens.color.coral : tokens.color.textMuted,
+                          transition: "color 0.15s ease",
+                        }}
+                      >
+                        <Icona sx={{ fontSize: 18 }} />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={voce.testo}
+                        primaryTypographyProps={{
+                          fontFamily: tokens.font.body,
+                          fontWeight: isSelected ? 600 : 500,
+                          fontSize: "13.5px",
+                          color: isSelected ? tokens.color.canvas : tokens.color.textPrimary,
+                          whiteSpace: "nowrap",
+                        }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                );
+              })}
+            </List>
+          </Box>
+        ))}
+      </Box>
+
+      {/* Footer minimalista della sidebar */}
+      <Box
+        sx={{
+          pt: 2,
+          pb: 0.5,
+          px: 1,
+          mt: "auto",
+          borderTop: tokens.border.subtle,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Box
+            sx={{
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              backgroundColor: tokens.color.success,
+              boxShadow: `0 0 6px ${tokens.color.success}`,
+            }}
+          />
+          <Typography
+            sx={{
+              fontFamily: tokens.font.mono,
+              fontSize: "11px",
+              color: tokens.color.textMuted,
+              fontWeight: 500,
+            }}
+          >
+            Fediverso Live
+          </Typography>
+        </Box>
+        <Typography
+          sx={{
+            fontFamily: tokens.font.mono,
+            fontSize: "10px",
+            color: tokens.color.textMuted,
+          }}
+        >
+          v1.0
+        </Typography>
+      </Box>
     </Box>
+  );
+}
+
+/**
+ * Indicatore del capitolo corrente nella barra superiore.
+ *
+ * Sostituisce una stringa fissa che era identica su tutte e dodici le pagine e
+ * quindi non diceva nulla: qui la barra conferma in che punto della narrazione
+ * ci si trova, con le stesse parole della sidebar.
+ */
+function CapitoloCorrente() {
+  const location = useLocation();
+  const capitolo = capitoloDaRotta(location.pathname);
+  if (!capitolo) return null;
+
+  return (
+    <EtichettaMono colore={tokens.color.textMuted} sx={{ fontSize: "12px" }}>
+      {capitolo.numero ? `Capitolo ${capitolo.numero} · ${capitolo.etichetta}` : capitolo.etichetta}
+    </EtichettaMono>
   );
 }
 
@@ -169,7 +439,6 @@ export default function App() {
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
-
 
   return (
     <ErrorBoundary>
@@ -184,17 +453,18 @@ export default function App() {
           <AppBar
             position="fixed"
             sx={{
-              width: { sm: `calc(100% - ${drawerWidth}px)` },
-              ml: { sm: `${drawerWidth}px` },
+              width: { sm: `calc(100% - ${LARGHEZZA_SIDEBAR}px)` },
+              ml: { sm: `${LARGHEZZA_SIDEBAR}px` },
               backgroundImage: "none",
               backgroundColor: "rgba(255, 255, 255, 0.9)",
               backdropFilter: "blur(8px)",
               color: tokens.color.textPrimary,
               boxShadow: "none",
               borderBottom: tokens.border.subtle,
+              zIndex: (tema) => tema.zIndex.appBar,
             }}
           >
-            <Toolbar sx={{ justifyContent: "space-between", height: "64px" }}>
+            <Toolbar sx={{ justifyContent: "space-between", height: "60px" }}>
               <IconButton
                 color="inherit"
                 aria-label="open drawer"
@@ -205,28 +475,14 @@ export default function App() {
                 <MenuIcon />
               </IconButton>
               
-              <Typography
-                variant="h6"
-                noWrap
-                component="div"
-                sx={{
-                  fontFamily: tokens.font.display,
-                  fontWeight: 500,
-                  fontSize: "16px",
-                  color: tokens.color.nearBlack,
-                }}
-              >
-                Information Analysis Platform
-              </Typography>
-
-
+              <CapitoloCorrente />
             </Toolbar>
           </AppBar>
 
           {/* Sidebar Navigation */}
           <Box
             component="nav"
-            sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+            sx={{ width: { sm: LARGHEZZA_SIDEBAR }, flexShrink: { sm: 0 } }}
           >
             <Drawer
               variant="temporary"
@@ -237,22 +493,34 @@ export default function App() {
               }}
               sx={{
                 display: { xs: "block", sm: "none" },
-                "& .MuiDrawer-paper": { boxSizing: "border-box", width: drawerWidth, border: "none" },
+                "& .MuiDrawer-paper": {
+                  boxSizing: "border-box",
+                  width: LARGHEZZA_SIDEBAR,
+                  borderRight: tokens.border.subtle,
+                },
               }}
             >
-              <NavigationContent />
+              <NavigationContent onNavigate={() => setMobileOpen(false)} />
             </Drawer>
             <Drawer
               variant="permanent"
+              open
+              PaperProps={{
+                "data-testid": "sidebar-desktop",
+              }}
               sx={{
                 display: { xs: "none", sm: "block" },
                 "& .MuiDrawer-paper": {
                   boxSizing: "border-box",
-                  width: drawerWidth,
-                  border: "none",
+                  width: LARGHEZZA_SIDEBAR,
+                  borderRight: tokens.border.subtle,
+                  borderTop: "none",
+                  borderLeft: "none",
+                  borderBottom: "none",
+                  backgroundColor: tokens.color.canvas,
+                  overflowX: "hidden",
                 },
               }}
-              open
             >
               <NavigationContent />
             </Drawer>
@@ -263,7 +531,7 @@ export default function App() {
             component="main"
             sx={{
               flexGrow: 1,
-              width: "100%",
+              width: { sm: `calc(100% - ${LARGHEZZA_SIDEBAR}px)` },
               minHeight: "100vh",
               pt: { xs: 8, sm: 9 },
               display: "flex",
@@ -274,7 +542,10 @@ export default function App() {
               <Suspense
                 fallback={
                   <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh" }}>
-                    <CircularProgress sx={{ color: tokens.color.coral }} />
+                    {/* Nero come `LoadingState`: erano due colori diversi per
+                        lo stesso significato, e il coral qui non diceva "bot"
+                        ne' nient'altro - era ornamento. */}
+                    <CircularProgress sx={{ color: tokens.color.nearBlack }} />
                   </Box>
                 }
               >
@@ -283,16 +554,23 @@ export default function App() {
                   <Route path="/posts" element={<Posts />} />
                   <Route path="/posts/:id" element={<PostDetail />} />
                   <Route path="/accounts" element={<Accounts />} />
-                  <Route path="/ai-detection" element={<AiDetection detectorKey="fastdetect" />} />
-                  <Route path="/ai-detection-binoculars" element={<AiDetection detectorKey="binoculars" />} />
-                  <Route path="/ai-detection-desklib" element={<AiDetection detectorKey="desklib" />} />
-                  <Route path="/ai-detection-ada" element={<AiDetection detectorKey="ada" />} />
-                  <Route path="/ai-detection/:detector" element={<AiDetection />} />
-                  <Route path="/detector-comparison" element={<DetectorComparison />} />
+                  <Route path="/detection" element={<Detection />} />
                   <Route path="/influence-maximization" element={<InfluenceMaximization />} />
                   <Route path="/fact-check" element={<FactChecking />} />
                   <Route path="/pipelines" element={<Pipelines />} />
                   <Route path="/db-sync" element={<DbSync />} />
+
+                  {/* Rotte precedenti al capitolo unificato: restano valide. */}
+                  <Route path="/ai-detection" element={<RedirezioneDetector modello="fastdetect" />} />
+                  <Route path="/ai-detection-binoculars" element={<RedirezioneDetector modello="binoculars" />} />
+                  <Route path="/ai-detection-desklib" element={<RedirezioneDetector modello="desklib" />} />
+                  <Route path="/ai-detection-ada" element={<RedirezioneDetector modello="ada" />} />
+                  <Route path="/ai-detection/:detector" element={<RedirezioneDetector />} />
+                  <Route path="/detector-comparison" element={<RedirezioneConfronto />} />
+
+                  {/* Qualsiasi altro indirizzo torna alla panoramica invece di
+                      lasciare l'area contenuto vuota senza spiegazione. */}
+                  <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Suspense>
             </Container>
@@ -310,9 +588,9 @@ export default function App() {
             >
               <Container maxWidth="xl" sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
                 <Typography variant="body2" sx={{ color: tokens.color.textMuted, fontWeight: 500 }}>
-                  SNM Project — Fediverse Social Network & AI Analysis
+                  SNM Project — Analisi del Fediverso: testo sintetico, bot e influenza
                 </Typography>
-                <Typography variant="caption" sx={{ color: tokens.color.textFaint, fontFamily: tokens.font.mono }}>
+                <Typography variant="caption" sx={{ color: tokens.color.textMuted, fontFamily: tokens.font.mono }}>
                   © {new Date().getFullYear()}
                 </Typography>
               </Container>

@@ -51,7 +51,7 @@ export default class ErrorBoundary extends Component<Props, State> {
                 height: 60,
                 borderRadius: "50%",
                 backgroundColor: "rgba(255, 119, 89, 0.12)",
-                color: tokens.color.coral,
+                color: tokens.color.coralInk,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",

@@ -1,5 +1,11 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "./client.ts";
+import {
+  useQuery,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
+import { api, type FiltriPost } from "./client.ts";
 
 /**
  * Custom TanStack Query Hooks per SNM.Intelligence.
@@ -9,8 +15,12 @@ import { api } from "./client.ts";
 
 export const queryKeys = {
   dashboard: ["dashboard"] as const,
-  posts: (lang: string[], page: number, pageSize: number) => ["posts", { lang, page, pageSize }] as const,
+  // Tutti i filtri entrano nella chiave: due viste filtrate diversamente sono
+  // due elenchi diversi, e condividere la cache mostrerebbe i post di una
+  // ricerca sotto i filtri di un'altra.
+  postsInfinite: (filtri: FiltriPost) => ["posts", "infinite", filtri] as const,
   postDetail: (id: number) => ["posts", "detail", id] as const,
+  corpus: ["corpus"] as const,
   accounts: ["accounts"] as const,
   aiDetection: (probBucket: string[], page: number, sortBy: string, detector: string) =>
     ["ai-detection", { probBucket, page, sortBy, detector }] as const,
@@ -38,10 +48,34 @@ export function useDashboardQuery() {
   });
 }
 
-export function usePostsQuery(lang: string[], page: number, pageSize: number = 25) {
+/**
+ * L'archivio dei post caricato per blocchi successivi invece che a pagine.
+ *
+ * Con la paginazione ogni clic sostituiva l'elenco e costringeva ad aspettare
+ * la risposta prima di poter leggere ancora: scorrere il corpus - che e' il
+ * compito del capitolo - voleva dire fermarsi ogni dieci post. Qui i blocchi si
+ * accumulano, quindi quanto e' gia' arrivato resta a schermo e leggibile mentre
+ * il successivo e' in volo.
+ *
+ * `getNextPageParam` si basa su `has_next` che il backend calcola gia': non si
+ * deduce la fine dell'elenco dal numero di elementi ricevuti, che sarebbe
+ * sbagliato quando l'ultimo blocco e' esattamente pieno.
+ */
+export function usePostsInfiniteQuery(filtri: FiltriPost) {
+  return useInfiniteQuery({
+    queryKey: queryKeys.postsInfinite(filtri),
+    queryFn: ({ pageParam }) => api.posts({ ...filtri, page: pageParam }),
+    initialPageParam: 1,
+    getNextPageParam: (ultimoBlocco, blocchi) =>
+      ultimoBlocco.has_next ? blocchi.length + 1 : undefined,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useCorpusQuery() {
   return useQuery({
-    queryKey: queryKeys.posts(lang, page, pageSize),
-    queryFn: () => api.posts(lang, page, pageSize),
+    queryKey: queryKeys.corpus,
+    queryFn: () => api.corpus(),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -163,4 +197,87 @@ export function usePipelineStopMutation() {
       queryClient.invalidateQueries({ queryKey: queryKeys.dbSync });
     },
   });
+}
+
+/**
+ * Pre-carica i dati delle query principali per una rotta al passaggio del mouse
+ * o focus sul link di navigazione.
+ */
+export function prefetchRouteData(queryClient: QueryClient, path: string) {
+  const staleTime = 5 * 60 * 1000;
+  if (path === "/") {
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.dashboard,
+      queryFn: () => api.dashboard(),
+      staleTime,
+    });
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.aiDetection([], 1, "id", "fastdetect"),
+      queryFn: () => api.aiDetection([], 1, "id", "fastdetect"),
+      staleTime,
+    });
+  } else if (path === "/posts") {
+    // `prefetchInfiniteQuery` e non `prefetchQuery`: la chiave e la forma dei
+    // dati di una query a blocchi sono diverse, e riempirla con una risposta
+    // singola lascerebbe la cache inutilizzabile - la pagina rifarebbe comunque
+    // la richiesta, e il prefetch sarebbe solo traffico sprecato.
+    // I filtri sono quelli predefiniti di Posts: con altri nella URL la chiave
+    // non combacia e il prefetch semplicemente non serve.
+    const filtriIniziali: FiltriPost = { lang: [], pageSize: 10, search: "", author: "tutti", order: "archivio" };
+    queryClient.prefetchInfiniteQuery({
+      queryKey: queryKeys.postsInfinite(filtriIniziali),
+      queryFn: () => api.posts({ ...filtriIniziali, page: 1 }),
+      initialPageParam: 1,
+      staleTime,
+    });
+    // La composizione del corpus apre la pagina: e' la prima cosa che si vede,
+    // quindi vale la pena averla gia' pronta.
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.corpus,
+      queryFn: () => api.corpus(),
+      staleTime,
+    });
+  } else if (path === "/detection") {
+    // Il capitolo apre sul modello predefinito e chiude sul confronto: si
+    // pre-caricano entrambi, perche' l'atto III e' raggiungibile scorrendo
+    // senza altra navigazione che potrebbe innescare un secondo prefetch.
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.aiDetection([], 1, "id", "fastdetect"),
+      queryFn: () => api.aiDetection([], 1, "id", "fastdetect"),
+      staleTime,
+    });
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.detectorComparisonSummary,
+      queryFn: () => api.detectorComparisonSummary(),
+      staleTime,
+    });
+  } else if (path === "/fact-check") {
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.factCheck([], 1, ""),
+      queryFn: () => api.factCheck([], 1, ""),
+      staleTime,
+    });
+  } else if (path === "/accounts") {
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.accounts,
+      queryFn: () => api.accounts(),
+      staleTime,
+    });
+  } else if (path === "/influence-maximization") {
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.influenceSummary,
+      queryFn: () => api.influenceSummary(),
+      staleTime: 10 * 60 * 1000,
+    });
+  } else if (path === "/pipelines") {
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.pipelines,
+      queryFn: () => api.pipelines(),
+    });
+  } else if (path === "/db-sync") {
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.dbSync,
+      queryFn: () => api.dbSync(),
+    });
+  }
 }

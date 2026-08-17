@@ -21,18 +21,28 @@ def test_health_check_returns_ok():
 
 
 class _FakeCursor:
-    """Stub cursor: ignora la query, restituisce sempre le stesse righe."""
+    """Stub cursor: restituisce sempre le stesse righe, senza interpretare la
+    query.
+
+    L'unica distinzione e' sui COUNT: da quando /api/posts chiede anche il
+    totale filtrato, la stessa forma di risposta non puo' servire entrambe le
+    interrogazioni - un conteggio e' una riga con un numero, non una riga di
+    post.
+    """
 
     def __init__(self, rows):
         self._rows = rows
+        self._last_query = ""
 
     def execute(self, query, params=None):
-        pass
+        self._last_query = query
 
     def fetchall(self):
         return self._rows
 
     def fetchone(self):
+        if "COUNT(*)" in self._last_query:
+            return (len(self._rows),)
         return self._rows[0] if self._rows else None
 
     def __enter__(self):
@@ -66,6 +76,61 @@ def test_posts_filters_by_lang():
     payload = response.json()
     assert payload["selected_langs"] == ["it"]
     assert any(post["content"] == "ciao" for post in payload["posts"])
+
+
+def test_posts_declares_the_filters_it_applied():
+    """La risposta rimanda indietro ricerca, autore e ordinamento: e' cio' che
+    permette al frontend di distinguere "nessun risultato" da "filtro caduto"."""
+    fake_row = (42, "it", "ciao", None, "acct", False, "example.com")
+    app.dependency_overrides[get_db] = lambda: _FakeConn([fake_row])
+    try:
+        client = TestClient(app)
+        response = client.get("/api/posts?q=ciao&author=bot&order=recenti&page_size=10")
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+    payload = response.json()
+    assert payload["search"] == "ciao"
+    assert payload["author"] == "bot"
+    assert payload["order"] == "recenti"
+    # La dimensione dichiarata e' quella richiesta, non la costante PAGE_SIZE.
+    assert payload["page_size"] == 10
+    assert payload["total_count"] == 1
+
+
+def test_posts_counts_the_corpus_only_where_it_is_affordable():
+    """Il totale si calcola alla prima pagina, l'unica il cui conteggio il
+    frontend legga: ripeterlo a ogni blocco sarebbe una scansione in piu' per
+    un dato che nessuno guarda."""
+    fake_row = (42, "it", "ciao", None, "acct", False, "example.com")
+    app.dependency_overrides[get_db] = lambda: _FakeConn([fake_row])
+    try:
+        client = TestClient(app)
+        prima = client.get("/api/posts?lang=xx-conteggio").json()
+        seconda = client.get("/api/posts?lang=xx-conteggio&page=2").json()
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+    assert prima["total_count"] == 1
+    assert seconda["total_count"] is None
+
+
+def test_posts_falls_back_on_unknown_sort_and_author():
+    """Un ordinamento sconosciuto non deve arrivare all'ORDER BY ne' produrre un
+    errore: una URL condivisa con un parametro vecchio continua a mostrare il
+    corpus."""
+    fake_row = (42, "it", "ciao", None, "acct", False, "example.com")
+    app.dependency_overrides[get_db] = lambda: _FakeConn([fake_row])
+    try:
+        client = TestClient(app)
+        response = client.get("/api/posts?order=; DROP TABLE statuses&author=marziani")
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["order"] == "archivio"
+    assert payload["author"] == "tutti"
 
 
 def test_pipelines_start_passes_body_param_to_start_job(monkeypatch):

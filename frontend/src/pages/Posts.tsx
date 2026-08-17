@@ -1,384 +1,251 @@
 import { useEffect } from "react";
+import { Box, Typography } from "@mui/material";
 import {
-  Typography,
-  Box,
-  Button,
-  CircularProgress,
-  Skeleton,
-  Stack,
-  List,
-  ListItem,
-  ListItemText,
-  Divider,
-  Paper,
-  Chip,
-  Grid,
-} from "@mui/material";
-import { Link } from "react-router-dom";
-import { usePostsQuery } from "../api/queries.ts";
-import { SmartToy as BotIcon, ArrowBack as PrevIcon, ArrowForward as NextIcon } from "@mui/icons-material";
+  useCorpusQuery,
+  useDetectorComparisonSummaryQuery,
+  usePostsInfiniteQuery,
+} from "../api/queries.ts";
+import PaginaCapitolo, { Sezione } from "../components/narrativa/PaginaCapitolo.tsx";
+import BandaScura from "../components/narrativa/BandaScura.tsx";
+import { useAttoInVista } from "../components/narrativa/useAttoInVista.ts";
+import ComposizioneCorpus from "../components/corpus/atto1/ComposizioneCorpus.tsx";
+import FiltriCorpus from "../components/corpus/atto2/FiltriCorpus.tsx";
+import ElencoCorpus from "../components/corpus/atto2/ElencoCorpus.tsx";
+import CoperturaRilevatori from "../components/corpus/atto3/CoperturaRilevatori.tsx";
+import { ATTI_CORPUS } from "../components/corpus/corpusContent.ts";
+import { CAPITOLO_CORPUS } from "../navigazione.ts";
 import { tokens } from "../theme.ts";
-import { EmptyState } from "../components/States.tsx";
-import { formatDateTime } from "../utils/format.ts";
-import { useUrlList, useUrlNumber } from "../hooks/useUrlState.ts";
+import { formatNumber, formatPercent } from "../utils/format.ts";
+import { useUrlList, useUrlNumber, useUrlString } from "../hooks/useUrlState.ts";
+import { useDebounce } from "../hooks/useDebounce.ts";
+import { useSentinella } from "../hooks/useSentinella.ts";
 
+const [ATTO_COMPOSIZIONE, ATTO_ARCHIVIO, ATTO_GIUDIZIO] = ATTI_CORPUS;
+
+/**
+ * Tetto ai blocchi che la URL puo' chiedere di ripristinare. Senza, un
+ * indirizzo con `?pagine=5000` innescherebbe cinquemila richieste in fila al
+ * caricamento della pagina.
+ */
+const MAX_BLOCCHI = 200;
+
+/**
+ * Filtri dell'archivio. Cambiandone uno il conteggio dei blocchi torna a 1
+ * nella STESSA scrittura della URL: due setter separati si sovrascriverebbero
+ * (vedi OpzioniScrittura in useUrlState) e il reset andrebbe perso.
+ */
+const AZZERA_BLOCCHI = { azzera: ["pagine"] };
+
+/**
+ * Il capitolo sul corpus, in tre atti: di che materiale e' fatto, com'e' fatto
+ * un post alla volta, e quanta parte di esso e' poi finita sotto i rilevatori.
+ *
+ * Era un elenco con una colonna di caselle di spunta: mostrava i post senza
+ * dire mai di che cosa fossero un campione - quante lingue, quante istanze,
+ * quale arco di tempo - e chiudeva senza spiegare che rapporto avesse con il
+ * capitolo seguente. Le tre domande adesso sono dichiarate, e l'archivio resta
+ * dove serve, in mezzo, con la larghezza intera invece di nove dodicesimi.
+ */
 export default function Posts() {
-  // Filtri nella URL: la vista diventa condivisibile e il tasto Indietro
-  // ripercorre i filtri invece di uscire dalla pagina.
-  const [selectedLangs, setSelectedLangs] = useUrlList("lang");
-  const [page, setPage] = useUrlNumber("page", 1);
-  const [pageSize, setPageSize] = useUrlNumber("size", 10);
+  // Tutto lo stato di navigazione vive nella URL: la vista resta condivisibile
+  // e il tasto Indietro ripercorre i filtri invece di uscire dalla pagina.
+  const [lingue, setLingue] = useUrlList("lang");
+  const [ricerca, setRicerca] = useUrlString("q");
+  const [autore, setAutore] = useUrlString("autore", "tutti");
+  const [ordinamento, setOrdinamento] = useUrlString("ordine", "archivio");
+  const [postPerBlocco, setPostPerBlocco] = useUrlNumber("size", 10);
+  // Quanti blocchi mostrare. Ha preso il posto del numero di pagina: l'elenco
+  // ora si accumula, ma il conteggio resta nella URL perche' tornando indietro
+  // da un post si deve ritrovare l'elenco lungo com'era, non riportato in cima.
+  const [blocchiRichiesti, setBlocchiRichiesti] = useUrlNumber("pagine", 1);
 
-  const { data, isLoading: loading, isError } = usePostsQuery(selectedLangs, page, pageSize);
-  const error = isError ? "Impossibile caricare l'elenco dei post." : null;
+  // La ricerca non parte a ogni tasto premuto: altrimenti scrivere "elezioni"
+  // sarebbero otto richieste, di cui sette gia' obsolete quando arrivano.
+  const ricercaRitardata = useDebounce(ricerca, 400);
 
-  // Lo scroll in cima e' un effetto collaterale del cambio pagina, non del
-  // caricamento dei dati: resta un effect, ma non fa piu' da fetch.
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [page, selectedLangs, pageSize]);
-
-  const handleLangToggle = (langCode: string) => {
-    const next = selectedLangs.includes(langCode)
-      ? selectedLangs.filter((l) => l !== langCode)
-      : [...selectedLangs, langCode];
-    setSelectedLangs(next);
-    setPage(1);
+  const filtri = {
+    lang: lingue,
+    pageSize: postPerBlocco,
+    search: ricercaRitardata,
+    author: autore,
+    order: ordinamento,
   };
 
-  const formatTime = formatDateTime;
+  const {
+    data,
+    isLoading,
+    isError,
+    isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = usePostsInfiniteQuery(filtri);
 
-  if (loading && !data) {
-    return (
-      <Box sx={{ p: 2 }}>
-        <Skeleton variant="text" width={180} height={28} sx={{ mb: 2, borderRadius: tokens.radius.md }} />
-        <Skeleton variant="rectangular" width="40%" height={40} sx={{ mb: 4, borderRadius: tokens.radius.md }} />
-        <Stack spacing={2}>
-          {[1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} variant="rectangular" height={100} sx={{ borderRadius: tokens.radius.lg, backgroundColor: "#f9f8f6" }} />
-          ))}
-        </Stack>
-      </Box>
-    );
-  }
+  const { data: corpus, isError: erroreCorpus } = useCorpusQuery();
+  const { data: sintesi, isError: erroreSintesi } = useDetectorComparisonSummaryQuery();
+
+  const blocchiCaricati = data?.pages.length ?? 0;
+  const daMostrare = Math.min(Math.max(1, blocchiRichiesti), MAX_BLOCCHI);
+  const post = data?.pages.flatMap((blocco) => blocco.posts) ?? [];
+  const lingueDisponibili = data?.pages[0]?.available_langs ?? [];
+  const totaleFiltrato = data?.pages[0]?.total_count;
+
+  // Vero mentre l'elenco viene ricostruito da capo dopo un cambio di filtro,
+  // con quello vecchio ancora a schermo: basta un filetto di avanzamento e un
+  // velo, non uno spinner che sostituisce tutto (DESIGN.md non usa spinner:
+  // superfici piatte e filetti sottili). Il caricamento di un blocco in coda
+  // non conta: ha un indicatore suo, in fondo all'elenco.
+  const staAggiornando = isFetching && !isFetchingNextPage && blocchiCaricati > 0;
+
+  // Unico punto in cui si chiede altro contenuto: sia la sentinella sia il
+  // bottone si limitano ad alzare il numero di blocchi richiesti, e questo
+  // effetto allinea il caricato al richiesto. Averne uno solo e' cio' che
+  // permette alla URL di ripristinare un elenco lungo senza una seconda
+  // strada che faccia la stessa cosa in modo leggermente diverso.
+  useEffect(() => {
+    if (blocchiCaricati === 0 || blocchiCaricati >= daMostrare) return;
+    if (!hasNextPage || isFetchingNextPage) return;
+    fetchNextPage();
+  }, [blocchiCaricati, daMostrare, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Il tetto entra nella condizione invece di limitarsi a tagliare il valore:
+  // altrimenti a duemila post il bottone resterebbe a schermo senza fare piu'
+  // nulla, che e' peggio che non averlo.
+  const altroDisponibile = hasNextPage === true && blocchiCaricati < MAX_BLOCCHI;
+
+  const caricaAltro = () => {
+    if (!altroDisponibile || isFetchingNextPage) return;
+    setBlocchiRichiesti(blocchiCaricati + 1);
+  };
+
+  const sentinella = useSentinella(altroDisponibile && !isFetchingNextPage, caricaAltro);
+
+  // Lo scroll in cima segue il cambio dei filtri, non il caricamento. La
+  // dipendenza e' una stringa e non gli array dei filtri: `useUrlList` ne
+  // costruisce uno nuovo a ogni modifica della URL, quindi anche il bottone
+  // "carica altri" - che scrive `pagine` - riportava la lettura in cima.
+  const chiaveFiltri = `${lingue.join(",")}|${ricercaRitardata}|${autore}|${ordinamento}|${postPerBlocco}`;
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [chiaveFiltri]);
+
+  const cambiaLingua = (codice: string) => {
+    const prossime = lingue.includes(codice)
+      ? lingue.filter((lingua) => lingua !== codice)
+      : [...lingue, codice];
+    setLingue(prossime, AZZERA_BLOCCHI);
+  };
+
+  const azzeraFiltri = () => {
+    // Una sola scrittura per tre parametri: separate, si sovrascriverebbero.
+    setLingue([], { azzera: ["pagine", "q", "autore"] });
+  };
+
+  const attoAttivo = useAttoInVista(ATTI_CORPUS, true);
+
+  const quotaBot =
+    corpus && corpus.posts_total > 0 ? (corpus.posts_bot / corpus.posts_total) * 100 : null;
 
   return (
-    <Box>
-      <Box sx={{ mb: 6 }}>
+    <PaginaCapitolo
+      numero={CAPITOLO_CORPUS.numero}
+      capitolo={CAPITOLO_CORPUS.etichetta}
+      titolo="I post raccolti dal Fediverso"
+      guida="Il materiale grezzo del progetto, prima che qualsiasi modello lo giudichi: da dove viene, che forma ha, e quanta parte di esso e' poi finita sotto gli occhi dei rilevatori."
+      atti={ATTI_CORPUS}
+      attoAttivo={attoAttivo}
+    >
+      <Sezione atto={ATTO_COMPOSIZIONE}>
+        {erroreCorpus ? (
+          <Typography variant="body2" sx={{ color: tokens.color.danger }}>
+            Impossibile caricare la composizione del corpus. Verificare che il backend sia in
+            esecuzione.
+          </Typography>
+        ) : (
+          <ComposizioneCorpus dati={corpus} />
+        )}
+      </Sezione>
 
-        <Typography
-          variant="h2"
-          sx={{
-            fontFamily: tokens.font.display,
-            fontWeight: 400,
-            fontSize: { xs: "32px", md: "48px" },
-            color: tokens.color.nearBlack,
-            mb: 1,
-          }}
-        >
-          Fediverse Status Archive
-        </Typography>
-        <Typography variant="body1" sx={{ color: tokens.color.textMuted }}>
-          Inspect raw posts collected from discovered Mastodon instances with language filtering.
+      {/* La cifra che giustifica l'atto seguente sta fra i due, non dentro uno
+          dei due: e' il passaggio dal corpus come insieme al corpus come
+          singoli post da leggere. */}
+      {corpus && quotaBot != null && (
+        <BandaScura
+          larghezza="colonna"
+          occhiello="Il materiale grezzo"
+          titolo={`${formatNumber(corpus.posts_total)} post, e nessuno ancora giudicato`}
+          testo={
+            "Da qui in avanti tutto il progetto lavora su questo insieme. L'unica etichetta gia' " +
+            "presente e' quella che gli account si sono dati da soli: dichiararsi bot non dice " +
+            "come sia stato scritto il testo, ed e' esattamente la distanza che i capitoli " +
+            "successivi provano a misurare."
+          }
+          // Cifre che non ripetono quelle dell'Atto I: la banda aggiunge, non
+          // riassume.
+          cifre={[
+            { valore: formatPercent(quotaBot), etichetta: "Post da account dichiarati bot" },
+            {
+              valore: formatNumber(corpus.posts_senza_lingua),
+              etichetta: "Post che non dichiarano una lingua",
+            },
+          ]}
+        />
+      )}
+
+      <Sezione atto={ATTO_ARCHIVIO}>
+        <FiltriCorpus
+          lingueDisponibili={lingueDisponibili}
+          lingueSelezionate={lingue}
+          onCambiaLingua={cambiaLingua}
+          onAzzeraFiltri={azzeraFiltri}
+          ricerca={ricerca}
+          onCambiaRicerca={(valore) => setRicerca(valore, AZZERA_BLOCCHI)}
+          autore={autore}
+          onCambiaAutore={(valore) => setAutore(valore, AZZERA_BLOCCHI)}
+          ordinamento={ordinamento}
+          onCambiaOrdinamento={(valore) => setOrdinamento(valore, AZZERA_BLOCCHI)}
+          risultati={totaleFiltrato}
+        />
+
+        <ElencoCorpus
+          ref={sentinella}
+          post={post}
+          errore={isError}
+          caricamentoIniziale={isLoading && !data}
+          staAggiornando={staAggiornando}
+          caricandoAltro={isFetchingNextPage}
+          altroDisponibile={altroDisponibile}
+          onCaricaAltro={caricaAltro}
+          postPerBlocco={postPerBlocco}
+          onCambiaPostPerBlocco={(valore) => setPostPerBlocco(valore, AZZERA_BLOCCHI)}
+          totale={totaleFiltrato}
+          avvisoLimite={
+            hasNextPage && blocchiCaricati >= MAX_BLOCCHI
+              ? `Raggiunto il limite di ${formatNumber(
+                  MAX_BLOCCHI * postPerBlocco,
+                )} post per sessione. Restringi con un filtro per vedere il resto.`
+              : null
+          }
+        />
+      </Sezione>
+
+      <Sezione atto={ATTO_GIUDIZIO}>
+        <CoperturaRilevatori
+          modelli={sintesi?.models}
+          postTotali={corpus?.posts_total}
+          errore={erroreSintesi}
+        />
+      </Sezione>
+
+      {/* Chiusura del capitolo: cosa questo corpus non e'. */}
+      <Box sx={{ borderTop: tokens.border.subtle, pt: 4 }}>
+        <Typography variant="body2" sx={{ color: tokens.color.textMuted, maxWidth: "70ch" }}>
+          Il corpus non e&#39; un campione rappresentativo del Fediverso: il crawler parte da un
+          elenco di argomenti e segue le istanze che trova, quindi lingue e comunita&#39; qui
+          rappresentate dipendono da quel punto di partenza. Le cifre di questa pagina descrivono
+          cio&#39; che e&#39; stato raccolto, non cio&#39; che esiste.
         </Typography>
       </Box>
-
-      <Grid container spacing={4}>
-        {/* Left Side Filters */}
-        <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 3, borderRadius: tokens.radius.lg, border: tokens.border.subtle, backgroundColor: tokens.color.canvas }}>
-            <Typography variant="caption" sx={{ color: tokens.color.textMuted, mb: 2, fontWeight: 700, letterSpacing: "0.5px", display: "block" }}>
-              FILTRA PER LINGUA
-            </Typography>
-            {data && data.available_langs.length > 0 ? (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                {data.available_langs.map((langCode) => {
-                  const isChecked = selectedLangs.includes(langCode);
-                  return (
-                    <Box
-                      key={langCode}
-                      onClick={() => handleLangToggle(langCode)}
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1.5,
-                        p: 1,
-                        borderRadius: "10px",
-                        cursor: "pointer",
-                        backgroundColor: isChecked ? tokens.color.surfaceCoral : "transparent",
-                        border: isChecked ? `1px solid ${tokens.color.coralLight}` : "1px solid transparent",
-                        transition: "all 0.15s ease",
-                        "&:hover": { backgroundColor: "#f9f8f6" },
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => {}} // Handled by container onClick
-                        style={{ cursor: "pointer", accentColor: tokens.color.coral }}
-                      />
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontFamily: tokens.font.mono,
-                          fontWeight: isChecked ? 700 : 500,
-                          fontSize: "13px",
-                          color: isChecked ? tokens.color.coral : tokens.color.nearBlack,
-                        }}
-                      >
-                        {langCode.toUpperCase()}
-                      </Typography>
-                    </Box>
-                  );
-                })}
-
-                {selectedLangs.length > 0 && (
-                  <Button
-                    size="small"
-                    variant="text"
-                    onClick={() => {
-                      setSelectedLangs([]);
-                      setPage(1);
-                    }}
-                    sx={{ color: tokens.color.coral, textTransform: "none", fontSize: "12px", alignSelf: "flex-start", mt: 1 }}
-                  >
-                    Reset filtri ({selectedLangs.length})
-                  </Button>
-                )}
-              </Box>
-            ) : (
-              <Typography variant="body2" sx={{ color: tokens.color.textMuted }}>
-                Nessuna lingua disponibile.
-              </Typography>
-            )}
-          </Paper>
-        </Grid>
-
-        {/* Post list */}
-        <Grid item xs={12} md={9}>
-          {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
-              <CircularProgress />
-            </Box>
-          ) : error || !data || data.posts.length === 0 ? (
-            <EmptyState message="Nessun post corrisponde ai filtri selezionati." />
-          ) : (
-            <Box>
-              <Paper sx={{ borderRadius: tokens.radius.lg, border: tokens.border.subtle, overflow: "hidden", mb: 4, backgroundColor: tokens.color.canvas }}>
-                <List sx={{ p: 0 }}>
-                  {data.posts.map((post, idx) => (
-                    <div key={post.id}>
-                      <ListItem
-                        sx={{
-                          p: 3,
-                          alignItems: "flex-start",
-                          transition: "background-color 0.15s ease",
-                          "&:hover": {
-                            backgroundColor: tokens.color.surfaceBlue, // Pale Blue Wash
-                          },
-                        }}
-                      >
-                        <ListItemText
-                          primary={
-                            <Box>
-                              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.5 }}>
-                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                  <Typography variant="subtitle2" sx={{ fontWeight: 600, color: tokens.color.nearBlack }}>
-                                    {post.acct}
-                                  </Typography>
-                                  <Chip
-                                    label={post.domain}
-                                    size="small"
-                                    sx={{
-                                      borderRadius: tokens.radius.md,
-                                      fontSize: "11px",
-                                      backgroundColor: tokens.color.softStone,
-                                      color: tokens.color.textPrimary,
-                                    }}
-                                  />
-                                  {post.language && (
-                                    <Chip
-                                      label={post.language.toUpperCase()}
-                                      size="small"
-                                      sx={{
-                                        borderRadius: tokens.radius.md,
-                                        fontSize: "11px",
-                                        backgroundColor: tokens.color.coral, // Coral Chip
-                                        color: tokens.color.canvas,
-                                        fontFamily: tokens.font.mono,
-                                      }}
-                                    />
-                                  )}
-                                  {post.bot && (
-                                    <Chip
-                                      icon={<BotIcon style={{ fontSize: 14, color: tokens.color.canvas }} />}
-                                      label="BOT"
-                                      size="small"
-                                      sx={{
-                                        borderRadius: tokens.radius.md,
-                                        fontSize: "11px",
-                                        backgroundColor: tokens.color.nearBlack,
-                                        color: tokens.color.canvas,
-                                      }}
-                                    />
-                                  )}
-                                </Box>
-                                <Typography variant="caption" sx={{ color: tokens.color.textFaint }}>
-                                  {formatTime(post.created_at)}
-                                </Typography>
-                              </Box>
-
-                              {/* 4 AI Detectors Scores Row */}
-                              <Box sx={{ display: "flex", gap: 1, mb: 1.5, flexWrap: "wrap" }}>
-                                <Chip
-                                  size="small"
-                                  label={`FastDetectGPT: ${post.fastdetect_prob != null ? (post.fastdetect_prob * 100).toFixed(1) + "%" : "N/D"}`}
-                                  sx={{
-                                    fontFamily: tokens.font.mono,
-                                    fontSize: "10px",
-                                    fontWeight: 600,
-                                    backgroundColor: post.fastdetect_prob != null && post.fastdetect_prob >= 0.5 ? tokens.color.surfaceCoral : tokens.color.surfaceBlue,
-                                    color: post.fastdetect_prob != null && post.fastdetect_prob >= 0.5 ? tokens.color.coral : tokens.color.actionBlue,
-                                    border: "1px solid",
-                                    borderColor: post.fastdetect_prob != null && post.fastdetect_prob >= 0.5 ? tokens.color.coralLight : tokens.color.chipBorderHuman,
-                                  }}
-                                />
-                                <Chip
-                                  size="small"
-                                  label={`Binoculars: ${post.binoculars_prob != null ? (post.binoculars_prob * 100).toFixed(1) + "%" : "N/D"}`}
-                                  sx={{
-                                    fontFamily: tokens.font.mono,
-                                    fontSize: "10px",
-                                    fontWeight: 600,
-                                    backgroundColor: post.binoculars_prob != null && post.binoculars_prob >= 0.5 ? "#edfce9" : tokens.color.surfaceBlue,
-                                    color: post.binoculars_prob != null && post.binoculars_prob >= 0.5 ? tokens.color.deepGreen : tokens.color.actionBlue,
-                                    border: "1px solid",
-                                    borderColor: post.binoculars_prob != null && post.binoculars_prob >= 0.5 ? tokens.color.chipBorderHumanGreen : tokens.color.chipBorderHuman,
-                                  }}
-                                />
-                                <Chip
-                                  size="small"
-                                  label={`Desklib: ${post.desklib_prob != null ? (post.desklib_prob * 100).toFixed(1) + "%" : "N/D"}`}
-                                  sx={{
-                                    fontFamily: tokens.font.mono,
-                                    fontSize: "10px",
-                                    fontWeight: 600,
-                                    backgroundColor: post.desklib_prob != null && post.desklib_prob >= 0.5 ? tokens.color.surfaceCoral : tokens.color.surfaceBlue,
-                                    color: post.desklib_prob != null && post.desklib_prob >= 0.5 ? tokens.color.coral : tokens.color.actionBlue,
-                                    border: "1px solid",
-                                    borderColor: post.desklib_prob != null && post.desklib_prob >= 0.5 ? tokens.color.coralLight : tokens.color.chipBorderHuman,
-                                  }}
-                                />
-                                <Chip
-                                  size="small"
-                                  label={`AdaDetect: ${post.ada_prob != null ? (post.ada_prob * 100).toFixed(1) + "%" : "N/D"}`}
-                                  sx={{
-                                    fontFamily: tokens.font.mono,
-                                    fontSize: "10px",
-                                    fontWeight: 600,
-                                    backgroundColor: post.ada_prob != null && post.ada_prob >= 0.5 ? tokens.color.surfacePurple : tokens.color.surfaceBlue,
-                                    color: post.ada_prob != null && post.ada_prob >= 0.5 ? tokens.color.purple : tokens.color.actionBlue,
-                                    border: "1px solid",
-                                    borderColor: post.ada_prob != null && post.ada_prob >= 0.5 ? tokens.color.borderPurple : tokens.color.chipBorderHuman,
-                                  }}
-                                />
-                              </Box>
-                            </Box>
-                          }
-                          secondary={
-                            <Box sx={{ mt: 1 }}>
-                              <Typography
-                                variant="body1"
-                                sx={{
-                                  whiteSpace: "pre-wrap",
-                                  mb: 2,
-                                  display: "-webkit-box",
-                                  WebkitLineClamp: 3,
-                                  WebkitBoxOrient: "vertical",
-                                  overflow: "hidden",
-                                  color: tokens.color.textPrimary,
-                                }}
-                              >
-                                {post.content}
-                              </Typography>
-                              <Link
-                                to={`/posts/${post.id}`}
-                                style={{
-                                  color: tokens.color.actionBlue,
-                                  textDecoration: "underline",
-                                  fontSize: "14px",
-                                  fontWeight: 500,
-                                }}
-                              >
-                                View Detailed Inspection &rarr;
-                              </Link>
-                            </Box>
-                          }
-                        />
-                      </ListItem>
-                      {idx < data.posts.length - 1 && <Divider sx={{ borderColor: tokens.color.border }} />}
-                    </div>
-                  ))}
-                </List>
-              </Paper>
-
-              {/* Pagination & Page Size Control */}
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
-                <Button
-                  variant="outlined"
-                  startIcon={<PrevIcon />}
-                  disabled={page <= 1}
-                  onClick={() => setPage(page - 1)}
-                  sx={{ borderRadius: tokens.radius.pill, textTransform: "none", fontSize: "13px" }}
-                >
-                  Indietro
-                </Button>
-
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <Typography variant="caption" sx={{ color: tokens.color.textMuted, fontWeight: 500 }}>
-                    Pagina {page}
-                  </Typography>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Typography variant="caption" sx={{ color: tokens.color.textMuted }}>
-                      Post per pagina:
-                    </Typography>
-                    <select
-                      value={pageSize}
-                      onChange={(e) => {
-                        setPageSize(Number(e.target.value));
-                        setPage(1);
-                      }}
-                      style={{
-                        padding: "4px 8px",
-                        borderRadius: tokens.radius.sm,
-                        border: "1px solid #d1d5db",
-                        fontSize: "12px",
-                        fontFamily: tokens.font.body,
-                        cursor: "pointer",
-                        backgroundColor: tokens.color.canvas,
-                      }}
-                    >
-                      <option value={10}>10</option>
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                    </select>
-                  </Box>
-                </Box>
-
-                <Button
-                  variant="outlined"
-                  endIcon={<NextIcon />}
-                  disabled={!data.has_next}
-                  onClick={() => setPage(page + 1)}
-                  sx={{ borderRadius: tokens.radius.pill, textTransform: "none", fontSize: "13px" }}
-                >
-                  Avanti
-                </Button>
-              </Box>
-            </Box>
-          )}
-        </Grid>
-      </Grid>
-    </Box>
+    </PaginaCapitolo>
   );
 }
