@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
-import { useReducedMotion } from "framer-motion";
+import { useMovimentoRidotto } from "../hooks/useMovimentoRidotto.ts";
 import type { Simulation, SimulationNodeDatum } from "d3-force";
 import {
   Box,
@@ -52,7 +52,7 @@ export default function GraphHero() {
    * rivelazione produce alla fine. Quindi non si spegne l'animazione lasciando
    * una tela vuota: si parte dal fotogramma finale.
    */
-  const riduciMovimento = useReducedMotion();
+  const riduciMovimento = useMovimentoRidotto();
 
   // Raw data from API
   const [allNodes, setAllNodes] = useState<GraphNode[]>([]);
@@ -514,12 +514,24 @@ export default function GraphHero() {
 
         ctx.save();
 
-        let baseColor = tokens.color.success;
-        let glowColor = "rgba(16, 185, 129, 0.4)";
+        // Le tinte dei nodi sono `graphBot` / `graphHuman`, cioe' i due token
+        // che DESIGN.md dichiara proprio per questo ("nodo bot e nodo umano nel
+        // grafo dei follow, su fondo scuro").
+        //
+        // Prima i nodi usavano `coral` e `success` mentre le particelle che
+        // corrono sugli archi usavano gia' `graphBot` / `graphHuman`: due
+        // sistemi di colore per la stessa distinzione, nello stesso canvas.
+        // Non era un dettaglio estetico - rendeva la legenda **falsa**, perche'
+        // descriveva i pallini con tinte diverse da quelle che si vedevano
+        // scorrere sugli archi. `success` per giunta significa "stato positivo"
+        // altrove, e qui veniva usato per dire "non dichiarato bot", che non e'
+        // affatto la stessa cosa.
+        let baseColor = tokens.color.graphHuman;
+        let glowColor = "rgba(56, 189, 248, 0.4)";
 
         if (n.bot) {
-          baseColor = tokens.color.coral;
-          glowColor = "rgba(255, 119, 89, 0.5)";
+          baseColor = tokens.color.graphBot;
+          glowColor = "rgba(255, 82, 82, 0.5)";
         } else if (n.group === "instance" || (n.degree && n.degree >= 5)) {
           baseColor = tokens.color.accentCyan;
           glowColor = "rgba(0, 229, 255, 0.5)";
@@ -754,7 +766,9 @@ export default function GraphHero() {
     <Paper
       elevation={0}
       sx={{
-        borderRadius: "28px",
+        // Raggio dalla scala token (22px, "angoli generosi sui riquadri di
+        // contenuto"): erano 28px, un valore che non esiste nel sistema.
+        borderRadius: tokens.radius.xl,
         backgroundColor: tokens.color.darkGraph,
         color: tokens.color.canvas,
         p: { xs: 3, md: 4 },
@@ -762,33 +776,14 @@ export default function GraphHero() {
         position: "relative",
         overflow: "hidden",
         border: "1px solid rgba(255, 255, 255, 0.08)",
-        boxShadow: "0 20px 40px -15px rgba(0,0,0,0.5)",
+        // Nessuna ombra: in questo sistema la profondita' viene dall'alternanza
+        // di superficie, e il salto dal canvas bianco a questo fondo scuro la
+        // fa gia' tutta da solo. I due gradienti radiali che stavano qui -
+        // uno coral in alto a sinistra, uno ciano in basso a destra - erano
+        // ornamento puro, cioe' esattamente cio' che DESIGN.md vieta quando
+        // dice che il colore arriva dai dati.
       }}
     >
-      {/* Background Decorative Ambient Radial Gradients */}
-      <Box
-        sx={{
-          position: "absolute",
-          top: "-20%",
-          left: "-10%",
-          width: "50%",
-          height: "80%",
-          background: "radial-gradient(circle, rgba(255,119,89,0.15) 0%, rgba(0,0,0,0) 70%)",
-          pointerEvents: "none",
-        }}
-      />
-      <Box
-        sx={{
-          position: "absolute",
-          bottom: "-20%",
-          right: "-10%",
-          width: "50%",
-          height: "80%",
-          background: "radial-gradient(circle, rgba(0,229,255,0.15) 0%, rgba(0,0,0,0) 70%)",
-          pointerEvents: "none",
-        }}
-      />
-
       {/* Header, Search & Controls Toolbar */}
       <GraphToolbar
         graphMode={graphMode}
@@ -831,7 +826,7 @@ export default function GraphHero() {
           }}
         >
           <Typography variant="caption" sx={{ color: tokens.color.darkSlateDeep, textTransform: "uppercase", fontSize: "10px" }}>
-            NODES LOADED
+            ACCOUNT MOSTRATI
           </Typography>
           <Typography variant="h6" sx={{ fontFamily: tokens.font.display, fontWeight: 700, color: tokens.color.canvas }}>
             {visibleCount} <span style={{ fontSize: "12px", color: tokens.color.darkSlateDeep }}>/ {allNodes.length}</span>
@@ -849,9 +844,11 @@ export default function GraphHero() {
           }}
         >
           <Typography variant="caption" sx={{ color: tokens.color.darkSlateDeep, textTransform: "uppercase", fontSize: "10px" }}>
-            ACTIVE EDGES
+            RELAZIONI ATTIVE
           </Typography>
-          <Typography variant="h6" sx={{ fontFamily: tokens.font.display, fontWeight: 700, color: tokens.color.accentCyan }}>
+          {/* Bianco e non ciano: e' un conteggio, non un'istanza hub, e il
+              ciano su questa superficie significa gia' quello. */}
+          <Typography variant="h6" sx={{ fontFamily: tokens.font.display, fontWeight: 700, color: tokens.color.canvas }}>
             {activeLinksCount}
           </Typography>
         </Box>
@@ -867,9 +864,12 @@ export default function GraphHero() {
           }}
         >
           <Typography variant="caption" sx={{ color: tokens.color.darkSlateDeep, textTransform: "uppercase", fontSize: "10px" }}>
-            BOT RATIO
+            DICHIARATI BOT
           </Typography>
-          <Typography variant="h6" sx={{ fontFamily: tokens.font.display, fontWeight: 700, color: tokens.color.coral }}>
+          {/* `graphBot` e non `coral`: sulla stessa superficie i nodi bot sono
+              gia' di questa tinta, e affiancare i due rossi del sistema
+              farebbe leggere due categorie dove ce n'e' una. */}
+          <Typography variant="h6" sx={{ fontFamily: tokens.font.display, fontWeight: 700, color: tokens.color.graphBot }}>
             {botRatio}%
           </Typography>
         </Box>
@@ -881,11 +881,14 @@ export default function GraphHero() {
           position: "relative",
           width: "100%",
           height: isFullscreen ? "75vh" : "440px",
-          borderRadius: "20px",
+          borderRadius: tokens.radius.lg,
           backgroundColor: tokens.color.darkSurface,
           border: "1px solid rgba(255, 255, 255, 0.08)",
           overflow: "hidden",
-          transition: "all 0.3s ease",
+          // Nessuna transizione: `all` includeva `height`, cioe' una proprieta'
+          // di layout, e ingrandire il riquadro costringeva il browser a
+          // rifare il layout e a ridimensionare il canvas per 300 ms - proprio
+          // mentre l'animazione dei nodi sta girando.
         }}
       >
         <canvas
@@ -962,30 +965,54 @@ export default function GraphHero() {
             position: "absolute",
             top: 16,
             left: 16,
-            backgroundColor: "rgba(15, 23, 42, 0.75)",
-            backdropFilter: "blur(8px)",
+            backgroundColor: tokens.color.darkSurface,
             px: 2,
             py: 1,
-            borderRadius: "24px",
+            borderRadius: tokens.radius.pill,
             border: "1px solid rgba(255, 255, 255, 0.1)",
           }}
         >
+          {/*
+            I pallini portano le stesse tinte con cui il canvas disegna i nodi
+            (`graphBot` / `graphHuman`): finche' la legenda diceva coral e
+            verde mentre il grafo mostrava altro, era una legenda sbagliata,
+            non solo incoerente.
+
+            Il pallino dei bot ha il punto bianco al centro perche' **ce l'ha
+            anche il nodo**: e' l'unico tratto che distingue le due categorie
+            senza affidarsi al colore, e una legenda che lo omette lascia chi
+            non distingue rosso e azzurro senza alcun appiglio.
+          */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: tokens.color.coral }} />
+            <Box
+              sx={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                backgroundColor: tokens.color.graphBot,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Box sx={{ width: 4, height: 4, borderRadius: "50%", backgroundColor: tokens.color.canvas }} />
+            </Box>
             <Typography variant="caption" sx={{ color: tokens.color.darkSlateLight, fontSize: "11px" }}>
-              Bot Node
+              Dichiarato bot
             </Typography>
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: tokens.color.success }} />
+            <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: tokens.color.graphHuman }} />
+            {/* "Non dichiarato bot", non "utente umano": il campo del profilo e'
+                auto-dichiarato e la sua assenza non certifica una persona. */}
             <Typography variant="caption" sx={{ color: tokens.color.darkSlateLight, fontSize: "11px" }}>
-              Human User
+              Non dichiarato bot
             </Typography>
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: tokens.color.accentCyan }} />
             <Typography variant="caption" sx={{ color: tokens.color.darkSlateLight, fontSize: "11px" }}>
-              Hub Instance
+              Istanza molto collegata
             </Typography>
           </Box>
         </Stack>
@@ -999,8 +1026,8 @@ export default function GraphHero() {
             position: "absolute",
             top: 14,
             right: 14,
-            backgroundColor: "rgba(15, 23, 42, 0.75)",
-            backdropFilter: "blur(8px)",
+            backgroundColor: tokens.color.darkSurface,
+            border: "1px solid rgba(255, 255, 255, 0.1)",
             color: tokens.color.canvas,
             "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.2)" },
           }}
@@ -1011,15 +1038,14 @@ export default function GraphHero() {
         {/* Hover / Selected Node Tooltip Card (Bottom Left inside Canvas) */}
         {hoveredNode && (
           <Paper
-            elevation={6}
+            elevation={0}
             sx={{
               position: "absolute",
               bottom: 16,
               left: 16,
               p: 2,
               borderRadius: tokens.radius.lg,
-              backgroundColor: "rgba(15, 23, 42, 0.9)",
-              backdropFilter: "blur(12px)",
+              backgroundColor: tokens.color.darkSurface,
               border: "1px solid rgba(255, 255, 255, 0.15)",
               maxWidth: 320,
               zIndex: 10,
@@ -1030,26 +1056,33 @@ export default function GraphHero() {
                 {hoveredNode.bot ? (
                   <Chip
                     icon={<BotIcon sx={{ fontSize: "14px !important", color: `${tokens.color.nearBlack} !important` }} />}
-                    label="BOT DETECTED"
+                    // "DICHIARATO BOT" e non "BOT DETECTED": nessuno ha
+                    // *rilevato* nulla: e' il profilo stesso a dichiararsi
+                    // automatizzato. La formula inglese prometteva un
+                    // accertamento che questa cifra non ha fatto.
+                    label="DICHIARATO BOT"
                     size="small"
-                    sx={{ backgroundColor: tokens.color.coral, color: tokens.color.nearBlack, fontWeight: 700, fontSize: "10px" }}
+                    sx={{ backgroundColor: tokens.color.graphBot, color: tokens.color.nearBlack, fontWeight: 700, fontSize: "10px" }}
                   />
                 ) : hoveredNode.group === "instance" ? (
                   <Chip
                     icon={<HubIcon sx={{ fontSize: "14px !important", color: `${tokens.color.black} !important` }} />}
-                    label="HUB INSTANCE"
+                    label="ISTANZA HUB"
                     size="small"
                     sx={{ backgroundColor: tokens.color.accentCyan, color: tokens.color.black, fontWeight: 700, fontSize: "10px" }}
                   />
                 ) : (
                   <Chip
                     icon={<HumanIcon sx={{ fontSize: "14px !important", color: `${tokens.color.nearBlack} !important` }} />}
-                    label="HUMAN USER"
+                    // Non "HUMAN USER": `tinte.ts` lo dice per esteso - questa
+                    // categoria significa "account che non si dichiara bot", e
+                    // *non* "verificato umano". L'etichetta precedente
+                    // affermava piu' di quanto il dato sostenga.
+                    label="NON DICHIARATO BOT"
                     size="small"
-                    // Nero e non bianco: il bianco sul verde di stato da' 2.6:1
-                    // a 10px in grassetto, il nero 7.0:1. Stessa scelta della
-                    // pastiglia coral nei filtri del corpus.
-                    sx={{ backgroundColor: tokens.color.success, color: tokens.color.nearBlack, fontWeight: 700, fontSize: "10px" }}
+                    // Nero e non bianco: il nero su questa tinta da' 7.8:1 a
+                    // 10px in grassetto, il bianco resterebbe sotto soglia.
+                    sx={{ backgroundColor: tokens.color.graphHuman, color: tokens.color.nearBlack, fontWeight: 700, fontSize: "10px" }}
                   />
                 )}
               </Stack>
@@ -1057,13 +1090,18 @@ export default function GraphHero() {
                 {hoveredNode.label}
               </Typography>
               <Typography variant="caption" sx={{ color: tokens.color.darkSlate, display: "block", mt: 0.5 }}>
-                Domain: <strong style={{ color: tokens.color.darkSlateLight }}>{hoveredNode.domain || "fediverse"}</strong>
+                Dominio: <strong style={{ color: tokens.color.darkSlateLight }}>{hoveredNode.domain || "non indicato"}</strong>
               </Typography>
               <Typography variant="caption" sx={{ color: tokens.color.darkSlate, display: "block" }}>
-                Network Connections: <strong style={{ color: tokens.color.accentCyan }}>{hoveredNode.degree || 1}</strong>
+                Collegamenti: <strong style={{ color: tokens.color.darkSlateLight }}>{hoveredNode.degree || 1}</strong>
               </Typography>
-              <Typography variant="caption" sx={{ color: tokens.color.coral, fontSize: "10px", display: "block", mt: 0.5 }}>
-                👉 Clicca per aprire il popup metadati completo!
+              {/* Era «👉 Clicca per aprire il popup metadati completo!»: emoji
+                  direzionale, gergo («popup») ed esclamativo, nel punto piu'
+                  guardato di una pagina il cui tono dichiarato e' da
+                  laboratorio. Cita anche Invio, perche' il canvas si percorre
+                  con le frecce e la scheda si apre da tastiera. */}
+              <Typography variant="caption" sx={{ color: tokens.color.darkSlate, fontSize: "11px", display: "block", mt: 0.5 }}>
+                Clicca o premi Invio per aprire la scheda dell'account.
               </Typography>
             </Box>
           </Paper>

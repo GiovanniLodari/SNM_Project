@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useReducedMotion } from "framer-motion";
+import { useMovimentoRidotto } from "../hooks/useMovimentoRidotto.ts";
 import {
   Box,
   Typography,
@@ -89,7 +89,7 @@ export default function InfluenceGraphCanvas({
    * ripercorrerla al proprio passo, o il comando di avvio se la vuole vedere
    * scorrere davvero.
    */
-  const riduciMovimento = useReducedMotion();
+  const riduciMovimento = useMovimentoRidotto();
 
   // Timeline Simulation Controls
   const [currentStep, setCurrentStep] = useState<number>(0);

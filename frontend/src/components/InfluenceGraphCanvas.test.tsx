@@ -6,20 +6,26 @@ import type { InfluenceGraphLink, InfluenceGraphNode } from "../api/client.ts";
 // ECharts monta un canvas vero e misura il contenitore: in jsdom non disegna
 // nulla e rallenta soltanto. Qui interessa il guscio - comandi, nomi
 // accessibili, stato della riproduzione - non cosa la libreria dipinge.
-vi.mock("echarts-for-react", () => ({
+//
+// Il bersaglio e' `utils/echarts.tsx`, il nostro involucro, e non piu'
+// "echarts-for-react": il componente importa quello. Un mock che punta al
+// pacchetto non intercetterebbe piu' nulla e questi test tornerebbero a
+// montare ECharts davvero - senza fallire, solo diventando lenti e verificando
+// qualcosa di diverso da cio' che dichiarano.
+vi.mock("../utils/echarts.tsx", () => ({
   default: () => <div data-testid="grafico-echarts" />,
+  ReactECharts: () => <div data-testid="grafico-echarts" />,
 }));
 
 /**
  * La preferenza sul movimento si detta qui, non attraverso `window.matchMedia`.
  *
- * framer-motion legge la media query una volta sola e ne tiene il risultato in
- * un valore condiviso a livello di modulo: simulando `matchMedia` prima di ogni
- * render, il primo test del file fissava la preferenza per tutti gli altri, e i
- * casi "a movimento ridotto" giravano con la preferenza del caso precedente.
- * Mockando l'hook il controllo torna al singolo test - ed e' comunque il
- * contratto che interessa verificare: cosa fa questo componente quando la
- * preferenza e' attiva, non come framer-motion la scopre.
+ * Ora che l'hook e' nostro (`hooks/useMovimentoRidotto.ts`) la preferenza e'
+ * reattiva e non piu' fissata al primo import, quindi simulare `matchMedia`
+ * funzionerebbe. Resta comunque un mock perche' e' il contratto che interessa
+ * verificare - cosa fa *questo* componente quando la preferenza e' attiva, non
+ * come l'hook la scopre - e perche' `matchMedia` in jsdom andrebbe simulata a
+ * mano in ogni caso.
  *
  * `vi.hoisted` non e' un vezzo: `vi.mock` viene sollevata in cima al file e il
  * suo factory gira al primo import del modulo mockato, cioe' prima che una
@@ -30,8 +36,9 @@ const { riduciMovimentoMock } = vi.hoisted(() => ({
   riduciMovimentoMock: vi.fn(() => false),
 }));
 
-vi.mock("framer-motion", () => ({
-  useReducedMotion: () => riduciMovimentoMock(),
+vi.mock("../hooks/useMovimentoRidotto.ts", () => ({
+  useMovimentoRidotto: () => riduciMovimentoMock(),
+  default: () => riduciMovimentoMock(),
 }));
 
 function dichiaraPreferenzaMovimento(riduci: boolean) {

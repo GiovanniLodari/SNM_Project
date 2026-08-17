@@ -1,12 +1,46 @@
 import { Box, Button, Grid, Typography } from "@mui/material";
 import { Link } from "react-router-dom";
-import { motion, useReducedMotion } from "framer-motion";
 import { ArrowForward as ArrowIcon, SouthEast as ScrollIcon } from "@mui/icons-material";
 import type { DashboardStats } from "../../api/client.ts";
 import { tokens } from "../../theme.ts";
 import { formatNumber } from "../../utils/format.ts";
+import { useMovimentoRidotto } from "../../hooks/useMovimentoRidotto.ts";
 import HeroMetric from "./HeroMetric.tsx";
 import { ANCORA_COME_FUNZIONA, HERO } from "./homeContent.ts";
+
+/**
+ * Dissolvenza d'ingresso della hero: 0,4s, stessa curva di prima
+ * (`cubic-bezier(.16,1,.3,1)`, una ease-out-quint), stessi 10px di scorrimento.
+ *
+ * Era l'unico uso di `motion` in tutta l'applicazione, e si portava dietro il
+ * motore completo di framer-motion sulla rotta d'ingresso. In CSS l'effetto e'
+ * identico ma composito - `opacity` e `transform` soltanto - e non costa
+ * JavaScript.
+ *
+ * La sezione e' **visibile per definizione**: `opacity: 1` e' lo stato
+ * dichiarato nella regola, e l'animazione parte da 0 con `from`. Gestirla al
+ * contrario (opacita' zero di base, portata a uno da una classe) lascerebbe la
+ * hero in bianco ovunque l'animazione non parta - schede in secondo piano,
+ * render headless, screenshot - che e' esattamente il difetto che una hero non
+ * puo' permettersi.
+ */
+const ANIMAZIONE_INGRESSO = {
+  "@keyframes heroIngresso": {
+    from: { opacity: 0, transform: "translateY(10px)" },
+    to: { opacity: 1, transform: "none" },
+  },
+  opacity: 1,
+  // Senza `fill-mode`: `to` coincide con lo stato dichiarato qui sopra, quindi
+  // non c'e' nulla da trattenere a fine corsa - e soprattutto niente
+  // `backwards` che terrebbe la sezione a opacita' zero dove l'animazione non
+  // parte affatto.
+  animation: "heroIngresso 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+  // La preferenza di sistema si rispetta qui e non con un ramo in JavaScript:
+  // la media query vale anche se lo stato React non e' ancora allineato.
+  "@media (prefers-reduced-motion: reduce)": {
+    animation: "none",
+  },
+} as const;
 
 interface HomeHeroProps {
   /** Null finche' la dashboard non risponde, o se la chiamata fallisce. */
@@ -24,7 +58,7 @@ interface HomeHeroProps {
  * testo introduttivo resta leggibile anche a backend spento.
  */
 export default function HomeHero({ stats, loading }: HomeHeroProps) {
-  const riduciMovimento = useReducedMotion();
+  const riduciMovimento = useMovimentoRidotto();
 
   const scorriACommeFunziona = () => {
     document.getElementById(ANCORA_COME_FUNZIONA)?.scrollIntoView({
@@ -58,11 +92,8 @@ export default function HomeHero({ stats, loading }: HomeHeroProps) {
 
   return (
     <Box
-      component={motion.section}
-      initial={riduciMovimento ? false : { opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-      sx={{ pt: { xs: 4, md: 7 }, pb: { xs: 5, md: 8 } }}
+      component="section"
+      sx={{ ...ANIMAZIONE_INGRESSO, pt: { xs: 4, md: 7 }, pb: { xs: 5, md: 8 } }}
     >
       <Typography
         variant="caption"

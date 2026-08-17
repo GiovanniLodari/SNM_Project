@@ -16,28 +16,44 @@ export default defineConfig({
       },
     },
   },
+  // `vite preview` non eredita `server.proxy`: senza questo blocco l'unico modo
+  // di guardare il bundle di produzione era servirlo dietro al backend, e le
+  // verifiche finivano per farsi tutte in sviluppo - dove i chunk non esistono
+  // e i pesi reali non si vedono.
+  preview: {
+    port: 4173,
+    proxy: {
+      "/api": {
+        target: "http://127.0.0.1:8088",
+        changeOrigin: true,
+      },
+    },
+  },
   build: {
     outDir: "dist",
     rollupOptions: {
       output: {
         /**
-         * Separa le dipendenze che non cambiano mai dal codice che cambia a
-         * ogni modifica.
+         * Isola React dal codice dell'applicazione.
          *
-         * Senza questa divisione React, MUI, emotion e il router finivano
-         * nello stesso chunk d'ingresso del codice dell'applicazione: 481 kB
-         * che il browser riscaricava per intero anche dopo aver corretto una
-         * stringa in una pagina, perche' l'hash del file cambiava comunque.
-         * Divisi, una consegna che tocca solo l'interfaccia lascia valida la
-         * copia in cache della parte grossa.
+         * React, react-dom e il router servono su ogni rotta, quindi
+         * raggrupparli non anticipa nulla che non arriverebbe comunque; in
+         * cambio una consegna che tocca solo l'interfaccia lascia valida la
+         * copia in cache di 165 kB che prima venivano riscaricati per intero
+         * a ogni modifica, perche' stavano nello stesso chunk d'ingresso.
          *
-         * `echarts` e `recharts` non sono elencati di proposito: sono gia'
-         * isolati dalle rotte lazy, e forzarli qui li anticiperebbe al primo
-         * caricamento, che e' l'opposto di cio' che serve.
+         * **MUI non e' elencato di proposito, ed e' stato provato.** Messo qui
+         * produce un chunk unico da 398 kB caricato su ogni rotta; lasciato a
+         * rollup viene diviso per uso reale - il guscio (drawer, appbar,
+         * elenco) nell'ingresso, e TextField, Chip, Dialog, ToggleButton nei
+         * chunk condivisi delle pagine che li aprono davvero. Sulla Panoramica,
+         * che non ha campi ne' modali, la differenza misurata e' di circa
+         * 200 kB in meno. Lo stesso vale per `echarts` e `recharts`: gia'
+         * isolati dalle rotte lazy, elencarli qui li anticiperebbe al primo
+         * caricamento.
          */
         manualChunks: {
           react: ["react", "react-dom", "react-router-dom"],
-          mui: ["@mui/material", "@emotion/react", "@emotion/styled"],
         },
       },
     },
