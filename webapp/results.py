@@ -6,7 +6,7 @@ import time
 from collections import OrderedDict
 from pathlib import Path
 
-# Cache in memoria per file che vengono riletti a ogni richiesta (ai_scores.jsonl,
+# Cache in memoria per file che vengono riletti a ogni richiesta (ai_scores_fast_detect.jsonl,
 # fact_check_report.csv, post_texts.jsonl - fino a centinaia di MB, crescono per
 # append durante le pipeline in corso). Chiave = (path, extra); valore =
 # (impronta, istante d'uso, risultato). Un nuovo batch scritto dalla pipeline
@@ -15,7 +15,7 @@ from pathlib import Path
 # solo senza rileggere l'intero file quando non e' cambiato nulla.
 #
 # Le voci scadono: parsati in memoria questi file pesano molto piu' che su disco
-# (misurato: ai_scores.jsonl 27 MB -> ~123 MB di heap, ada_scores 29 MB -> ~245
+# (misurato: ai_scores_fast_detect.jsonl 27 MB -> ~123 MB di heap, ada_scores 29 MB -> ~245
 # MB), e senza scadenza i quattro detector restavano residenti per sempre anche
 # quando nessuno stava piu' guardando la pagina che li usa. Il TTL li libera
 # quando si smette di consultarli; il tetto sul numero di voci e' una seconda
@@ -97,7 +97,7 @@ def _cached_load(path: Path, extra_key, loader):
 
 
 def load_ai_scores(path: Path) -> dict[int, dict]:
-    """Legge ai_scores.jsonl (prodotto da fast-detect-gpt/scripts/snm_detect.py),
+    """Legge ai_scores_fast_detect.jsonl (prodotto da fast-detect-gpt/scripts/snm_detect.py),
     indicizzato per id status. File assente = nessun risultato ancora (dict vuoto,
     non un errore: la pipeline potrebbe non essere ancora partita). Righe
     troncate/corrotte dall'ultimo flush mancato vengono ignorate, non sollevano errore."""
@@ -747,7 +747,7 @@ def load_desklib_scores(path: Path) -> dict[int, dict]:
 
 
 def load_ada_scores(path: Path) -> dict[int, dict]:
-    """Legge ai_scores_ada_local.jsonl (AdaDetectGPT Local), indicizzato per id status.
+    """Legge ai_scores_ada_detect.jsonl (AdaDetectGPT Local), indicizzato per id status.
     Gestisce NaN e righe malformate senza sollevare errori."""
     if not path.exists():
         return {}

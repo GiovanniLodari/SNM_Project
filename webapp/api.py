@@ -1248,3 +1248,29 @@ def influence_comparison():
     return influence_service.get_algo_comparison()
 
 
+# ------------------------------------------------------------------
+# Endpoints per Misinformation Impact (MC IC per-post e per-gruppo)
+# ------------------------------------------------------------------
+from webapp import misinformation as mis_service  # noqa: E402
+
+
+@router.get("/misinformation-impact/topics")
+def mis_topics():
+    return mis_service.get_topics()
+
+
+@router.get("/misinformation-impact/summary")
+def mis_summary(topic: str = Query(default="generale")):
+    return mis_service.get_summary(topic)
+
+
+@router.get("/misinformation-impact/group-summary")
+def mis_group_summary(topic: str = Query(default="generale")):
+    return mis_service.get_group_summary(topic)
+
+
+@router.get("/misinformation-impact/boost-summary")
+def mis_boost_summary(topic: str = Query(default="generale")):
+    return mis_service.get_boost_summary(topic)
+
+

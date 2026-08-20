@@ -211,7 +211,7 @@ PIPELINES = {
         "cwd": PROJECT_ROOT / "fast-detect-gpt",
         "command": lambda param: [
             PYTHON_EXE, "scripts/snm_detect.py",
-            "--input", "../post_texts.jsonl", "--output", "ai_scores.jsonl",
+            "--input", "../post_texts.jsonl", "--output", "ai_scores_fast_detect.jsonl",
         ],
         "takes_param": None,
     },

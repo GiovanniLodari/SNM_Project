@@ -15,7 +15,7 @@ Lingua di lavoro: italiano (codice, commenti, documentazione).
 ```
 SNM_Project/
 ├── db/schema.sql              # schema Postgres (unica fonte di verità sulle tabelle)
-├── data/ai_scores.jsonl       # risultati AI detection (completo, condiviso via git)
+├── data/ai_scores_fast_detect.jsonl       # risultati AI detection (completo, condiviso via git)
 ├── post_texts.jsonl           # corpus testi (input pipeline IA/fact-check, condiviso via git)
 ├── pipeline.py                # pipeline principale: raccolta post per argomento
 ├── instance_blacklist.txt     # istanze Mastodon da evitare (verificate manualmente)
@@ -35,7 +35,7 @@ SNM_Project/
 ```
 
 File/cartelle **non tracciate** ma rilevanti per far girare il progetto (gitignorate, ognuna col motivo):
-- `fast-detect-gpt/` — tool esterno per l'AI detection (repo git a sé, ha il proprio `.git`); il suo output finale viene copiato in `data/ai_scores.jsonl` per essere condiviso.
+- `fast-detect-gpt/` — tool esterno per l'AI detection (repo git a sé, ha il proprio `.git`); il suo output finale viene copiato in `data/ai_scores_fast_detect.jsonl` per essere condiviso.
 - `fisso/` — copia di lavoro dei codici che girano sul secondo PC (quello con GPU).
 - `cache/` — modelli HuggingFace scaricati per il checkworthiness.
 - `checkworthy_scores.jsonl`, `fact_check_report*.csv` — risultati fact-checking/checkworthiness, restano locali finché non revisionati (vedi sezione "Dati non ancora condivisi" più sotto).
@@ -60,9 +60,9 @@ File/cartelle **non tracciate** ma rilevanti per far girare il progetto (gitigno
 - `ai_labels`, `fact_checks` — tabelle predisposte per i risultati IA/fact-check quando verranno importati nel DB (oggi i risultati vivono come file flat, vedi sotto).
 Colonne aggiunte via `ALTER TABLE` (con commento nello schema stesso sul perché): `enriched_at`, `source`, `deleted_at`, `veracity`, `timeline_crawled_at`, `followers_crawled_at`, `following_crawled_at`.
 
-**`data/ai_scores.jsonl`** — Risultato completo dell'AI detection (Fast-DetectGPT): una riga JSON per post, `{"id", "probability", "criterion", "ntokens", "model"}`. **Completo al 100%** (192.822/192.822 post eligible, aggiornato 2026-08-03). Tracciato in git deliberatamente (non nella cartella `fast-detect-gpt/`, che è un repo git annidato e gitignorata) così i colleghi lo hanno senza dover installare/eseguire il tool esterno.
+**`data/ai_scores_fast_detect.jsonl`** — Risultato completo dell'AI detection (Fast-DetectGPT): una riga JSON per post, `{"id", "probability", "criterion", "ntokens", "model"}`. **Completo al 100%** (192.822/192.822 post eligible, aggiornato 2026-08-03). Tracciato in git deliberatamente (non nella cartella `fast-detect-gpt/`, che è un repo git annidato e gitignorata) così i colleghi lo hanno senza dover installare/eseguire il tool esterno.
 
-**`post_texts.jsonl`** — Corpus testi filtrato (id, lingua, testo ripulito da HTML, data pubblicazione), prodotto da `snm/analysis/export_texts.py`. È l'input di tutte e tre le pipeline di analisi contenutistica (AI detection, checkworthiness, fact-check). Tracciato in git: senza, `data/ai_scores.jsonl` sarebbe solo un elenco id→probabilità senza testo, illeggibile senza un DB importato e collegato.
+**`post_texts.jsonl`** — Corpus testi filtrato (id, lingua, testo ripulito da HTML, data pubblicazione), prodotto da `snm/analysis/export_texts.py`. È l'input di tutte e tre le pipeline di analisi contenutistica (AI detection, checkworthiness, fact-check). Tracciato in git: senza, `data/ai_scores_fast_detect.jsonl` sarebbe solo un elenco id→probabilità senza testo, illeggibile senza un DB importato e collegato.
 
 **`pipeline.py`** — La pipeline principale di raccolta: per ogni topic in `topic_list.txt`, trova le istanze Mastodon più popolari (via instances.social), scopre gli hashtag più usati su quelle istanze, scarica i post recenti con quegli hashtag. Raccolta incrementale (riparte dal cursore `since_id` dell'ultimo run). Multi-istanza in parallelo (thread pool, un worker per dominio — il rate limit Mastodon è per server, istanze diverse non si intralciano). Se un'istanza rifiuta l'accesso anonimo, tenta automaticamente la registrazione di un account (vedi `instance_registration.py`).
 
@@ -140,14 +140,14 @@ FastAPI + Jinja2, pensata per girare solo in locale (no autenticazione, no build
 - **`main.py`** — Tutte le route. Dashboard (statistiche generali), `/posts` (sfoglia post dal DB, filtro lingua a checkbox multi-selezione), `/ai-detection` e `/fact-check` (sfoglia risultati completi paginati, con filtri a checkbox su probabilità/lingua/verdetto — i risultati vengono dai file jsonl/csv, non dal DB), `/accounts` (incrocio bot/produzione IA), `/pipelines` (supervisore, sotto), `/db-sync` (export/import DB, sotto).
 - **`jobs.py`** — Supervisore pipeline: avvia/monitora/ferma gli script di raccolta e analisi dal browser invece che da terminale. Ogni pipeline registrata in `PIPELINES` con nome, comando, se accetta un parametro. Lanciati come processi "detached" (sopravvivono a un riavvio della webapp), stato vivo/morto sempre ricalcolato da `tasklist` (mai fidarsi della sola presenza del PID file). `parse_progress()` estrae una percentuale reale dall'ultimo log se riconosce un pattern "N/M" (quasi tutte le pipeline lo stampano), altrimenti la webapp mostra una barra generica "in corso".
 - **`queries.py`** — Query dirette al DB per la webapp (elenco post con filtro lingua multi-selezione, dettaglio post, conteggi account/bot, lingue distinte per popolare i filtri).
-- **`results.py`** — Caricamento e analisi dei file di risultato (`ai_scores.jsonl`, `fact_check_report.csv`) con cache in memoria (invalidata su cambio dimensione/data del file, evita di rileggere file grandi a ogni richiesta). Funzioni di filtro (per probabilità, per verdetto) e statistiche (istogramma probabilità, conteggio verdetti).
+- **`results.py`** — Caricamento e analisi dei file di risultato (`ai_scores_fast_detect.jsonl`, `fact_check_report.csv`) con cache in memoria (invalidata su cambio dimensione/data del file, evita di rileggere file grandi a ogni richiesta). Funzioni di filtro (per probabilità, per verdetto) e statistiche (istogramma probabilità, conteggio verdetti).
 - **`templates/`** — Una pagina HTML per route (`dashboard.html`, `posts.html`, `post_detail.html`, `accounts.html`, `ai_detection.html`, `fact_check.html`, `pipelines.html`, `db_sync.html`), estendono tutte `base.html` (CSS condiviso, tema chiaro/scuro automatico, barra di navigazione).
 
 ---
 
 ## Dati non ancora condivisi (gated)
 
-`checkworthy_scores.jsonl` (cache checkworthiness) e `fact_check_report.csv` (risultati fact-check, ancora in corso) restano **file locali, non tracciati in git**: la decisione presa è di condividerli con i colleghi solo dopo revisione dei risultati (o importarli nel DB tramite `import_ai_labels.py`/funzioni equivalenti quando pronte). L'AI detection (`data/ai_scores.jsonl`) è invece completa e già condivisa, come descritto sopra.
+`checkworthy_scores.jsonl` (cache checkworthiness) e `fact_check_report.csv` (risultati fact-check, ancora in corso) restano **file locali, non tracciati in git**: la decisione presa è di condividerli con i colleghi solo dopo revisione dei risultati (o importarli nel DB tramite `import_ai_labels.py`/funzioni equivalenti quando pronte). L'AI detection (`data/ai_scores_fast_detect.jsonl`) è invece completa e già condivisa, come descritto sopra.
 
 ---
 
@@ -156,5 +156,5 @@ FastAPI + Jinja2, pensata per girare solo in locale (no autenticazione, no build
 1. `pip install -r requirements.txt` (+ `requirements-dev.txt` per i test).
 2. `.env` con `DATABASE_URL` e, se serve raccogliere dati nuovi, i token Mastodon/API esterne (vedi `snm/config.py`, `snm/collection/instance_registration.py`).
 3. `python -m snm.storage.db` non esiste come comando a sé: lo schema si inizializza automaticamente (`init_schema`) al primo avvio di qualunque pipeline.
-4. Per avere subito dati e risultati senza raccogliere nulla: importare un export DB di un collega (`webapp` → `/db-sync` → Importa), usare `data/ai_scores.jsonl` già incluso, e `post_texts.jsonl` già incluso.
+4. Per avere subito dati e risultati senza raccogliere nulla: importare un export DB di un collega (`webapp` → `/db-sync` → Importa), usare `data/ai_scores_fast_detect.jsonl` già incluso, e `post_texts.jsonl` già incluso.
 5. `uvicorn webapp.main:app --port 8080` per la webapp; da lì, sezione Pipeline per avviare/monitorare tutto il resto.

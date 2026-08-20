@@ -177,6 +177,41 @@ export function useInfluenceComparisonQuery() {
   });
 }
 
+export function useMisinfoTopicsQuery() {
+  return useQuery({
+    queryKey: ["misinfo", "topics"],
+    queryFn: () => api.misinfoTopics(),
+    staleTime: 60 * 60 * 1000,
+  });
+}
+
+export function useMisinfoSummaryQuery(topic: string) {
+  return useQuery({
+    queryKey: ["misinfo", "summary", topic],
+    queryFn: () => api.misinfoSummary(topic),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+}
+
+export function useMisinfoGroupSummaryQuery(topic: string) {
+  return useQuery({
+    queryKey: ["misinfo", "group-summary", topic],
+    queryFn: () => api.misinfoGroupSummary(topic),
+    staleTime: 10 * 60 * 1000,
+    retry: false,
+  });
+}
+
+export function useMisinfoBoostSummaryQuery(topic: string) {
+  return useQuery({
+    queryKey: ["misinfo", "boost-summary", topic],
+    queryFn: () => api.misinfoBoostSummary(topic),
+    staleTime: 10 * 60 * 1000,
+    retry: false,
+  });
+}
+
 export function usePipelineStartMutation() {
   const queryClient = useQueryClient();
   return useMutation({

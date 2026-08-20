@@ -630,6 +630,55 @@ export interface InfluenceComparisonResponse {
   params: ParametriRun | null;
 }
 
+export interface MisinfoGruppoStats {
+  n: number;
+  mean?: number;
+  median?: number;
+  std?: number;
+  p25?: number;
+  p75?: number;
+}
+
+export interface MisinfoSummaryResponse {
+  topic: string;
+  partial: boolean;
+  total_posts: number;
+  groups: Record<string, MisinfoGruppoStats>;
+}
+
+export interface MisinfoGroupEntry {
+  n_sims?: number;
+  n_seeds?: number;
+  spread_mean?: number;
+  spread_median?: number;
+  spread_std?: number;
+  spread_p25?: number;
+  spread_p75?: number;
+  spread_max?: number;
+  _note?: string;
+}
+
+export interface MisinfoGroupSummaryResponse {
+  topic: string;
+  has_topic_breakdown: boolean;
+  groups: Record<string, MisinfoGroupEntry>;
+}
+
+export interface MisinfoBoostStats {
+  n: number;
+  mean?: number;
+  median?: number;
+  std?: number;
+  max?: number;
+  boosted_pct?: number;
+  boosted_n?: number;
+}
+
+export interface MisinfoBoostSummaryResponse {
+  topic: string;
+  groups: Record<string, MisinfoBoostStats>;
+}
+
 export const api = {
   dashboard: () => getJson<DashboardStats>("/api/dashboard", dashboardSchema),
   graph: (limit?: number, mode?: string) => getJson<GraphData>(`/api/graph${buildQuery({ limit, mode })}`),
@@ -688,6 +737,15 @@ export const api = {
     getJson<InfluenceNodesResponse>(`/api/influence-maximization/nodes${buildQuery({ page, page_size: pageSize, search, step, type })}`),
   influenceComparison: () =>
     getJson<InfluenceComparisonResponse>("/api/influence-maximization/comparison"),
+
+  misinfoTopics: () =>
+    getJson<{ topics: string[] }>("/api/misinformation-impact/topics"),
+  misinfoSummary: (topic: string = "generale") =>
+    getJson<MisinfoSummaryResponse>(`/api/misinformation-impact/summary${buildQuery({ topic })}`),
+  misinfoGroupSummary: (topic: string = "generale") =>
+    getJson<MisinfoGroupSummaryResponse>(`/api/misinformation-impact/group-summary${buildQuery({ topic })}`),
+  misinfoBoostSummary: (topic: string = "generale") =>
+    getJson<MisinfoBoostSummaryResponse>(`/api/misinformation-impact/boost-summary${buildQuery({ topic })}`),
 };
 
 

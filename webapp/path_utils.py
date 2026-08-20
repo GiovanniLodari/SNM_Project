@@ -21,9 +21,9 @@ def resolve_file_path(env_key: str, candidates: list[Path]) -> Path:
 
 
 AI_SCORES_PATH = resolve_file_path("AI_SCORES_PATH", [
-    PROJECT_ROOT / "data" / "ai_scores.jsonl",
-    PROJECT_ROOT / "ai_scores.jsonl",
-    PROJECT_ROOT / "fast-detect-gpt" / "ai_scores.jsonl",
+    PROJECT_ROOT / "data" / "ai_scores_fast_detect.jsonl",
+    PROJECT_ROOT / "ai_scores_fast_detect.jsonl",
+    PROJECT_ROOT / "fast-detect-gpt" / "ai_scores_fast_detect.jsonl",
 ])
 
 FACT_CHECK_PATH = resolve_file_path("FACT_CHECK_PATH", [
@@ -49,6 +49,7 @@ BINOCULAR_ALL_DIR = resolve_file_path("BINOCULAR_ALL_DIR", [
 ])
 
 BINOCULARS_SCORES_PATH = resolve_file_path("BINOCULARS_SCORES_PATH", [
+    PROJECT_ROOT / "Risultati_Binoculars" / "ai_scores_binoculars.jsonl",
     PROJECT_ROOT / "desklib_detector" / "risultati_binocular_all" / "ai_scores_binoculars.jsonl",
     PROJECT_ROOT / "data" / "ai_scores_binoculars.jsonl",
     PROJECT_ROOT / "ai_scores_binoculars.jsonl",
@@ -64,8 +65,8 @@ DESKLIB_SCORES_PATH = resolve_file_path("DESKLIB_SCORES_PATH", [
 ])
 
 ADA_SCORES_PATH = resolve_file_path("ADA_SCORES_PATH", [
-    PROJECT_ROOT / "data" / "ai_scores_ada_local.jsonl",
-    PROJECT_ROOT / "ai_scores_ada_local.jsonl",
+    PROJECT_ROOT / "data" / "ai_scores_ada_detect.jsonl",
+    PROJECT_ROOT / "ai_scores_ada_detect.jsonl",
 ])
 
 EXPORTS_DIR = PROJECT_ROOT / "exports"
@@ -82,6 +83,26 @@ CONFRONTO_ALGORITMI_PATH = resolve_file_path("CONFRONTO_ALGORITMI_PATH", [
     PROJECT_ROOT / "Max_Influence" / "confronto_algoritmi.json",
     PROJECT_ROOT / "data" / "confronto_algoritmi.json",
     PROJECT_ROOT / "confronto_algoritmi.json",
+])
+
+MC_SPREAD_PATH = resolve_file_path("MC_SPREAD_PATH", [
+    PROJECT_ROOT / "misinformation_impact" / "data" / "mc_spread.jsonl",
+])
+
+MC_SUMMARY_PATH = resolve_file_path("MC_SUMMARY_PATH", [
+    PROJECT_ROOT / "misinformation_impact" / "data" / "mc_summary.json",
+])
+
+MC_GROUP_SUMMARY_PATH = resolve_file_path("MC_GROUP_SUMMARY_PATH", [
+    PROJECT_ROOT / "misinformation_impact" / "data" / "mc_group_summary.json",
+])
+
+TOPIC_LIST_PATH = resolve_file_path("TOPIC_LIST_PATH", [
+    PROJECT_ROOT / "misinformation_impact" / "data" / "topic_list.json",
+])
+
+POST_BOOSTS_PATH = resolve_file_path("POST_BOOSTS_PATH", [
+    PROJECT_ROOT / "misinformation_impact" / "data" / "post_boosts.jsonl",
 ])
 
 

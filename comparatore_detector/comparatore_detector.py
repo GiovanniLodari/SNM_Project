@@ -5,7 +5,7 @@
 _ROOT = Path(__file__).resolve().parent.parent
 PATH_BINOCULARS = str(_ROOT / "binoculars" / "ai_scores_binoculars.jsonl")
 PATH_DESKLIB    = str(_ROOT / "desklib_detector" / "risultati.jsonl")
-PATH_GPTNEO     = str(_ROOT / "data" / "ai_scores.jsonl")
+PATH_GPTNEO     = str(_ROOT / "data" / "ai_scores_fast_detect.jsonl")
 
 THRESHOLD = 0.5      # sopra questa probabilita' -> AI
 OUTDIR    = "."      # cartella output (corrente)
