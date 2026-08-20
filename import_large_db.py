@@ -16,6 +16,8 @@ import psycopg2.extras
 from dotenv import load_dotenv
 from pathlib import Path
 
+from snm.storage.viste import aggiorna_viste
+
 load_dotenv(override=True)
 
 DB_URL = os.environ["DATABASE_URL"]
@@ -257,6 +259,15 @@ def run_fast_import():
         follow_batch.clear()
 
     log(f"Caricamento Follows completato! {count_fol} connessioni del grafo caricate.")
+
+    # I riepiloghi che aprono i capitoli sono viste materializzate: appena
+    # importato un corpus nuovo sono ferme ai numeri di prima, quindi
+    # l'interfaccia mostrerebbe le cifre del corpus precedente. Va fatto qui e
+    # non lasciato all'operatore: e' proprio dopo un'importazione che nessuno si
+    # ricorda di un passaggio in piu'.
+    log("Aggiornamento dei riepiloghi (viste materializzate)...")
+    tempi = aggiorna_viste(conn)
+    log(f"Riepiloghi aggiornati in {sum(tempi.values()):.1f} s.")
 
     conn.close()
     log("--- IMPORTAZIONE COMPLETA CON SUCCESSO! ---")

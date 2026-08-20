@@ -3,6 +3,7 @@ import type { InfluenceDemographics } from "../../../api/client.ts";
 import { composizioneRaggiunti } from "../../../utils/influenceAnalysis.ts";
 import { formatNumber, formatPercent } from "../../../utils/format.ts";
 import { tokens } from "../../../theme.ts";
+import { TINTA_IA, TINTA_UMANO } from "../../dati/tinte.ts";
 
 interface Props {
   demografia: InfluenceDemographics;
@@ -14,16 +15,27 @@ interface Props {
  * Una barra orizzontale unica, non una torta: la torta invita a confrontare
  * fette fra loro quando qui c'e' un solo confronto che conta, umani contro IA,
  * e la barra lo rende come un'unica proporzione invece che come geometria
- * angolare da stimare a occhio. I colori sono gli stessi usati altrove nel
- * progetto per la stessa distinzione: `actionBlue` per gli account umani,
- * `coral` per gli account IA.
+ * angolare da stimare a occhio.
+ *
+ * Le tinte vengono da `tinte.ts` e non sono scelte qui. Prima erano `coral`
+ * per l'IA e `actionBlue` per gli umani, con un commento che dichiarava
+ * fossero "gli stessi usati altrove nel progetto per la stessa distinzione":
+ * non lo erano. `coral` significa "account che si dichiara bot" - lo dice la
+ * legenda del grafo due blocchi piu' sotto, nello stesso atto - e
+ * `actionBlue` e' la tinta dei link editoriali e di FastDetectGPT. Il coral
+ * finiva cosi' per significare tre cose diverse nell'Atto III, che e'
+ * esattamente il difetto per cui `tinte.ts` era stato scritto.
  */
 export default function ComposizioneRaggiunti({ demografia }: Props) {
   const { quotaUmani, quotaIa } = composizioneRaggiunti(demografia);
 
   return (
     <Box>
+      {/* `aria-hidden` e non `role="img"`: le due quote esatte stanno gia' nelle
+          etichette qui sotto, in testo. Dare un nome anche alla barra farebbe
+          leggere due volte gli stessi due numeri, che e' rumore, non accesso. */}
       <Box
+        aria-hidden
         sx={{
           display: "flex",
           width: "100%",
@@ -35,13 +47,13 @@ export default function ComposizioneRaggiunti({ demografia }: Props) {
         <Box
           sx={{
             width: `${quotaUmani * 100}%`,
-            backgroundColor: tokens.color.actionBlue,
+            backgroundColor: TINTA_UMANO,
           }}
         />
         <Box
           sx={{
             width: `${quotaIa * 100}%`,
-            backgroundColor: tokens.color.coral,
+            backgroundColor: TINTA_IA,
           }}
         />
       </Box>
@@ -52,8 +64,8 @@ export default function ComposizioneRaggiunti({ demografia }: Props) {
             sx={{
               width: "10px",
               height: "10px",
-              borderRadius: "2px",
-              backgroundColor: tokens.color.actionBlue,
+              borderRadius: tokens.radius.xs,
+              backgroundColor: TINTA_UMANO,
             }}
           />
           <Typography sx={{ fontFamily: tokens.font.mono, fontSize: "13px", color: tokens.color.textPrimary }}>
@@ -66,8 +78,8 @@ export default function ComposizioneRaggiunti({ demografia }: Props) {
             sx={{
               width: "10px",
               height: "10px",
-              borderRadius: "2px",
-              backgroundColor: tokens.color.coral,
+              borderRadius: tokens.radius.xs,
+              backgroundColor: TINTA_IA,
             }}
           />
           <Typography sx={{ fontFamily: tokens.font.mono, fontSize: "13px", color: tokens.color.textPrimary }}>

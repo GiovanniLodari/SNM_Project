@@ -54,6 +54,16 @@ export default function AffidabilitaStimatori({ algoritmi }: Props) {
 
   return (
     <Box>
+      {/* L'esito prima delle barre, non dopo. Sotto, il componente si apriva a
+          freddo su "CELF++ · stima 866,5 · MC 872,1 · -0,6%" e spiegava cosa
+          si stesse guardando solo a lettura finita: chi scorreva incontrava
+          quattro righe di numeri senza sapere quale domanda rispondessero. */}
+      <Typography sx={{ color: tokens.color.textPrimary, mb: 3, lineHeight: 1.6 }}>
+        Fra gli stimatori qui presenti, <strong>{piuFedele.nome}</strong> e' il piu'
+        fedele allo spread Monte Carlo: il suo scarto e' del{" "}
+        {formatNumber(piuFedele.scarto * 100, { maximumFractionDigits: 1, signDisplay: "exceptZero" })}%.
+      </Typography>
+
       <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
         {righe.map((riga) => {
           const quotaBarra = scartoMassimo > 0 ? Math.abs(riga.scarto) / scartoMassimo : 0;
@@ -72,8 +82,13 @@ export default function AffidabilitaStimatori({ algoritmi }: Props) {
               </Box>
 
               {/* Barra centrata sullo zero: meta' sinistra = sottostima, meta'
-                  destra = sovrastima. Stesso colore in entrambe le direzioni. */}
-              <Box sx={{ display: "flex", alignItems: "center", height: "10px" }}>
+                  destra = sovrastima. Stesso colore in entrambe le direzioni.
+
+                  `aria-hidden`: lo scarto col segno e' gia' nella riga di testo
+                  qui sopra, quindi la barra non porta informazione che manchi -
+                  la ripete in forma visiva. Nominarla la farebbe annunciare due
+                  volte. */}
+              <Box aria-hidden sx={{ display: "flex", alignItems: "center", height: "10px" }}>
                 <Box sx={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
                   {sottostima && (
                     <Box
@@ -104,12 +119,6 @@ export default function AffidabilitaStimatori({ algoritmi }: Props) {
           );
         })}
       </Box>
-
-      <Typography sx={{ color: tokens.color.textMuted, mt: 3, lineHeight: 1.6 }}>
-        Fra gli stimatori qui presenti, <strong>{piuFedele.nome}</strong> e' il piu'
-        fedele allo spread Monte Carlo: il suo scarto e' del{" "}
-        {formatNumber(piuFedele.scarto * 100, { maximumFractionDigits: 1, signDisplay: "exceptZero" })}%.
-      </Typography>
     </Box>
   );
 }

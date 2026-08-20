@@ -41,8 +41,27 @@ export default function AndamentoStep({ stepStats }: Props) {
       eSeed: s.step === 0,
     }));
 
+  // I due fatti che il grafico mostra e che un `svg` senza nome non dice a chi
+  // ascolta: dove sta il picco della propagazione e dove arriva il cumulativo.
+  const passiPropagazione = dati.filter((d) => !d.eSeed);
+  const picco = passiPropagazione.reduce(
+    (massimo, d) => (d.nuoviNodi > massimo.nuoviNodi ? d : massimo),
+    passiPropagazione[0] ?? { etichetta: "n/d", nuoviNodi: 0, cumulativi: 0 },
+  );
+  const totaleCumulativo = dati.length > 0 ? dati[dati.length - 1].cumulativi : 0;
+
   return (
     <Box>
+      <Box
+        role="img"
+        aria-label={
+          `Andamento della cascata su ${passiPropagazione.length} passi di propagazione. ` +
+          `Il passo piu' produttivo e' ${picco.etichetta}, con ` +
+          `${formatNumber(picco.nuoviNodi, { useGrouping: true })} nodi appena raggiunti; ` +
+          `alla fine i nodi cumulativi sono ${formatNumber(totaleCumulativo, { useGrouping: true })}. ` +
+          "Le barre contano i nodi raggiunti in ciascun passo, l'area il totale progressivo."
+        }
+      >
       <ResponsiveContainer width="100%" height={340}>
         <ComposedChart data={dati} margin={{ top: 16, right: 24, bottom: 16, left: 8 }}>
           <CartesianGrid stroke={tokens.color.border} strokeDasharray="3 3" />
@@ -100,6 +119,7 @@ export default function AndamentoStep({ stepStats }: Props) {
           />
         </ComposedChart>
       </ResponsiveContainer>
+      </Box>
 
       <Typography
         variant="caption"

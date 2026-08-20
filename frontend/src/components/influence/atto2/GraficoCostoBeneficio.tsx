@@ -39,6 +39,19 @@ export default function GraficoCostoBeneficio({ algoritmi }: Props) {
 
   return (
     <Box>
+      {/* Recharts disegna un `svg` senza ruolo ne' nome: per chi ascolta il
+          grafico non esiste. Il nome dice cos'e' e dove stanno gli stessi
+          valori in forma leggibile - la tabella e' due blocchi sotto, quindi
+          l'alternativa testuale esiste gia' e basta indicarla. */}
+      <Box
+        role="img"
+        aria-label={
+          `Grafico costo contro beneficio di ${righe.length} algoritmi: in orizzontale il tempo ` +
+          "di esecuzione in secondi su scala logaritmica, in verticale lo spread misurato in " +
+          "Monte Carlo. Gli stessi valori, algoritmo per algoritmo, sono nella tabella del " +
+          "blocco «Il confronto, riga per riga»."
+        }
+      >
       <ResponsiveContainer width="100%" height={380}>
         <ScatterChart margin={{ top: 20, right: 40, bottom: 48, left: 16 }}>
           <CartesianGrid stroke={tokens.color.border} strokeDasharray="3 3" />
@@ -103,6 +116,7 @@ export default function GraficoCostoBeneficio({ algoritmi }: Props) {
           </Scatter>
         </ScatterChart>
       </ResponsiveContainer>
+      </Box>
 
       {/* Due didascalie distinte, non una: "sotto il pavimento" e "assente" sono
           affermazioni diverse. Confonderle userebbe un dato mancante come se

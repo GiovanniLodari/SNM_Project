@@ -9,42 +9,40 @@ interface Props {
   onSelectAccount: (id: string) => void;
   seedSelezionato?: string;
   onSelectSeed: (seedId: string) => void;
-  /** Inoltrati cosi' come sono a InfluenceGraphCanvas: numero di step per lo
-   * scrubber e lista per il selettore del seed. Non fanno parte del
-   * contratto minimo di questa cornice, ma il canvas li sa usare se ci sono. */
-  maxStep?: number;
+  /** Numero di passi della cascata: fondo scala dello scrubber del canvas. */
+  maxStep: number;
   topSeeds?: InfluenceSeed[];
 }
 
-// Limiti applicati dal backend nella costruzione del sottografo per il
-// canvas (webapp/influence.py): i primi N seed per raggiungimento diretto,
-// e per ciascuno al piu' M bersagli, per restare intorno ai ~400 nodi che
-// ECharts puo' disegnare senza perdere fluidita'. Nominati qui invece che
-// scritti a mano nel JSX sotto, cosi' un cambio di soglia sul backend si
-// aggiorna in un punto solo.
-const SEED_DISEGNATI = 60;
-const BERSAGLI_PER_SEED = 6;
-
+// L'unica legenda del grafo: quella interna a ECharts e' spenta, perche' due
+// legende per gli stessi quattro stati costringevano chi guarda a riconciliare
+// due vocabolari prima di poter leggere il disegno. Sopravvive questa perche' e'
+// DOM, quindi raggiungibile da uno screen reader.
+//
+// "Attivato" e non "contagiato": il lessico epidemico e' un'inquadratura che
+// il capitolo non prende altrove, e le stesse parole stanno ora anche nei
+// nomi delle categorie dentro `InfluenceGraphCanvas`.
 const LEGENDA = [
   { colore: tokens.color.coral, etichetta: "seed bot di origine" },
-  { colore: tokens.color.activated, etichetta: "nodo appena attivato nello step corrente" },
-  { colore: tokens.color.accentCyan, etichetta: "nodo attivo, contagiato in uno step precedente" },
+  { colore: tokens.color.activated, etichetta: "nodo attivato in questo passo" },
+  { colore: tokens.color.accentCyan, etichetta: "nodo attivato in un passo precedente" },
   { colore: tokens.color.darkSlateDarker, etichetta: "nodo non ancora raggiunto" },
 ];
 
 /**
- * Cornice attorno a `InfluenceGraphCanvas`: titolo, avvertenza su cosa si sta
- * guardando e legenda leggibile da uno screen reader (la legenda interna a
- * ECharts e' testo disegnato su canvas, non DOM).
+ * Cornice attorno a `InfluenceGraphCanvas`: gli inoltra le props e gli
+ * consegna la legenda, che il pannello rende al proprio interno.
  *
- * L'avvertenza esiste perche' il canvas non disegna gli 80.943 nodi
- * raggiunti dalla cascata: disegna un sottografo dei seed piu' efficaci e di
- * una parte dei loro bersagli diretti. Senza dirlo esplicitamente, chi guarda
- * il canvas puo' credere di vedere l'intera propagazione descritta
- * nell'Atto III, quando ne vede solo un campione pensato per restare
- * renderizzabile.
+ * Titolo e avvertenza su cosa si sta guardando non stanno piu' qui: sono la
+ * testa del `Blocco` che avvolge questo componente nella pagina, come per ogni
+ * altro artefatto del capitolo. Prima erano un titolo da 24px reso come
+ * paragrafo, quindi una sezione senza intestazione in un atto che non ne aveva
+ * nessuna.
  *
- * Non modifica `InfluenceGraphCanvas.tsx`: si limita a inoltrargli le props.
+ * La legenda invece resta qui e viene passata al canvas perche' vada sul fondo
+ * scuro: le quattro tinte sono tinte da superficie scura, e sul canvas bianco
+ * della pagina tre su quattro scendevano sotto il contrasto minimo richiesto a
+ * un segno che porta informazione.
  */
 export default function CanvasCascata({
   nodes,
@@ -55,63 +53,52 @@ export default function CanvasCascata({
   maxStep,
   topSeeds,
 }: Props) {
-  return (
-    <Box>
-      <Typography
-        sx={{
-          fontFamily: tokens.font.display,
-          fontWeight: 400,
-          fontSize: "24px",
-          color: tokens.color.nearBlack,
-          mb: 1,
-        }}
-      >
-        Estratto del grafo: primi {SEED_DISEGNATI} seed e fino a {BERSAGLI_PER_SEED} bersagli ciascuno
-      </Typography>
-
-      <Typography
-        data-testid="avvertenza-sottografo"
-        sx={{ color: tokens.color.textMuted, maxWidth: "70ch", mb: 3, lineHeight: 1.6 }}
-      >
-        Questo canvas non disegna l'intera cascata: mostra i primi{" "}
-        {SEED_DISEGNATI} seed per raggiungimento diretto e, per ciascuno, fino
-        a {BERSAGLI_PER_SEED} bersagli, un sottografo scelto per restare
-        leggibile a schermo. Il conteggio dei nodi raggiunti riportato
-        nell'Atto III si riferisce alla cascata completa, non a quanto e'
-        disegnato qui.
-      </Typography>
-
-      <InfluenceGraphCanvas
-        nodes={nodes}
-        links={links}
-        maxStep={maxStep}
-        onSelectNode={(node) => onSelectAccount(node.id)}
-        topSeeds={topSeeds}
-        selectedSeedId={seedSelezionato}
-        onSelectSeedId={onSelectSeed}
-      />
-
-      <Box
-        data-testid="legenda-canvas"
-        sx={{ display: "flex", flexWrap: "wrap", gap: 3, mt: 2 }}
-      >
-        {LEGENDA.map((voce) => (
-          <Box key={voce.etichetta} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Box
-              sx={{
-                width: "10px",
-                height: "10px",
-                borderRadius: "50%",
-                backgroundColor: voce.colore,
-                flexShrink: 0,
-              }}
-            />
-            <Typography variant="caption" sx={{ color: tokens.color.textMuted }}>
-              {voce.etichetta}
-            </Typography>
-          </Box>
-        ))}
-      </Box>
+  const legenda = (
+    <Box
+      data-testid="legenda-canvas"
+      component="ul"
+      sx={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 3,
+        listStyle: "none",
+        p: 0,
+        m: 0,
+      }}
+    >
+      {LEGENDA.map((voce) => (
+        <Box
+          key={voce.etichetta}
+          component="li"
+          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+        >
+          <Box
+            sx={{
+              width: "10px",
+              height: "10px",
+              borderRadius: "50%",
+              backgroundColor: voce.colore,
+              flexShrink: 0,
+            }}
+          />
+          <Typography variant="caption" sx={{ color: tokens.color.textOnDark }}>
+            {voce.etichetta}
+          </Typography>
+        </Box>
+      ))}
     </Box>
+  );
+
+  return (
+    <InfluenceGraphCanvas
+      nodes={nodes}
+      links={links}
+      maxStep={maxStep}
+      onSelectNode={(node) => onSelectAccount(node.id)}
+      topSeeds={topSeeds}
+      selectedSeedId={seedSelezionato}
+      onSelectSeedId={onSelectSeed}
+      legenda={legenda}
+    />
   );
 }

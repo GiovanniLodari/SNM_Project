@@ -1,9 +1,9 @@
 import {
   Box,
+  ButtonBase,
   Chip,
   Grid,
   Pagination,
-  Paper,
   Skeleton,
   Table,
   TableBody,
@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import { Search as SearchIcon } from "@mui/icons-material";
 import type { InfluenceSeed, InfluenceTarget } from "../../../api/client.ts";
+import Blocco from "../../narrativa/Blocco.tsx";
 import { formatNumber, formatPercent } from "../../../utils/format.ts";
 import { tokens } from "../../../theme.ts";
 
@@ -42,11 +43,77 @@ interface Props {
 const BERSAGLI_MOSTRATI = 10;
 
 /**
+ * Il nome di un account, come comando.
+ *
+ * Prima l'unico modo di agire su una riga era il suo `onClick`, senza
+ * `tabIndex`, senza `role` e senza gestione dei tasti: da tastiera le due
+ * classifiche erano inerti, e uno screen reader non aveva modo di sapere che
+ * una riga fosse interattiva. Erano anche l'unico percorso esistente da una
+ * classifica a un account.
+ *
+ * Il bersaglio nominato e' il nome, non la riga: e' cio' che chi ascolta si
+ * aspetta di trovare in una cella di intestazione di riga. Il clic sulla riga
+ * resta per il mouse, dove un bersaglio grande e' comodo, e questo bottone
+ * ferma la propagazione perche' altrimenti l'azione partirebbe due volte.
+ */
+function NomeAccount({
+  nome,
+  descrizioneAzione,
+  onAzione,
+}: {
+  nome: string;
+  descrizioneAzione: string;
+  onAzione: () => void;
+}) {
+  return (
+    <ButtonBase
+      onClick={(evento) => {
+        evento.stopPropagation();
+        onAzione();
+      }}
+      aria-label={descrizioneAzione}
+      sx={{
+        fontFamily: tokens.font.body,
+        fontWeight: 600,
+        fontSize: "13px",
+        color: tokens.color.nearBlack,
+        textAlign: "left",
+        justifyContent: "flex-start",
+        borderRadius: tokens.radius.xs,
+        px: 0.5,
+        mx: -0.5,
+        transition: "background-color 0.15s ease",
+        "&:hover": { backgroundColor: tokens.color.softStone },
+      }}
+    >
+      {nome}
+    </ButtonBase>
+  );
+}
+
+/** Intestazione di colonna: apparato, quindi monospazio maiuscolo. */
+const sxIntestazioni = {
+  "& th": {
+    borderBottom: `2px solid ${tokens.color.border}`,
+    color: tokens.color.textMuted,
+    fontWeight: 600,
+    fontSize: "12px",
+    fontFamily: tokens.font.mono,
+  },
+} as const;
+
+/**
  * Le due classifiche dell'Atto III: i seed che hanno propagato di piu' e gli
- * account umani raggiunti con piu' follower. Spostate qui da
- * `InfluenceMaximization.tsx` senza cambiare la logica di paginazione e
- * ricerca, che resta di proprieta' del chiamante (query, stato URL): questo
- * componente e' solo la loro presentazione.
+ * account umani raggiunti con piu' follower.
+ *
+ * Le due tabelle vivono dentro un `Blocco` ciascuna. Prima ne ricostruivano la
+ * forma a mano - `p: 4`, raggio `xl`, filetto tenue - due volte in questo
+ * stesso file, e intitolavano a 18px mentre i quattro blocchi dell'Atto II
+ * intitolavano a 24px: lo stesso ruolo in due misure nello stesso capitolo, che
+ * e' il difetto che `Blocco` esiste per rendere scomodo da riprodurre.
+ *
+ * La logica di paginazione e ricerca resta di proprieta' del chiamante (query,
+ * stato URL): questo componente e' solo la loro presentazione.
  */
 export default function ClassificheSeed({
   seeds,
@@ -63,34 +130,23 @@ export default function ClassificheSeed({
   onSelectAccount,
   targets,
 }: Props) {
+  const apriSeed = (id: string) => {
+    onSelectSeed(id);
+    onSelectAccount(id);
+  };
+
   return (
     <Grid container spacing={4}>
       {/* Classifica dei seed bot */}
-      <Grid item xs={12} md={7}>
-        <Paper
-          elevation={0}
-          sx={{
-            p: 4,
-            borderRadius: tokens.radius.xl,
-            backgroundColor: tokens.color.canvas,
-            border: tokens.border.subtle,
-          }}
-        >
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3, flexWrap: "wrap", gap: 2 }}>
-            <Box>
-              <Typography
-                component="h3"
-                variant="h6"
-                sx={{ fontFamily: tokens.font.display, fontWeight: 600, fontSize: "18px", color: tokens.color.nearBlack }}
-              >
-                Leaderboard Top Seed Bot
-              </Typography>
-              <Typography variant="caption" sx={{ color: tokens.color.textMuted }}>
-                Classifica dei {formatNumber(totalSeedCount, { useGrouping: true })} seed bot ordinati
-                per impatto diretto di propagazione.
-              </Typography>
-            </Box>
-
+      <Grid item xs={12} md={7} sx={{ minWidth: 0 }}>
+        <Blocco
+          titolo="I seed che hanno propagato di piu'"
+          descrizione={
+            `I ${formatNumber(totalSeedCount, { useGrouping: true })} seed bot ordinati per ` +
+            "impatto diretto: quanti nodi ciascuno attiva al primo passo, e quanti ne attiva " +
+            "in rapporto ai propri follower. Sceglierne uno cambia la cascata disegnata sopra."
+          }
+          azione={
             <TextField
               placeholder="Cerca account o ID..."
               size="small"
@@ -100,27 +156,37 @@ export default function ClassificheSeed({
               // onSeedsPageChange(1) creerebbe una navigazione che sovrascrive
               // la ricerca (vedi OpzioniScrittura in useUrlState).
               onChange={(e) => onSeedsSearchChange(e.target.value)}
+              // Sulla radice e non su InputProps: MUI passerebbe l'attributo al
+              // FormControl e il campo resterebbe senza nome accessibile.
+              inputProps={{ "aria-label": "Cerca fra i seed per nome account o ID" }}
               InputProps={{
                 startAdornment: <SearchIcon sx={{ color: tokens.color.textMuted, mr: 1, fontSize: 18 }} />,
               }}
               sx={{
-                width: 220,
+                width: { xs: "100%", sm: 220 },
                 "& .MuiOutlinedInput-root": {
-                  borderRadius: "24px",
+                  borderRadius: tokens.radius.pill,
                   backgroundColor: tokens.color.softStone,
                   fontSize: "13px",
                 },
               }}
             />
-          </Box>
-
-          <TableContainer>
+          }
+        >
+          {/* `tabIndex` sul contenitore che scorre: quattro colonne numeriche
+              non entrano in una colonna stretta, e un'area che scorre solo col
+              mouse tiene le colonne oltre il bordo fuori portata da tastiera. */}
+          <TableContainer
+            tabIndex={0}
+            role="region"
+            aria-label="Classifica dei seed, scorrevole in orizzontale"
+          >
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ "& th": { borderBottom: `2px solid ${tokens.color.border}`, color: tokens.color.textMuted, fontWeight: 600, fontSize: "12px", fontFamily: tokens.font.mono } }}>
+                <TableRow sx={sxIntestazioni}>
                   <TableCell>ACCOUNT BOT</TableCell>
                   <TableCell align="right">FOLLOWER</TableCell>
-                  <TableCell align="right">ACTIVATED (t=1)</TableCell>
+                  <TableCell align="right">ATTIVATI AL PASSO 1</TableCell>
                   <TableCell align="right">EFFICIENZA</TableCell>
                 </TableRow>
               </TableHead>
@@ -137,22 +203,25 @@ export default function ClassificheSeed({
                       key={s.id}
                       hover
                       selected={s.id === selectedSeedId}
-                      onClick={() => {
-                        onSelectSeed(s.id);
-                        onSelectAccount(s.id);
-                      }}
+                      onClick={() => apriSeed(s.id)}
                       sx={{
                         cursor: "pointer",
                         "&.Mui-selected": {
-                          backgroundColor: "rgba(255, 119, 89, 0.08)",
+                          backgroundColor: tokens.overlay.velaturaCoralTenue,
                         },
                       }}
                     >
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: tokens.color.nearBlack, fontSize: "13px" }}>
-                          {s.acct}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: tokens.color.textMuted, fontFamily: tokens.font.mono }}>
+                      {/* Intestazione di riga, non una cella qualunque: e' il
+                          nome che identifica gli altri tre valori, e senza
+                          `scope` uno screen reader legge quei numeri senza
+                          poter dire di chi sono. */}
+                      <TableCell component="th" scope="row" sx={{ fontWeight: 400 }}>
+                        <NomeAccount
+                          nome={s.acct}
+                          descrizioneAzione={`Mostra la cascata di ${s.acct} e apri il suo profilo`}
+                          onAzione={() => apriSeed(s.id)}
+                        />
+                        <Typography variant="caption" sx={{ display: "block", color: tokens.color.textMuted, fontFamily: tokens.font.mono }}>
                           ID: {s.id}
                         </Typography>
                       </TableCell>
@@ -166,7 +235,7 @@ export default function ClassificheSeed({
                           label={`${formatNumber(s.direct_reached, { useGrouping: true })} nodi`}
                           size="small"
                           sx={{
-                            backgroundColor: "rgba(255, 119, 89, 0.15)",
+                            backgroundColor: tokens.overlay.velaturaCoral,
                             color: tokens.color.coralInk,
                             fontFamily: tokens.font.mono,
                             fontWeight: 700,
@@ -184,7 +253,15 @@ export default function ClassificheSeed({
                 ) : (
                   <TableRow>
                     <TableCell colSpan={4} align="center" sx={{ py: 3, color: tokens.color.textMuted }}>
-                      Nessun seed trovato.
+                      {/* Il vuoto da ricerca e il vuoto da set sono due cose
+                          diverse e vanno dette diversamente: nel primo caso
+                          chi legge deve sapere su quali campi filtra la
+                          ricerca per correggere la query, nel secondo che non
+                          c'e' niente da correggere. "Nessun risultato" li
+                          confonde e non aiuta in nessuno dei due. */}
+                      {seedsSearch
+                        ? `Nessun seed corrisponde a «${seedsSearch}». La ricerca filtra sul nome dell'account e sull'ID, non sui numeri della classifica.`
+                        : "La pipeline non ha prodotto seed per questo set: la classifica esiste ma e' vuota."}
                     </TableCell>
                   </TableRow>
                 )}
@@ -199,56 +276,58 @@ export default function ClassificheSeed({
                 page={seedsPage}
                 onChange={(_, p) => onSeedsPageChange(p)}
                 size="small"
+                // Il selettore completo invece di `!important`: la sola classe
+                // `.Mui-selected` perde di specificita' contro lo stile della
+                // libreria, e la scorciatoia era forzarlo.
                 sx={{
-                  "& .Mui-selected": {
-                    backgroundColor: `${tokens.color.nearBlack} !important`,
+                  "& .MuiPaginationItem-root.Mui-selected": {
+                    backgroundColor: tokens.color.nearBlack,
                     color: tokens.color.canvas,
+                    "&:hover": { backgroundColor: tokens.color.nearBlackHover },
                   },
                 }}
               />
             </Box>
           )}
-        </Paper>
+        </Blocco>
       </Grid>
 
       {/* Classifica dei bersagli umani */}
-      <Grid item xs={12} md={5}>
-        <Paper
-          elevation={0}
-          sx={{
-            p: 4,
-            borderRadius: tokens.radius.xl,
-            backgroundColor: tokens.color.canvas,
-            border: tokens.border.subtle,
-          }}
+      <Grid item xs={12} md={5} sx={{ minWidth: 0 }}>
+        <Blocco
+          titolo="Principali account umani raggiunti"
+          descrizione={
+            "Gli account umani con piu' follower fra quelli che la cascata attiva, e il passo in " +
+            "cui vengono raggiunti: i primi passi arrivano piu' lontano dei successivi."
+          }
         >
-          <Typography
-            component="h3"
-            variant="h6"
-            sx={{ fontFamily: tokens.font.display, fontWeight: 600, fontSize: "18px", color: tokens.color.nearBlack, mb: 1 }}
+          <TableContainer
+            tabIndex={0}
+            role="region"
+            aria-label="Classifica dei bersagli umani, scorrevole in orizzontale"
           >
-            Principali Account Umani Raggiunti
-          </Typography>
-          <Typography variant="caption" sx={{ color: tokens.color.textMuted, display: "block", mb: 3 }}>
-            Account umani con il maggior numero di follower penetrati nelle prime fasi della cascata.
-          </Typography>
-
-          <TableContainer>
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ "& th": { borderBottom: `2px solid ${tokens.color.border}`, color: tokens.color.textMuted, fontWeight: 600, fontSize: "12px", fontFamily: tokens.font.mono } }}>
+                <TableRow sx={sxIntestazioni}>
                   <TableCell>ACCOUNT UMANO</TableCell>
                   <TableCell align="right">FOLLOWER</TableCell>
-                  <TableCell align="right">STEP ATTIVATO</TableCell>
+                  <TableCell align="right">PASSO DI ATTIVAZIONE</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {targets.slice(0, BERSAGLI_MOSTRATI).map((t) => (
-                  <TableRow key={t.id} hover onClick={() => onSelectAccount(t.id)} sx={{ cursor: "pointer" }}>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: tokens.color.nearBlack, fontSize: "13px" }}>
-                        {t.acct}
-                      </Typography>
+                  <TableRow
+                    key={t.id}
+                    hover
+                    onClick={() => onSelectAccount(t.id)}
+                    sx={{ cursor: "pointer" }}
+                  >
+                    <TableCell component="th" scope="row" sx={{ fontWeight: 400 }}>
+                      <NomeAccount
+                        nome={t.acct}
+                        descrizioneAzione={`Apri il profilo di ${t.acct}`}
+                        onAzione={() => onSelectAccount(t.id)}
+                      />
                     </TableCell>
                     <TableCell align="right">
                       <Typography variant="body2" sx={{ fontFamily: tokens.font.mono, fontSize: "13px" }}>
@@ -257,10 +336,10 @@ export default function ClassificheSeed({
                     </TableCell>
                     <TableCell align="right">
                       <Chip
-                        label={`t=${t.activation_step}`}
+                        label={`passo ${t.activation_step}`}
                         size="small"
                         sx={{
-                          backgroundColor: "rgba(24, 99, 220, 0.12)",
+                          backgroundColor: tokens.overlay.velaturaBlu,
                           color: tokens.color.actionBlue,
                           fontFamily: tokens.font.mono,
                           fontWeight: 600,
@@ -273,7 +352,7 @@ export default function ClassificheSeed({
               </TableBody>
             </Table>
           </TableContainer>
-        </Paper>
+        </Blocco>
       </Grid>
     </Grid>
   );

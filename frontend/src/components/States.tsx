@@ -1,4 +1,4 @@
-import { Box, CircularProgress, Paper, Typography } from "@mui/material";
+import { Box, Button, CircularProgress, Paper, Typography } from "@mui/material";
 import { tokens } from "../theme.ts";
 
 /**
@@ -32,9 +32,20 @@ export function LoadingState({ height = "60vh", size }: LoadingStateProps) {
 interface ErrorStateProps {
   /** Messaggio da mostrare. Se e' null o vuoto il componente non rende nulla. */
   message?: string | null;
+  /**
+   * Cosa fare per riprovare. Quando c'e', il riquadro mostra un'azione
+   * testuale accanto al messaggio.
+   *
+   * E' opzionale perche' non tutti gli errori sono ritentabili: un dato che
+   * la pipeline non ha mai prodotto non cambia stato se si richiede di nuovo,
+   * e offrire un pulsante che non risolve niente e' peggio che non offrirlo.
+   */
+  onRiprova?: () => void;
+  /** Etichetta dell'azione. Default "Riprova". */
+  etichettaRiprova?: string;
 }
 
-export function ErrorState({ message }: ErrorStateProps) {
+export function ErrorState({ message, onRiprova, etichettaRiprova = "Riprova" }: ErrorStateProps) {
   if (!message) return null;
 
   return (
@@ -51,6 +62,24 @@ export function ErrorState({ message }: ErrorStateProps) {
       <Typography variant="body2" sx={{ color: tokens.color.danger, fontWeight: 600 }}>
         {message}
       </Typography>
+
+      {onRiprova && (
+        <Button
+          onClick={onRiprova}
+          variant="text"
+          sx={{
+            mt: 1.5,
+            p: 0,
+            minWidth: 0,
+            color: tokens.color.danger,
+            fontWeight: 600,
+            textDecoration: "underline",
+            "&:hover": { backgroundColor: "transparent", textDecoration: "underline" },
+          }}
+        >
+          {etichettaRiprova}
+        </Button>
+      )}
     </Paper>
   );
 }

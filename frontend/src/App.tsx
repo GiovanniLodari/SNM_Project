@@ -1,9 +1,9 @@
-import { useState, lazy, Suspense } from "react";
+import { useEffect, useRef, useState, lazy, Suspense } from "react";
+import type { MouseEvent } from "react";
 import {
   HashRouter,
   Routes,
   Route,
-  Link,
   Navigate,
   useLocation,
   useParams,
@@ -13,16 +13,10 @@ import {
   ThemeProvider,
   CssBaseline,
   Box,
-  Drawer,
   AppBar,
   Toolbar,
-  List,
   Typography,
   IconButton,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
   Container,
   CircularProgress,
 } from "@mui/material";
@@ -42,59 +36,42 @@ const queryClient = new QueryClient({
 
 import { Menu as MenuIcon } from "@mui/icons-material";
 
-// Pagine in caricamento Lazy con loader tracciati per il prefetch istantaneo
-const loadDashboard = () => import("./pages/Dashboard.tsx");
-const loadPosts = () => import("./pages/Posts.tsx");
-const loadPostDetail = () => import("./pages/PostDetail.tsx");
-const loadDetection = () => import("./pages/Detection.tsx");
-const loadFactChecking = () => import("./pages/FactChecking.tsx");
-const loadAccounts = () => import("./pages/Accounts.tsx");
-const loadPipelines = () => import("./pages/Pipelines.tsx");
-const loadDbSync = () => import("./pages/DbSync.tsx");
-const loadInfluenceMaximization = () => import("./pages/InfluenceMaximization.tsx");
+// Pagine in caricamento Lazy. I caricatori stanno in rotte.ts perche' li usa
+// anche la sidebar, per anticipare il bundle quando il mouse sfiora una voce.
+import {
+  caricaAccounts,
+  caricaDashboard,
+  caricaDbSync,
+  caricaDetection,
+  caricaFactChecking,
+  caricaInfluenceMaximization,
+  caricaPipelines,
+  caricaPostDetail,
+  caricaPosts,
+} from "./rotte.ts";
 
-const Dashboard = lazy(loadDashboard);
-const Posts = lazy(loadPosts);
-const PostDetail = lazy(loadPostDetail);
-const Detection = lazy(loadDetection);
-const FactChecking = lazy(loadFactChecking);
-const Accounts = lazy(loadAccounts);
-const Pipelines = lazy(loadPipelines);
-const DbSync = lazy(loadDbSync);
-const InfluenceMaximization = lazy(loadInfluenceMaximization);
-
-const routeLoaders: Record<string, () => Promise<unknown>> = {
-  "/": loadDashboard,
-  "/posts": loadPosts,
-  "/accounts": loadAccounts,
-  "/detection": loadDetection,
-  "/fact-check": loadFactChecking,
-  "/influence-maximization": loadInfluenceMaximization,
-  "/pipelines": loadPipelines,
-  "/db-sync": loadDbSync,
-};
+const Dashboard = lazy(caricaDashboard);
+const Posts = lazy(caricaPosts);
+const PostDetail = lazy(caricaPostDetail);
+const Detection = lazy(caricaDetection);
+const FactChecking = lazy(caricaFactChecking);
+const Accounts = lazy(caricaAccounts);
+const Pipelines = lazy(caricaPipelines);
+const DbSync = lazy(caricaDbSync);
+const InfluenceMaximization = lazy(caricaInfluenceMaximization);
 
 import { NotificationProvider } from "./context/NotificationContext.tsx";
 import ErrorBoundary from "./components/ErrorBoundary.tsx";
 import EtichettaMono from "./components/narrativa/EtichettaMono.tsx";
+import SidebarNavigazione from "./components/navigazione/SidebarNavigazione.tsx";
+import {
+  ID_NAVIGAZIONE_MOBILE,
+  LARGHEZZA_RAIL,
+  LARGHEZZA_SIDEBAR,
+} from "./components/navigazione/misure.ts";
+import { useCambioRotta } from "./hooks/useCambioRotta.ts";
 import { tokens } from "./theme.ts";
-import { isRouteActive } from "./utils/navigation.ts";
-import { prefetchRouteData } from "./api/queries.ts";
-import { CAPITOLI, capitoloDaRotta } from "./navigazione.ts";
-import { useQueryClient } from "@tanstack/react-query";
-
-/**
- * Larghezza della sidebar aperta e a riposo.
- *
- * A riposo resta la colonna delle icone; l'area contenuto e' dimensionata su
- * quella misura e non si muove mai, perche' la sidebar aperta scorre *sopra* il
- * contenuto invece di spingerlo. Spingerlo significherebbe ricalcolare il
- * layout dell'intera pagina a ogni passaggio del mouse - e su questa
- * applicazione vuol dire ridisegnare il canvas del grafo e i grafici recharts,
- * che sarebbe visibilmente lento oltre che inutile.
- */
-/** Larghezza fissa della sidebar su desktop. */
-const LARGHEZZA_SIDEBAR = 260;
+import { capitoloDaRotta } from "./navigazione.ts";
 
 /**
  * Reindirizza le vecchie rotte per detector al capitolo unificato.
@@ -135,285 +112,6 @@ function RedirezioneConfronto() {
   return <Navigate to={`/detection${query ? `?${query}` : ""}`} replace />;
 }
 
-interface PropsNavigazione {
-  /** Chiude il pannello temporaneo su mobile dopo un clic. */
-  onNavigate?: () => void;
-}
-
-function NavigationContent({ onNavigate }: PropsNavigazione) {
-  const location = useLocation();
-  const queryClient = useQueryClient();
-
-  const handlePrefetch = (path: string) => {
-    // 1. Pre-scarica il bundle JS del componente lazy
-    if (routeLoaders[path]) {
-      routeLoaders[path]();
-    }
-    // 2. Pre-scarica i dati delle API via TanStack Query
-    prefetchRouteData(queryClient, path);
-  };
-
-  return (
-    <Box
-      sx={{
-        backgroundColor: tokens.color.canvas,
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        p: 2,
-        overflowX: "hidden",
-        overflowY: "auto",
-        scrollbarWidth: "thin",
-        "&::-webkit-scrollbar": {
-          width: "4px",
-        },
-        "&::-webkit-scrollbar-thumb": {
-          backgroundColor: tokens.color.borderStrong,
-          borderRadius: "4px",
-        },
-      }}
-    >
-      {/* Brand & Monogram Lockup */}
-      <Box
-        component={Link}
-        to="/"
-        onClick={onNavigate}
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 1.5,
-          px: 1,
-          py: 1.5,
-          mb: 1.5,
-          textDecoration: "none",
-          color: "inherit",
-          borderRadius: "8px",
-          transition: "background-color 0.15s ease",
-          "&:hover": {
-            backgroundColor: tokens.color.surfaceStone,
-          },
-        }}
-      >
-        <Box
-          sx={{
-            width: 32,
-            height: 32,
-            borderRadius: "8px",
-            backgroundColor: tokens.color.nearBlack,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: tokens.color.canvas,
-            fontFamily: tokens.font.display,
-            fontWeight: 700,
-            fontSize: "13px",
-            letterSpacing: "-0.5px",
-            flexShrink: 0,
-          }}
-        >
-          SNM
-        </Box>
-        <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-          <Typography
-            sx={{
-              fontFamily: tokens.font.display,
-              fontWeight: 700,
-              fontSize: "15px",
-              lineHeight: 1.2,
-              color: tokens.color.nearBlack,
-              letterSpacing: "-0.3px",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            SNM.Intelligence
-          </Typography>
-          <Typography
-            sx={{
-              fontFamily: tokens.font.mono,
-              fontSize: "10px",
-              fontWeight: 600,
-              letterSpacing: "0.06em",
-              color: tokens.color.textMuted,
-              textTransform: "uppercase",
-              lineHeight: 1.2,
-              mt: 0.25,
-            }}
-          >
-            Analisi del Fediverso
-          </Typography>
-        </Box>
-      </Box>
-
-      {/* Navigazione ordinata per capitoli della pipeline */}
-      <Box sx={{ flexGrow: 1 }}>
-        {CAPITOLI.map((capitolo, indice) => (
-          <Box key={capitolo.id} component="section" sx={{ mb: 1.5 }}>
-            {capitolo.id !== "panoramica" && (
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                  px: 1,
-                  pt: 1.5,
-                  pb: 0.5,
-                  mt: indice > 1 ? 0.5 : 0,
-                }}
-              >
-                {capitolo.numero && (
-                  <Box
-                    component="span"
-                    sx={{
-                      fontFamily: tokens.font.mono,
-                      fontSize: "10px",
-                      fontWeight: 700,
-                      // Il coral pieno su surfaceCoral da' 2.4:1 - a 10px e'
-                      // illeggibile. La variante inchiostro tiene la tinta e
-                      // arriva a 4.8:1.
-                      color: tokens.color.coralInk,
-                      backgroundColor: tokens.color.surfaceCoral,
-                      px: "5px",
-                      py: "1px",
-                      borderRadius: "4px",
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    {capitolo.numero}
-                  </Box>
-                )}
-                <Typography
-                  sx={{
-                    fontFamily: tokens.font.mono,
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    color: tokens.color.textMuted,
-                    letterSpacing: "0.06em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {capitolo.etichetta}
-                </Typography>
-              </Box>
-            )}
-
-            <List sx={{ p: 0 }}>
-              {capitolo.voci.map((voce) => {
-                const isSelected = isRouteActive(location.pathname, voce.path);
-                const Icona = voce.icona;
-                return (
-                  <ListItem key={voce.path} disablePadding sx={{ mb: 0.3 }}>
-                    <ListItemButton
-                      component={Link}
-                      to={voce.path}
-                      selected={isSelected}
-                      onClick={onNavigate}
-                      onMouseEnter={() => handlePrefetch(voce.path)}
-                      onFocus={() => handlePrefetch(voce.path)}
-                      onTouchStart={() => handlePrefetch(voce.path)}
-                      sx={{
-                        py: 0.85,
-                        px: 1.25,
-                        borderRadius: "8px",
-                        transition: "all 0.15s ease-in-out",
-                        "&.Mui-selected": {
-                          backgroundColor: tokens.color.nearBlack,
-                          color: tokens.color.canvas,
-                          "&:hover": {
-                            backgroundColor: tokens.color.nearBlackHover,
-                          },
-                          "& .MuiListItemIcon-root": {
-                            color: tokens.color.coral,
-                          },
-                          "& .MuiListItemText-primary": {
-                            color: tokens.color.canvas,
-                            fontWeight: 600,
-                          },
-                        },
-                        "&:hover": {
-                          backgroundColor: isSelected
-                            ? tokens.color.nearBlackHover
-                            : tokens.color.softStone,
-                        },
-                      }}
-                    >
-                      <ListItemIcon
-                        sx={{
-                          minWidth: 28,
-                          color: isSelected ? tokens.color.coral : tokens.color.textMuted,
-                          transition: "color 0.15s ease",
-                        }}
-                      >
-                        <Icona sx={{ fontSize: 18 }} />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={voce.testo}
-                        primaryTypographyProps={{
-                          fontFamily: tokens.font.body,
-                          fontWeight: isSelected ? 600 : 500,
-                          fontSize: "13.5px",
-                          color: isSelected ? tokens.color.canvas : tokens.color.textPrimary,
-                          whiteSpace: "nowrap",
-                        }}
-                      />
-                    </ListItemButton>
-                  </ListItem>
-                );
-              })}
-            </List>
-          </Box>
-        ))}
-      </Box>
-
-      {/* Footer minimalista della sidebar */}
-      <Box
-        sx={{
-          pt: 2,
-          pb: 0.5,
-          px: 1,
-          mt: "auto",
-          borderTop: tokens.border.subtle,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Box
-            sx={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              backgroundColor: tokens.color.success,
-              boxShadow: `0 0 6px ${tokens.color.success}`,
-            }}
-          />
-          <Typography
-            sx={{
-              fontFamily: tokens.font.mono,
-              fontSize: "11px",
-              color: tokens.color.textMuted,
-              fontWeight: 500,
-            }}
-          >
-            Fediverso Live
-          </Typography>
-        </Box>
-        <Typography
-          sx={{
-            fontFamily: tokens.font.mono,
-            fontSize: "10px",
-            color: tokens.color.textMuted,
-          }}
-        >
-          v1.0
-        </Typography>
-      </Box>
-    </Box>
-  );
-}
-
 /**
  * Indicatore del capitolo corrente nella barra superiore.
  *
@@ -433,31 +131,121 @@ function CapitoloCorrente() {
   );
 }
 
-export default function App() {
+/**
+ * Il guscio dell'applicazione: barra, navigazione, area contenuto, footer.
+ *
+ * Sta dentro il router e non attorno perche' `useCambioRotta` legge la rotta
+ * corrente, e il ref che restituisce va sull'elemento `main` di questo stesso
+ * albero.
+ */
+/** Ancora del contenuto principale, bersaglio del collegamento di salto. */
+const ID_CONTENUTO_PRINCIPALE = "contenuto-principale";
+
+function GuscioApplicazione() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const contenutoPrincipale = useCambioRotta();
+
+  /**
+   * Se la navigazione e' tenuta aperta per scelta.
+   *
+   * Vive qui e non nella sidebar perche' barra e area contenuto si dimensionano
+   * su di lei: aperta per hover il pannello scorre *sopra* il contenuto e queste
+   * misure non cambiano, ma bloccata la pagina gli fa spazio. Chi la blocca ha
+   * chiesto che le etichette restino, non che un quinto della pagina resti
+   * coperto.
+   */
+  const [navBloccata, setNavBloccata] = useState(false);
+  const larghezzaNav = navBloccata ? LARGHEZZA_SIDEBAR : LARGHEZZA_RAIL;
+  const primoRenderNav = useRef(true);
+
+  /**
+   * Bloccare la navigazione restringe l'area contenuto, e i grafici ECharts non
+   * se ne accorgono da soli: si ridimensionano su `resize` della finestra, non
+   * del proprio contenitore. Senza questo avviso il canvas del grafo resterebbe
+   * disegnato alla larghezza precedente, riscalato dal CSS, fino al primo
+   * ridimensionamento della finestra.
+   *
+   * L'evento parte dopo che il DOM ha la nuova larghezza, non prima: e' il
+   * motivo per cui sta in un effect invece che dentro il gestore del clic.
+   */
+  useEffect(() => {
+    if (primoRenderNav.current) {
+      primoRenderNav.current = false;
+      return;
+    }
+    window.dispatchEvent(new Event("resize"));
+  }, [navBloccata]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider theme={theme}>
-          <NotificationProvider>
-            <CssBaseline />
-          <HashRouter>
             <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: tokens.color.canvas }}>
+
+          {/* Salta al contenuto: otto voci di navigazione precedono il contenuto
+              nell'ordine di tabulazione, e senza questo collegamento chi naviga
+              da tastiera le riattraversa a ogni pagina. Invisibile finche' non
+              riceve il focus, che e' l'unico momento in cui serve.
+
+              Il salto e' gestito a mano per la stessa ragione dell'indice degli
+              atti: l'app monta un `HashRouter`, quindi l'hash della URL *e'* la
+              rotta, e lasciar seguire al browser un `href="#..."` sostituirebbe
+              "#/influence-maximization" con "#contenuto-principale" - nessuna
+              rotta corrisponderebbe e il contenuto sparirebbe. L'`href` resta
+              perche' e' cio' che rende questo elemento un collegamento per la
+              tastiera e per gli screen reader. */}
+          <Box
+            component="a"
+            href={`#${ID_CONTENUTO_PRINCIPALE}`}
+            onClick={(evento: MouseEvent<HTMLAnchorElement>) => {
+              evento.preventDefault();
+              contenutoPrincipale.current?.focus();
+            }}
+            sx={{
+              // `fixed` e non `absolute`: l'antenato posizionato piu' vicino e' il
+              // blocco contenitore iniziale, quindi da assoluto il collegamento
+              // comparirebbe in cima al *documento* - fuori dallo schermo per chi
+              // lo mette a fuoco a pagina scorsa, cioe' proprio quando serve.
+              position: "fixed",
+              left: 8,
+              top: -64,
+              zIndex: (tema) => tema.zIndex.tooltip,
+              px: 2,
+              py: 1,
+              borderRadius: tokens.radius.sm,
+              backgroundColor: tokens.color.nearBlack,
+              color: tokens.color.canvas,
+              fontFamily: tokens.font.body,
+              fontSize: "14px",
+              fontWeight: 600,
+              textDecoration: "none",
+              transition: "top 0.15s ease",
+              "&:focus-visible": { top: 8 },
+            }}
+          >
+            Salta al contenuto
+          </Box>
 
           {/* Top Bar */}
           <AppBar
             position="fixed"
             sx={{
-              width: { sm: `calc(100% - ${LARGHEZZA_SIDEBAR}px)` },
-              ml: { sm: `${LARGHEZZA_SIDEBAR}px` },
+              // Barra e contenuto seguono la navigazione *a riposo*: aperta al
+              // passaggio del mouse il pannello scorre sopra di loro e non li
+              // sposta. L'unico stato che li muove e' il blocco, che e' una
+              // scelta esplicita e rara.
+              width: { sm: `calc(100% - ${larghezzaNav}px)` },
+              ml: { sm: `${larghezzaNav}px` },
               backgroundImage: "none",
-              backgroundColor: "rgba(255, 255, 255, 0.9)",
-              backdropFilter: "blur(8px)",
+              // Fondo pieno, non vetro. Era bianco al 90% con `backdrop-filter:
+              // blur(8px)`: su un canvas bianco, con sotto contenuto bianco, il
+              // vetro era indistinguibile da una barra opaca per quasi tutta la
+              // pagina, e si vedeva solo quando ci passava sotto una superficie
+              // scura - dove sfocava il grafo invece di tagliarlo netto. Costava
+              // un livello di composizione per un effetto che DESIGN.md non
+              // ammette e che qui non rendeva nulla.
+              backgroundColor: tokens.color.canvas,
               color: tokens.color.textPrimary,
               boxShadow: "none",
               borderBottom: tokens.border.subtle,
@@ -465,9 +253,15 @@ export default function App() {
             }}
           >
             <Toolbar sx={{ justifyContent: "space-between", height: "60px" }}>
+              {/* Il nome cambia con lo stato e resta in italiano come il resto
+                  dell'interfaccia: diceva "open drawer" anche a pannello aperto,
+                  che e' l'unica stringa inglese della navigazione e la sola
+                  informazione sbagliata che dava. */}
               <IconButton
                 color="inherit"
-                aria-label="open drawer"
+                aria-label={mobileOpen ? "Chiudi la navigazione" : "Apri la navigazione"}
+                aria-expanded={mobileOpen}
+                aria-controls={ID_NAVIGAZIONE_MOBILE}
                 edge="start"
                 onClick={handleDrawerToggle}
                 sx={{ mr: 2, display: { sm: "none" } }}
@@ -480,62 +274,33 @@ export default function App() {
           </AppBar>
 
           {/* Sidebar Navigation */}
-          <Box
-            component="nav"
-            sx={{ width: { sm: LARGHEZZA_SIDEBAR }, flexShrink: { sm: 0 } }}
-          >
-            <Drawer
-              variant="temporary"
-              open={mobileOpen}
-              onClose={handleDrawerToggle}
-              ModalProps={{
-                keepMounted: true,
-              }}
-              sx={{
-                display: { xs: "block", sm: "none" },
-                "& .MuiDrawer-paper": {
-                  boxSizing: "border-box",
-                  width: LARGHEZZA_SIDEBAR,
-                  borderRight: tokens.border.subtle,
-                },
-              }}
-            >
-              <NavigationContent onNavigate={() => setMobileOpen(false)} />
-            </Drawer>
-            <Drawer
-              variant="permanent"
-              open
-              PaperProps={{
-                "data-testid": "sidebar-desktop",
-              }}
-              sx={{
-                display: { xs: "none", sm: "block" },
-                "& .MuiDrawer-paper": {
-                  boxSizing: "border-box",
-                  width: LARGHEZZA_SIDEBAR,
-                  borderRight: tokens.border.subtle,
-                  borderTop: "none",
-                  borderLeft: "none",
-                  borderBottom: "none",
-                  backgroundColor: tokens.color.canvas,
-                  overflowX: "hidden",
-                },
-              }}
-            >
-              <NavigationContent />
-            </Drawer>
-          </Box>
+          <SidebarNavigazione
+            mobileAperta={mobileOpen}
+            onChiudiMobile={() => setMobileOpen(false)}
+            bloccata={navBloccata}
+            onCambiaBlocco={() => setNavBloccata((precedente) => !precedente)}
+          />
 
           {/* Main Content Area */}
           <Box
             component="main"
+            id={ID_CONTENUTO_PRINCIPALE}
+            ref={contenutoPrincipale}
+            // `-1`: il contenuto puo' ricevere il focus quando la rotta cambia o
+            // quando si segue il collegamento di salto, ma non e' un comando e
+            // non deve comparire nell'ordine di tabulazione.
+            tabIndex={-1}
             sx={{
               flexGrow: 1,
-              width: { sm: `calc(100% - ${LARGHEZZA_SIDEBAR}px)` },
+              width: { sm: `calc(100% - ${larghezzaNav}px)` },
               minHeight: "100vh",
               pt: { xs: 8, sm: 9 },
               display: "flex",
               flexDirection: "column",
+              // Il focus programmatico non disegna l'anello: qui segnalerebbe
+              // "sei all'inizio del contenuto" senza che nessuno lo abbia
+              // chiesto, e l'anello del collegamento di salto e' gia' passato.
+              outline: "none",
             }}
           >
             <Container maxWidth="xl" sx={{ flexGrow: 1, px: { xs: 2, sm: 4, md: 6 } }}>
@@ -597,11 +362,23 @@ export default function App() {
             </Box>
           </Box>
         </Box>
-        </HashRouter>
-      </NotificationProvider>
-    </ThemeProvider>
-    </QueryClientProvider>
-  </ErrorBoundary>
+  );
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={theme}>
+          <NotificationProvider>
+            <CssBaseline />
+            <HashRouter>
+              <GuscioApplicazione />
+            </HashRouter>
+          </NotificationProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

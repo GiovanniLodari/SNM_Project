@@ -77,7 +77,7 @@ export default function ConfrontoGrafi({
           >
             Grafo completo
           </Typography>
-          <Typography sx={{ fontFamily: tokens.font.display, fontSize: "28px", color: tokens.color.nearBlack }}>
+          <Typography sx={{ ...tokens.type.cardHeading, color: tokens.color.nearBlack }}>
             {formatNumber(nodiCompleto)}
           </Typography>
           <Typography variant="body2" sx={{ color: tokens.color.textMuted }}>
@@ -103,7 +103,7 @@ export default function ConfrontoGrafi({
           >
             Sottografo snowball
           </Typography>
-          <Typography sx={{ fontFamily: tokens.font.display, fontSize: "28px", color: tokens.color.nearBlack }}>
+          <Typography sx={{ ...tokens.type.cardHeading, color: tokens.color.nearBlack }}>
             {formatNumber(nodiSottografo)}
           </Typography>
           <Typography variant="body2" sx={{ color: tokens.color.textMuted }}>
@@ -139,7 +139,7 @@ export default function ConfrontoGrafi({
               left: "50%",
               transform: "translate(-50%, -50%)",
               backgroundColor: tokens.color.actionBlue,
-              borderRadius: "2px",
+              borderRadius: tokens.radius.xs,
             }}
           />
         </Box>

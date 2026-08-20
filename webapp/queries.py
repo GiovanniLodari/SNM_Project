@@ -6,13 +6,36 @@ from statistics import median
 import psycopg2.extensions
 
 from snm.analysis.export_texts import clean_html
+from snm.storage.viste import vista_popolata
 
 _distinct_langs_cache: tuple[float, list[str]] = (0.0, [])
 _distinct_langs_lock = threading.Lock()
 
 
+def _righe_da_vista(conn, vista: str, sql: str, params: tuple = ()) -> list | None:
+    """Righe lette da una vista materializzata, o `None` se non e' leggibile.
+
+    `None` e non una lista vuota: "la vista non c'e'" e "la vista dice zero" sono
+    due cose diverse, e chi chiama deve poter ricadere sulla query dal vivo nel
+    primo caso e fidarsi dello zero nel secondo. Confonderle mostrerebbe zero
+    post su un corpus da 1,8 milioni, che e' il modo peggiore di essere lenti.
+
+    Una vista non e' leggibile in tre casi, tutti legittimi: siamo su SQLite, il
+    database e' nuovo e nessuno ha ancora chiamato `aggiorna_viste`, oppure lo
+    schema e' stato appena aggiornato e le viste esistono `WITH NO DATA`.
+    """
+    if not vista_popolata(conn, vista):
+        return None
+    with conn.cursor() as cur:
+        cur.execute(sql, params)
+        return cur.fetchall()
+
+
 def count_posts(conn: psycopg2.extensions.connection) -> int:
     """Post non cancellati (stesso filtro usato altrove nel progetto)."""
+    righe = _righe_da_vista(conn, "mv_corpus_totali", "SELECT posts_total FROM mv_corpus_totali")
+    if righe:
+        return righe[0][0]
     with conn.cursor() as cur:
         cur.execute("SELECT COUNT(*) FROM statuses WHERE deleted_at IS NULL")
         (n,) = cur.fetchone()
@@ -137,6 +160,13 @@ def count_posts_matching(
 ) -> int:
     """Quanti post soddisfano i filtri, non solo quelli della pagina corrente."""
     where, params = _post_filters(langs, search, author)
+    # Senza filtri il totale dei risultati e' il totale del corpus, che la vista
+    # dei riepiloghi ha gia'. E' il caso piu' frequente - la prima apertura
+    # dell'archivio non filtra nulla - e costava un secondo di scansione per
+    # riscoprire un numero noto. Con dei filtri si conta davvero: nessuna vista
+    # puo' anticipare una ricerca a testo libero.
+    if not where:
+        return count_posts(conn)
     with conn.cursor() as cur:
         cur.execute(f"{_POST_COUNT} {where}", tuple(params))
         (n,) = cur.fetchone()
@@ -152,12 +182,17 @@ def distinct_languages(conn: psycopg2.extensions.connection) -> list[str]:
         ts, cached = _distinct_langs_cache
         if cached and (now - ts) < 300:
             return list(cached)
-    with conn.cursor() as cur:
-        cur.execute(
-            "SELECT DISTINCT language FROM statuses "
-            "WHERE deleted_at IS NULL AND language IS NOT NULL ORDER BY language"
-        )
-        langs = [row[0] for row in cur.fetchall()]
+    righe = _righe_da_vista(
+        conn, "mv_corpus_lingue", "SELECT language FROM mv_corpus_lingue ORDER BY language",
+    )
+    if righe is None:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT DISTINCT language FROM statuses "
+                "WHERE deleted_at IS NULL AND language IS NOT NULL ORDER BY language"
+            )
+            righe = cur.fetchall()
+    langs = [row[0] for row in righe]
     with _distinct_langs_lock:
         _distinct_langs_cache = (now, langs)
     return langs
@@ -198,11 +233,13 @@ def status_ids_matching_content(
 
 
 def count_accounts_by_bot(conn: psycopg2.extensions.connection) -> dict[bool, int]:
-    with conn.cursor() as cur:
-        cur.execute("SELECT bot, COUNT(*) FROM accounts GROUP BY bot")
-        rows = cur.fetchall()
+    rows = _righe_da_vista(conn, "mv_accounts_per_bot", "SELECT bot, accounts FROM mv_accounts_per_bot")
+    if rows is None:
+        with conn.cursor() as cur:
+            cur.execute("SELECT bot, COUNT(*) FROM accounts GROUP BY bot")
+            rows = cur.fetchall()
     counts = {False: 0, True: 0}
-    counts.update(dict(rows))
+    counts.update({bool(bot): n for bot, n in rows})
     return counts
 
 
@@ -231,13 +268,15 @@ def get_account_ids_for_statuses(
 
 def count_posts_by_bot(conn: psycopg2.extensions.connection) -> dict[bool, int]:
     """Post non cancellati divisi per dichiarazione bot dell'autore."""
-    with conn.cursor() as cur:
-        cur.execute(
-            "SELECT a.bot, COUNT(*) FROM statuses s "
-            "JOIN accounts a ON a.id = s.account_id "
-            "WHERE s.deleted_at IS NULL GROUP BY a.bot"
-        )
-        rows = cur.fetchall()
+    rows = _righe_da_vista(conn, "mv_posts_per_bot", "SELECT bot, posts FROM mv_posts_per_bot")
+    if rows is None:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT a.bot, COUNT(*) FROM statuses s "
+                "JOIN accounts a ON a.id = s.account_id "
+                "WHERE s.deleted_at IS NULL GROUP BY a.bot"
+            )
+            rows = cur.fetchall()
     counts = {False: 0, True: 0}
     counts.update({bool(bot): n for bot, n in rows})
     return counts
@@ -258,54 +297,87 @@ def corpus_composition(conn: psycopg2.extensions.connection) -> dict:
     post ci sono" ma "che materiale e' questo": senza queste cifre l'elenco dei
     post e' una finestra su qualcosa di cui non si conosce la forma.
     """
+    # Ogni blocco prova la propria vista e ricade sulla query dal vivo se manca:
+    # indipendentemente, non in blocco, cosi' un aggiornamento interrotto a metà
+    # fa comunque risparmiare le viste che ha fatto in tempo a ricalcolare.
+    #
+    # L'ORDER BY e il LIMIT restano qui e non nella vista: ordinare un centinaio
+    # di righe costa nulla, e una vista che porta solo le prime dieci lingue
+    # renderebbe impossibile cambiare TOP_LINGUE senza ricalcolarla.
+    totali = _righe_da_vista(
+        conn, "mv_corpus_totali",
+        """SELECT posts_total, authors_total, instances_total,
+                  first_post_at, last_post_at, posts_senza_lingua
+           FROM mv_corpus_totali""",
+    )
+    lingue_righe = _righe_da_vista(
+        conn, "mv_corpus_lingue",
+        "SELECT language, posts FROM mv_corpus_lingue ORDER BY posts DESC, language LIMIT %s",
+        (TOP_LINGUE,),
+    )
+    istanze_righe = _righe_da_vista(
+        conn, "mv_corpus_istanze",
+        """SELECT domain, posts, accounts, bot_posts FROM mv_corpus_istanze
+           ORDER BY posts DESC, domain LIMIT %s""",
+        (TOP_ISTANZE,),
+    )
+
     with conn.cursor() as cur:
-        cur.execute(
-            """
-            SELECT COUNT(*),
-                   COUNT(DISTINCT s.account_id),
-                   COUNT(DISTINCT s.instance_id),
-                   MIN(s.created_at),
-                   MAX(s.created_at),
-                   COUNT(*) FILTER (WHERE s.language IS NULL)
-            FROM statuses s
-            WHERE s.deleted_at IS NULL
-            """
-        )
-        posts, autori, istanze, primo, ultimo, senza_lingua = cur.fetchone()
+        if totali:
+            posts, autori, istanze, primo, ultimo, senza_lingua = totali[0]
+        else:
+            cur.execute(
+                """
+                SELECT COUNT(*),
+                       COUNT(DISTINCT s.account_id),
+                       COUNT(DISTINCT s.instance_id),
+                       MIN(s.created_at),
+                       MAX(s.created_at),
+                       COUNT(*) FILTER (WHERE s.language IS NULL)
+                FROM statuses s
+                WHERE s.deleted_at IS NULL
+                """
+            )
+            posts, autori, istanze, primo, ultimo, senza_lingua = cur.fetchone()
 
-        cur.execute(
-            """
-            SELECT s.language, COUNT(*)
-            FROM statuses s
-            WHERE s.deleted_at IS NULL AND s.language IS NOT NULL
-            GROUP BY s.language
-            ORDER BY COUNT(*) DESC, s.language
-            LIMIT %s
-            """,
-            (TOP_LINGUE,),
-        )
-        lingue = [{"lang": lang, "posts": n} for lang, n in cur.fetchall()]
+        if lingue_righe is None:
+            cur.execute(
+                """
+                SELECT s.language, COUNT(*)
+                FROM statuses s
+                WHERE s.deleted_at IS NULL AND s.language IS NOT NULL
+                GROUP BY s.language
+                ORDER BY COUNT(*) DESC, s.language
+                LIMIT %s
+                """,
+                (TOP_LINGUE,),
+            )
+            lingue_righe = cur.fetchall()
 
-        cur.execute(
-            """
-            SELECT i.domain,
-                   COUNT(*) AS posts,
-                   COUNT(DISTINCT s.account_id) AS accounts,
-                   COUNT(*) FILTER (WHERE a.bot) AS bot_posts
-            FROM statuses s
-            JOIN instances i ON i.id = s.instance_id
-            JOIN accounts a ON a.id = s.account_id
-            WHERE s.deleted_at IS NULL
-            GROUP BY i.domain
-            ORDER BY posts DESC, i.domain
-            LIMIT %s
-            """,
-            (TOP_ISTANZE,),
-        )
-        domini = [
-            {"domain": domain, "posts": posts_n, "accounts": acc_n, "bot_posts": bot_n}
-            for domain, posts_n, acc_n, bot_n in cur.fetchall()
-        ]
+        if istanze_righe is None:
+            cur.execute(
+                """
+                SELECT i.domain,
+                       COUNT(*) AS posts,
+                       COUNT(DISTINCT s.account_id) AS accounts,
+                       COUNT(*) FILTER (WHERE a.bot) AS bot_posts
+                FROM statuses s
+                JOIN instances i ON i.id = s.instance_id
+                JOIN accounts a ON a.id = s.account_id
+                WHERE s.deleted_at IS NULL
+                GROUP BY i.domain
+                ORDER BY posts DESC, i.domain
+                LIMIT %s
+                """,
+                (TOP_ISTANZE,),
+            )
+            istanze_righe = cur.fetchall()
+
+    lingue = [{"lang": lang, "posts": n} for lang, n in lingue_righe]
+    domini = [
+        {"domain": domain, "posts": posts_n, "accounts": acc_n, "bot_posts": bot_n}
+        for domain, posts_n, acc_n, bot_n in istanze_righe
+    ]
 
     per_bot = count_posts_by_bot(conn)
 
@@ -355,29 +427,45 @@ def accounts_population(conn: psycopg2.extensions.connection) -> dict:
     dagli archi di follow raccolti: sono due misure diverse e la seconda copre
     solo la porzione di rete che il crawler ha percorso.
     """
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            SELECT i.domain,
-                   COUNT(*) AS accounts,
-                   COUNT(*) FILTER (WHERE a.bot) AS bot_accounts
-            FROM accounts a
-            JOIN instances i ON i.id = a.instance_id
-            GROUP BY i.domain
-            ORDER BY accounts DESC, i.domain
-            LIMIT %s
-            """,
-            (TOP_ISTANZE,),
-        )
-        istanze = [
-            {"domain": domain, "accounts": n, "bot_accounts": bot_n}
-            for domain, n, bot_n in cur.fetchall()
-        ]
+    istanze_righe = _righe_da_vista(
+        conn, "mv_accounts_istanze",
+        """SELECT domain, accounts, bot_accounts FROM mv_accounts_istanze
+           ORDER BY accounts DESC, domain LIMIT %s""",
+        (TOP_ISTANZE,),
+    )
+    con_post_righe = _righe_da_vista(
+        conn, "mv_accounts_con_post", "SELECT accounts_con_post FROM mv_accounts_con_post",
+    )
 
-        cur.execute(
-            "SELECT COUNT(DISTINCT account_id) FROM statuses WHERE deleted_at IS NULL"
-        )
-        (con_post,) = cur.fetchone()
+    with conn.cursor() as cur:
+        if istanze_righe is None:
+            cur.execute(
+                """
+                SELECT i.domain,
+                       COUNT(*) AS accounts,
+                       COUNT(*) FILTER (WHERE a.bot) AS bot_accounts
+                FROM accounts a
+                JOIN instances i ON i.id = a.instance_id
+                GROUP BY i.domain
+                ORDER BY accounts DESC, i.domain
+                LIMIT %s
+                """,
+                (TOP_ISTANZE,),
+            )
+            istanze_righe = cur.fetchall()
+
+        if con_post_righe:
+            (con_post,) = con_post_righe[0]
+        else:
+            cur.execute(
+                "SELECT COUNT(DISTINCT account_id) FROM statuses WHERE deleted_at IS NULL"
+            )
+            (con_post,) = cur.fetchone()
+
+    istanze = [
+        {"domain": domain, "accounts": n, "bot_accounts": bot_n}
+        for domain, n, bot_n in istanze_righe
+    ]
 
     follower_per_bot, candidati = _statistiche_follower(conn)
     piu_seguiti = _classifica_piu_seguiti(conn, candidati)
@@ -423,8 +511,21 @@ def _statistiche_follower(
     # ordinata per trovarne i primi sessanta.
     candidati: list[tuple[int, int]] = []
 
+    # La vista porta `followers` gia' estratto e castato: la scansione legge
+    # righe strette invece di aprire 660 mila documenti JSONB, che era la voce
+    # piu' costosa dell'intera applicazione. La logica qui sotto - tetto di
+    # plausibilita', mediana, heap dei candidati - non cambia di una riga: la
+    # vista sostituisce la *sorgente*, non il calcolo, cosi' le cifre restano
+    # identiche a quelle che il progetto ha sempre mostrato.
+    ha_vista = vista_popolata(conn, "mv_account_followers")
+    sorgente = (
+        "SELECT account_id, bot, followers FROM mv_account_followers"
+        if ha_vista
+        else f"SELECT a.id, a.bot, {_FOLLOWERS} AS followers FROM accounts a"
+    )
+
     with conn.cursor() as cur:
-        cur.execute(f"SELECT a.id, a.bot, {_FOLLOWERS} AS followers FROM accounts a")
+        cur.execute(sorgente)
         for account_id, bot, followers in cur:
             if followers is None:
                 continue

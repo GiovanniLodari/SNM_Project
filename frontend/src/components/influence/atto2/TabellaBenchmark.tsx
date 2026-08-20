@@ -1,4 +1,4 @@
-import { Box, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
 import type { InfluenceAlgorithmInfo } from "../../../api/client.ts";
 import { rapportoCostoBeneficio } from "../../../utils/influenceAnalysis.ts";
 import { NON_DISPONIBILE, formatDecimal, formatNumber } from "../../../utils/format.ts";
@@ -31,18 +31,34 @@ export default function TabellaBenchmark({ algoritmi, kRichiesto }: Props) {
   const massimoSeed = Math.max(...Object.values(algoritmi).map((a) => a.n_seeds));
 
   return (
-    <Table
-      sx={{
-        "& .MuiTableCell-root": {
-          border: "none",
-          borderBottom: tokens.border.subtle,
-          py: 2,
-        },
-        "& .MuiTableRow-root:last-of-type .MuiTableCell-root": {
-          borderBottom: "none",
-        },
-      }}
+    // Il contenitore scorrevole non e' decorativo: cinque colonne numeriche
+    // con intestazioni come "Spread Monte Carlo" chiedono circa 485px, e la
+    // colonna di contenuto su uno schermo da 390px ne offre 308. Senza un
+    // antenato con `overflow-x: auto` il traboccamento risale fino al body e
+    // fa scorrere lateralmente l'intera pagina - il difetto peggiore possibile
+    // durante una discussione dal vivo. Le due classifiche dell'Atto III lo
+    // avevano gia'; qui mancava.
+    <TableContainer
+      sx={{ overflowX: "auto" }}
+      // Un'area che scorre deve poter scorrere anche da tastiera: senza
+      // `tabIndex` le colonne oltre il bordo destro sono raggiungibili solo col
+      // mouse, ed erano proprio quelle per cui il contenitore era stato messo.
+      tabIndex={0}
+      role="region"
+      aria-label="Confronto fra algoritmi, scorrevole in orizzontale"
     >
+      <Table
+        sx={{
+          "& .MuiTableCell-root": {
+            border: "none",
+            borderBottom: tokens.border.subtle,
+            py: 2,
+          },
+          "& .MuiTableRow-root:last-of-type .MuiTableCell-root": {
+            borderBottom: "none",
+          },
+        }}
+      >
       <TableHead>
         <TableRow>
           <TableCell sx={{ fontFamily: tokens.font.display, fontWeight: 700, color: tokens.color.nearBlack }}>
@@ -70,7 +86,14 @@ export default function TabellaBenchmark({ algoritmi, kRichiesto }: Props) {
 
           return (
             <TableRow key={riga.nome}>
-              <TableCell sx={{ fontFamily: tokens.font.display, color: tokens.color.nearBlack }}>
+              {/* Il nome dell'algoritmo e' l'intestazione della riga, non una
+                  cella qualunque: e' cio' che dice di chi sono i quattro numeri
+                  accanto. Senza `scope` uno screen reader li legge orfani. */}
+              <TableCell
+                component="th"
+                scope="row"
+                sx={{ fontFamily: tokens.font.display, fontWeight: 400, color: tokens.color.nearBlack }}
+              >
                 {riga.nome}
               </TableCell>
               <TableCell align="right">
@@ -106,26 +129,37 @@ export default function TabellaBenchmark({ algoritmi, kRichiesto }: Props) {
                 {/* Tre casi distinti (vedi influenceAnalysis.ts): un tempo misurato si mostra
                     cosi' com'e', un tempo sotto il pavimento si mostra con il suo valore reale
                     (mai un "0,00 s" scritto a mano) e un tempo assente dichiara l'assenza invece
-                    di spacciarla per una misura sotto il decimo di secondo. */}
-                {riga.statoTempo === "assente" ? (
-                  <Box component="span" title="Tempo di esecuzione non registrato nei dati di questa run.">
-                    {NON_DISPONIBILE}
-                  </Box>
-                ) : riga.statoTempo === "sotto_pavimento" ? (
-                  <Box
-                    component="span"
-                    title="Tempo reale, sotto il pavimento rappresentabile su scala logaritmica."
+                    di spacciarla per una misura sotto il decimo di secondo.
+
+                    Le due note stavano in un attributo `title`, cioe' erano informazione affidata
+                    a un passaggio del mouse: non compaiono al tocco, non si raggiungono da
+                    tastiera perche' uno `span` non prende focus, e su un proiettore nessuno le
+                    vedra' mai. Sono la provenienza di due valori in una tabella il cui compito e'
+                    dichiarare la provenienza, quindi stanno in pagina, nella stessa forma che la
+                    colonna dei seed usa gia' due colonne piu' a sinistra. */}
+                {riga.statoTempo === "assente" ? NON_DISPONIBILE : `${formatDecimal(riga.tempoS, 2)} s`}
+                {riga.statoTempo === "assente" && (
+                  <Typography
+                    variant="caption"
+                    sx={{ display: "block", color: tokens.color.textMuted, fontFamily: tokens.font.body }}
                   >
-                    {`${formatDecimal(riga.tempoS, 2)} s`}
-                  </Box>
-                ) : (
-                  `${formatDecimal(riga.tempoS, 2)} s`
+                    tempo non registrato in questa run
+                  </Typography>
+                )}
+                {riga.statoTempo === "sotto_pavimento" && (
+                  <Typography
+                    variant="caption"
+                    sx={{ display: "block", color: tokens.color.textMuted, fontFamily: tokens.font.body }}
+                  >
+                    misura reale, sotto il pavimento della scala logaritmica
+                  </Typography>
                 )}
               </TableCell>
             </TableRow>
           );
         })}
-      </TableBody>
-    </Table>
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 }

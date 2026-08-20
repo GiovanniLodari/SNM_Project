@@ -101,12 +101,7 @@ export default function EsitoConfronto({ algoritmi, vincitore }: Props) {
       }}
     >
       <Typography
-        sx={{
-          fontFamily: tokens.font.display,
-          fontSize: "24px",
-          lineHeight: 1.35,
-          color: tokens.color.nearBlack,
-        }}
+        sx={{ ...tokens.type.affermazione, color: tokens.color.nearBlack }}
       >
         {secondoRiga && margineSulSecondo !== null ? (
           <>

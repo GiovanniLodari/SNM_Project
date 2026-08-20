@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import type { ReactNode } from "react";
 import { useMovimentoRidotto } from "../hooks/useMovimentoRidotto.ts";
 import {
   Box,
@@ -24,6 +25,7 @@ import {
   AccountTree as TreeIcon,
 } from "@mui/icons-material";
 import ReactECharts from "../utils/echarts.tsx";
+import { escapeHtml } from "../utils/html.ts";
 import { InfluenceGraphNode, InfluenceGraphLink, InfluenceSeed } from "../api/client.ts";
 
 /**
@@ -63,22 +65,50 @@ import { formatNumber } from "../utils/format.ts";
 interface InfluenceGraphCanvasProps {
   nodes: InfluenceGraphNode[];
   links: InfluenceGraphLink[];
-  maxStep?: number;
+  /**
+   * Numero di passi della cascata: e' il fondo scala dello scrubber.
+   *
+   * Obbligatoria, e prima non lo era: il default era `11`, il numero di passi
+   * di *questa* run. Su un'altra lo scrubber avrebbe mostrato undici passi di
+   * una cascata che ne ha altri, senza che nulla lo segnalasse.
+   */
+  maxStep: number;
   onSelectNode?: (node: InfluenceGraphNode) => void;
   topSeeds?: InfluenceSeed[];
+  /**
+   * Seed di cui mostrare la cascata. Quando manca si usa il primo di
+   * `topSeeds`, che e' il piu' efficace: il default era `"66109"`, cioe'
+   * l'identificativo di un account in *questo* database - su un altro non
+   * esiste, e il canvas avrebbe disegnato un estratto che non corrisponde a
+   * niente senza dirlo.
+   */
   selectedSeedId?: string;
   onSelectSeedId?: (seedId: string) => void;
+  /**
+   * Legenda delle quattro categorie di nodo, resa dentro il pannello scuro.
+   *
+   * Arriva da fuori perche' le parole sono del capitolo, non dello strumento;
+   * ma va renderizzata qui perche' le tinte dei nodi sono pensate per il fondo
+   * `darkCanvas` e sul canvas bianco della pagina tre su quattro scendono sotto
+   * il contrasto minimo (il ciano da' 1,5:1).
+   */
+  legenda?: ReactNode;
 }
 
 export default function InfluenceGraphCanvas({
   nodes: rawNodes = [],
   links: rawLinks = [],
-  maxStep = 11,
+  maxStep,
   onSelectNode,
   topSeeds = [],
-  selectedSeedId = "66109",
+  selectedSeedId,
   onSelectSeedId,
+  legenda,
 }: InfluenceGraphCanvasProps) {
+  // Il seed effettivamente in evidenza: quello scelto, o il primo per
+  // raggiungimento diretto se nessuno lo e' ancora. Un valore ricavato dai dati,
+  // non un identificativo scritto a mano.
+  const seedInEvidenza = selectedSeedId ?? topSeeds[0]?.id;
   /**
    * A movimento ridotto la cascata non parte da sola.
    *
@@ -135,11 +165,16 @@ export default function InfluenceGraphCanvas({
   const getEChartsOption = useMemo(() => {
     if (!rawNodes || rawNodes.length === 0) return {};
 
+    // Le stesse quattro categorie della legenda DOM di `CanvasCascata`, con le
+    // stesse parole: la legenda ECharts e' spenta, ma questi nomi restano i
+    // nomi dei dati e finivano per divergere da quelli mostrati. "Attivato" e
+    // non "infetto" o "contagiato": il capitolo evita il lessico epidemico
+    // ovunque, e non c'e' ragione per cui il grafo faccia eccezione.
     const categories = [
-      { name: "1. SEED BOT FOCUS", itemStyle: { color: tokens.color.coral } },
-      { name: "2. NUOVO INFETTO", itemStyle: { color: tokens.color.activated } },
-      { name: "3. ATTIVO CONTAGIATO", itemStyle: { color: tokens.color.accentCyan } },
-      { name: "4. INATTIVO", itemStyle: { color: tokens.color.darkSlateDarker } },
+      { name: "1. Seed bot di origine", itemStyle: { color: tokens.color.coral } },
+      { name: "2. Attivato in questo passo", itemStyle: { color: tokens.color.activated } },
+      { name: "3. Attivato in un passo precedente", itemStyle: { color: tokens.color.accentCyan } },
+      { name: "4. Non ancora raggiunto", itemStyle: { color: tokens.color.darkSlateDarker } },
     ];
 
     // Group nodes for concentric radial layout
@@ -152,7 +187,7 @@ export default function InfluenceGraphCanvas({
     };
 
     rawNodes.forEach((node) => {
-      const isSeed = node.is_seed || node.id === selectedSeedId;
+      const isSeed = node.is_seed || node.id === seedInEvidenza;
       if (isSeed) {
         stepGroups.seed.push(node);
       } else if (node.activation_step === 1) {
@@ -183,7 +218,7 @@ export default function InfluenceGraphCanvas({
     const nodePosMap = new Map<string, { x: number; y: number }>();
 
     rawNodes.forEach((node) => {
-      const isSeed = node.is_seed || node.id === selectedSeedId;
+      const isSeed = node.is_seed || node.id === seedInEvidenza;
       const step = node.activation_step;
       const isActivated = step !== null && step <= currentStep;
       const isJustActivated = step === currentStep && currentStep > 0;
@@ -239,14 +274,27 @@ export default function InfluenceGraphCanvas({
         itemStyle: {
           opacity,
           borderWidth: isSeed ? 3 : isJustActivated ? 2 : 1,
-          borderColor: isSeed ? tokens.color.canvas : isJustActivated ? tokens.color.canvas : "rgba(255,255,255,0.4)",
-          shadowBlur: isSeed ? 20 : isJustActivated ? 15 : 0,
-          shadowColor: isSeed ? tokens.color.coral : isJustActivated ? tokens.color.activated : "transparent",
+          borderColor:
+            isSeed || isJustActivated ? tokens.color.canvas : tokens.overlay.bordoNodoSpento,
+          // Il bagliore resta ai soli seed, che sono sessanta e non cambiano
+          // fra un passo e l'altro. Ce l'avevano anche i nodi appena attivati,
+          // che a ogni passo sono decine o centinaia: `shadowBlur` e'
+          // l'operazione piu' costosa del canvas 2D, e ridisegnarla su tutti
+          // loro tre volte al secondo era il grosso del costo della
+          // riproduzione. Il passo corrente resta comunque distinguibile per
+          // tinta, per dimensione (22px contro 14) e per bordo bianco: tre
+          // canali, nessuno dei quali e' il bagliore.
+          shadowBlur: isSeed ? 20 : 0,
+          shadowColor: isSeed ? tokens.color.coral : "transparent",
         },
         label: {
           show: isSeed || isJustActivated,
           fontSize: isSeed ? 13 : 11,
-          fontFamily: "Space Grotesk, Inter, monospace",
+          // Il corpo, non il display: questi sono valori di dato, e DESIGN.md
+          // tiene Space Grotesk fuori dai dati. La catena di prima mescolava
+          // anche due sans e un monospazio, quindi le etichette cambiavano
+          // disegno a seconda di quale carattere fosse caricato.
+          fontFamily: tokens.font.body,
           fontWeight: isSeed ? "bold" : "normal",
           color: isSeed ? tokens.color.coral : isJustActivated ? tokens.color.activated : tokens.color.canvas,
         },
@@ -263,14 +311,14 @@ export default function InfluenceGraphCanvas({
       const isFired = step <= currentStep;
       const isCurrentWave = step === currentStep && currentStep > 0;
 
-      let lineColor = "rgba(255, 255, 255, 0.04)";
+      let lineColor = tokens.overlay.arcoSpento;
       let lineWidth = 0.5;
 
       if (isCurrentWave) {
         lineColor = tokens.color.coral;
         lineWidth = 3;
       } else if (isFired) {
-        lineColor = "rgba(0, 229, 255, 0.4)";
+        lineColor = tokens.overlay.arcoAttivato;
         lineWidth = 1.2;
       }
 
@@ -286,28 +334,44 @@ export default function InfluenceGraphCanvas({
     });
 
     return {
-      backgroundColor: tokens.color.nearBlack,
+      // Il fondo della cascata e' `darkCanvas`, la piu' profonda delle quattro
+      // superfici scure, dichiarata in DESIGN.md proprio per far risaltare i
+      // nodi attivati. Prima era `nearBlack`, che e' il nero *di marchio* -
+      // il colore dei bottoni e della voce di navigazione attiva - e usarlo
+      // come superficie faceva sembrare questo riquadro di un altro progetto.
+      // A movimento ridotto il grafico non anima: `animation` non era dichiarata
+      // affatto, quindi restava il default di ECharts (attiva, 1000 ms) e chi
+      // aveva chiesto meno movimento vedeva comunque i nodi animarsi a ogni
+      // passo dello scrubber. La preferenza governava solo l'avvio automatico.
+      animation: !riduciMovimento,
+      backgroundColor: tokens.color.darkCanvas,
       tooltip: {
         trigger: "item",
-        backgroundColor: "rgba(23, 23, 28, 0.94)",
-        borderColor: "rgba(255, 255, 255, 0.2)",
+        backgroundColor: tokens.color.nearBlack,
+        borderColor: tokens.overlay.filettoSuScuroMarcato,
         textStyle: { color: tokens.color.canvas, fontFamily: tokens.font.body },
         formatter: (params: EchartsCallbackParams) => {
           if (params.dataType === "node") {
             const raw = params.data?.rawNode;
             if (!raw) return params.name;
-            const isSeed = raw.is_seed || raw.id === selectedSeedId;
+            const isSeed = raw.is_seed || raw.id === seedInEvidenza;
             const step = raw.activation_step;
             const isAct = step !== null && step <= currentStep;
+            // `acct` e `id` passano da escapeHtml: ECharts rende questa stringa
+            // come markup, e i due campi arrivano dalle istanze Mastodon
+            // remote. Sono l'unico dato non fidato dell'applicazione che
+            // finisce in HTML.
+            const nome = escapeHtml(raw.acct || raw.id);
+            const identificativo = escapeHtml(raw.id);
             return `
               <div style="padding: 4px;">
                 <strong style="font-size: 14px; color: ${isSeed ? tokens.color.coral : isAct ? tokens.color.accentCyan : tokens.color.textOnDark}">
-                  @${raw.acct || raw.id}
+                  @${nome}
                 </strong><br/>
-                <span style="font-size: 12px; color: ${tokens.color.textOnDark};">ID: ${raw.id}</span><br/>
-                <span style="font-size: 12px; color: ${tokens.color.canvas};">Followers: ${formatNumber(raw.followers ?? 0)}</span><br/>
+                <span style="font-size: 12px; color: ${tokens.color.textOnDark};">ID: ${identificativo}</span><br/>
+                <span style="font-size: 12px; color: ${tokens.color.canvas};">Follower: ${formatNumber(raw.followers ?? 0)}</span><br/>
                 <span style="font-size: 12px; font-weight: bold; color: ${isSeed ? tokens.color.coral : isAct ? tokens.color.activated : tokens.color.textMuted}">
-                  Stato: ${isSeed ? "SEED BOT ORIGINE" : isAct ? `CONTAGIATO a Step ${step}` : "INATTIVO"}
+                  Stato: ${isSeed ? "seed bot di origine" : isAct ? `attivato al passo ${step}` : "non ancora raggiunto"}
                 </span>
               </div>
             `;
@@ -315,12 +379,14 @@ export default function InfluenceGraphCanvas({
           return "";
         },
       },
-      legend: {
-        data: categories.map((c) => c.name),
-        textStyle: { color: tokens.color.textOnDark, fontFamily: tokens.font.mono, fontSize: 11 },
-        top: 16,
-        right: 20,
-      },
+      // Nessuna legenda ECharts: `CanvasCascata` ne passa una in DOM, resa qui
+      // sotto il grafo, con le stesse quattro categorie spiegate per esteso.
+      // Tenerle entrambe metteva a schermo due vocabolari per gli stessi
+      // stati - "NUOVO INFETTO" qui, "nodo appena attivato nello step
+      // corrente" li' - e chi guarda doveva riconciliarli prima di poter
+      // leggere il grafo. Sopravvive quella in DOM perche' e' l'unica che una
+      // tecnologia assistiva puo' raggiungere.
+      legend: { show: false },
       series: [
         {
           type: "graph",
@@ -342,6 +408,12 @@ export default function InfluenceGraphCanvas({
             repulsion: 220,
             edgeLength: 100,
             gravity: 0.1,
+            // A movimento ridotto il layout si calcola prima del primo disegno
+            // invece di assestarsi a vista. Il risultato e' lo stesso grafo:
+            // cambia che non lo si guarda mentre si sistema. Senza questo, "a
+            // forze" restava una simulazione fisica che muoveva il disegno da
+            // sola, cioe' l'unica animazione che la preferenza non fermava.
+            layoutAnimation: !riduciMovimento,
           },
           emphasis: {
             focus: "adjacency",
@@ -352,15 +424,20 @@ export default function InfluenceGraphCanvas({
         },
       ],
     };
-  }, [rawNodes, rawLinks, currentStep, selectedSeedId, layoutMode]);
+  }, [rawNodes, rawLinks, currentStep, seedInEvidenza, layoutMode, riduciMovimento]);
 
   // Telemetry metrics
   const activeCount = rawNodes.filter(
-    (n) => n.is_seed || n.id === selectedSeedId || (n.activation_step !== null && n.activation_step <= currentStep)
+    (n) => n.is_seed || n.id === seedInEvidenza || (n.activation_step !== null && n.activation_step <= currentStep)
   ).length;
 
   const newInThisStep = rawNodes.filter((n) => n.activation_step === currentStep && currentStep > 0).length;
-  const pctInfected = Math.round((activeCount / Math.max(1, rawNodes.length)) * 100);
+
+  // Il denominatore e' `rawNodes`, cioe' il sottografo effettivamente
+  // disegnato qui, non la rete completa: il nome lo dice per non farlo
+  // raccontare come una quota di rete da chi lo legge dopo. La percentuale
+  // sulla rete intera e' un'altra cifra, e vive nella banda del capitolo.
+  const pctSottografoDisegnato = Math.round((activeCount / Math.max(1, rawNodes.length)) * 100);
 
   // Click handler on ECharts node
   const onChartClick = (params: EchartsCallbackParams) => {
@@ -384,7 +461,7 @@ export default function InfluenceGraphCanvas({
         borderRadius: tokens.radius.xl,
         overflow: "hidden",
         border: tokens.border.subtle,
-        backgroundColor: tokens.color.nearBlack,
+        backgroundColor: tokens.color.darkCanvas,
         color: tokens.color.canvas,
         position: "relative",
       }}
@@ -394,7 +471,7 @@ export default function InfluenceGraphCanvas({
         sx={{
           px: 3,
           py: 2,
-          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+          borderBottom: `1px solid ${tokens.overlay.filettoSuScuro}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -415,37 +492,42 @@ export default function InfluenceGraphCanvas({
                 color: tokens.color.canvas,
               }}
             >
-              Grafo di Propagazione Apache ECharts
+              La cascata, passo per passo
             </Typography>
             <Typography
               variant="caption"
               sx={{ color: tokens.color.textOnDark, fontFamily: tokens.font.mono, fontSize: "11px" }}
             >
-              Simulazione WebGL/Canvas • Step {currentStep} / {maxStep} (Profondità max seed: Step {maxSeedStep})
+              Passo {currentStep} di {maxStep} • la cascata di questo seed si ferma al passo {maxSeedStep}
             </Typography>
           </Box>
 
           {/* Seed Selector Dropdown */}
           {topSeeds.length > 0 && onSelectSeedId && (
             <Select
-              value={selectedSeedId}
+              value={seedInEvidenza ?? ""}
               onChange={(e) => onSelectSeedId(e.target.value)}
               size="small"
+              // Sulla radice e non su InputProps, come per i campi di ricerca:
+              // MUI passerebbe l'attributo al FormControl e il controllo
+              // resterebbe senza nome. Senza, uno screen reader annuncia una
+              // combobox anonima nel punto in cui si scegli cosa guardare.
+              inputProps={{ "aria-label": "Seed di cui mostrare la cascata" }}
               sx={{
                 ml: 2,
                 color: tokens.color.coral,
                 fontFamily: tokens.font.mono,
                 fontWeight: 700,
                 fontSize: "12px",
-                backgroundColor: "rgba(255, 119, 89, 0.12)",
-                borderRadius: "20px",
-                border: "1px solid rgba(255, 119, 89, 0.4)",
+                backgroundColor: tokens.overlay.velaturaCoral,
+                borderRadius: tokens.radius.pill,
+                border: `1px solid ${tokens.overlay.bordoCoral}`,
                 "& .MuiSelect-icon": { color: tokens.color.coral },
               }}
             >
               {topSeeds.map((s) => (
                 <MenuItem key={s.id} value={s.id}>
-                  Seed Bot: @{s.acct} ({s.direct_reached} nodi contagiati)
+                  @{s.acct} — {s.direct_reached} nodi attivati
                 </MenuItem>
               ))}
             </Select>
@@ -459,13 +541,13 @@ export default function InfluenceGraphCanvas({
           onChange={(_, val) => val && setLayoutMode(val)}
           size="small"
           sx={{
-            backgroundColor: "rgba(255,255,255,0.06)",
-            borderRadius: "10px",
+            backgroundColor: tokens.overlay.velaturaSuScuro,
+            borderRadius: tokens.radius.sm,
             p: 0.5,
             "& .MuiToggleButton-root": {
               color: tokens.color.textOnDark,
               border: "none",
-              borderRadius: "6px",
+              borderRadius: tokens.radius.xs,
               px: 1.5,
               py: 0.4,
               fontSize: "11px",
@@ -479,16 +561,19 @@ export default function InfluenceGraphCanvas({
           }}
         >
           <ToggleButton value="concentric">
-            <TreeIcon sx={{ mr: 0.8, fontSize: 14 }} /> Radiale Onde
+            <TreeIcon sx={{ mr: 0.8, fontSize: 14 }} /> Radiale
           </ToggleButton>
           <ToggleButton value="force">
-            <GraphChartIcon sx={{ mr: 0.8, fontSize: 14 }} /> Forza Fisica
+            <GraphChartIcon sx={{ mr: 0.8, fontSize: 14 }} /> A forze
           </ToggleButton>
         </ToggleButtonGroup>
       </Box>
 
       {/* Main ECharts View */}
-      <Box sx={{ position: "relative", width: "100%", height: 560 }}>
+      {/* L'altezza cede su schermo stretto: 560px fissi su un telefono da 844
+          occupavano due terzi dell'altezza utile per un grafo che a quella
+          larghezza si legge comunque peggio. */}
+      <Box sx={{ position: "relative", width: "100%", height: { xs: 380, sm: 460, md: 560 } }}>
         {/* Il grafo ECharts e' un canvas: opaco alle tecnologie assistive
             esattamente come quello dei follow. Il ruolo e il nome stanno sul
             contenitore perche' la libreria non espone l'elemento interno. */}
@@ -501,7 +586,8 @@ export default function InfluenceGraphCanvas({
                 `${formatNumber(activeCount)} ${
                   activeCount === 1 ? "account raggiunto" : "account raggiunti"
                 } su ${formatNumber(rawNodes.length)}, ` +
-                `pari al ${pctInfected} per cento della rete.`
+                `pari al ${pctSottografoDisegnato} per cento del sottografo disegnato qui, ` +
+                `non della rete completa.`
           }
           sx={{ width: "100%", height: "100%" }}
         >
@@ -509,7 +595,13 @@ export default function InfluenceGraphCanvas({
             option={getEChartsOption}
             style={{ width: "100%", height: "100%" }}
             onEvents={{ click: onChartClick }}
-            notMerge={true}
+            // Niente `notMerge`: fra un passo e l'altro la struttura della serie
+            // non cambia - stessi nodi, stessi archi, stessi identificativi - e
+            // cambiano solo tinte, dimensioni e opacita'. `notMerge` diceva a
+            // ECharts di buttare via lo stato e ricostruire tutto da zero a
+            // ogni tick del timer (fino a tre volte al secondo a 4.0x), e per
+            // costruzione disabilitava anche le sue transizioni interne: era il
+            // motivo per cui la cascata saltava fra i passi invece di scorrere.
             lazyUpdate={true}
           />
         </Box>
@@ -533,66 +625,31 @@ export default function InfluenceGraphCanvas({
           {!isPlaying && rawNodes.length > 0
             ? `Passo ${currentStep} di ${maxStep}: ${formatNumber(activeCount)} ${
                 activeCount === 1 ? "account raggiunto" : "account raggiunti"
-              }, ${pctInfected} per cento della rete.`
+              }, ${pctSottografoDisegnato} per cento del sottografo disegnato.`
             : ""}
         </Box>
+      </Box>
 
-        {/* Live Contagion Telemetry Overlay Card */}
-        <Paper
-          elevation={0}
+      {/* La legenda, sul fondo che descrive.
+          Stava sotto il pannello, sul canvas bianco della pagina, dove tre
+          delle sue quattro tinte sono tinte da superficie scura: il ciano dava
+          1,5:1, il verde 2,2:1, il coral 2,6:1, tutte sotto il 3:1 che WCAG
+          chiede a un segno che porta informazione. Le etichette accanto
+          salvavano il significato ma non il legame fra tinta e significato, che
+          e' l'unico mestiere di una legenda. Qui le stesse quattro tinte sono
+          quelle giuste (coral 7,4:1) perche' sono a casa loro. */}
+      {legenda && (
+        <Box
           sx={{
-            position: "absolute",
-            top: 16,
-            left: 16,
-            p: 2,
-            borderRadius: tokens.radius.lg,
-            backgroundColor: "rgba(13, 13, 16, 0.85)",
-            backdropFilter: "blur(10px)",
-            border: "1px solid rgba(255, 255, 255, 0.15)",
-            color: tokens.color.canvas,
-            minWidth: 240,
-            pointerEvents: "none",
+            px: 3,
+            py: 2,
+            backgroundColor: tokens.color.darkCanvas,
+            borderTop: `1px solid ${tokens.overlay.filettoSuScuro}`,
           }}
         >
-          <Typography
-            variant="caption"
-            sx={{
-              color: tokens.color.coral,
-              fontFamily: tokens.font.mono,
-              fontWeight: 700,
-              letterSpacing: "0.5px",
-            }}
-          >
-            TELEMETRIA APACHE ECHARTS
-          </Typography>
-
-          <Box sx={{ mt: 1, display: "flex", flexDirection: "column", gap: 0.5 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, color: tokens.color.canvas }}>
-              Passo Attuale:{" "}
-              <span style={{ color: tokens.color.accentCyan, fontFamily: "monospace" }}>
-                STEP {currentStep} / {maxStep}
-              </span>
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                color: currentStep > maxSeedStep ? tokens.color.coral : newInThisStep > 0 ? tokens.color.activated : tokens.color.textOnDark,
-                fontWeight: 600,
-              }}
-            >
-              {currentStep > maxSeedStep
-                ? `Cascata completata al Passo ${maxSeedStep}`
-                : `Nodi Contagiati in questo step: +${newInThisStep}`}
-            </Typography>
-            <Typography variant="caption" sx={{ color: tokens.color.textOnDark }}>
-              Popolazione Raggiunta:{" "}
-              <strong>
-                {activeCount} / {rawNodes.length} ({pctInfected}%)
-              </strong>
-            </Typography>
-          </Box>
-        </Paper>
-      </Box>
+          {legenda}
+        </Box>
+      )}
 
       {/* Bottom Step Scrubber & Play Console */}
       <Box
@@ -600,7 +657,7 @@ export default function InfluenceGraphCanvas({
           px: 3,
           py: 2,
           backgroundColor: tokens.color.darkCanvas,
-          borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+          borderTop: `1px solid ${tokens.overlay.filettoSuScuro}`,
           display: "flex",
           alignItems: "center",
           gap: 3,
@@ -638,7 +695,7 @@ export default function InfluenceGraphCanvas({
             sx={{
               color: tokens.color.textOnDark,
               "&:hover": { color: tokens.color.canvas },
-              "&.Mui-disabled": { color: "rgba(255,255,255,0.28)" },
+              "&.Mui-disabled": { color: tokens.overlay.disabilitatoSuScuro },
             }}
           >
             <SkipPrevious />
@@ -651,7 +708,7 @@ export default function InfluenceGraphCanvas({
             sx={{
               color: tokens.color.textOnDark,
               "&:hover": { color: tokens.color.canvas },
-              "&.Mui-disabled": { color: "rgba(255,255,255,0.28)" },
+              "&.Mui-disabled": { color: tokens.overlay.disabilitatoSuScuro },
             }}
           >
             <SkipNext />
@@ -661,8 +718,17 @@ export default function InfluenceGraphCanvas({
         {/* Step Slider */}
         <Box sx={{ flexGrow: 1, minWidth: 200, px: 2 }}>
           <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+            {/* Qui viveva l'etichetta "SCRUBBER TEMPORALE DELLA CASCATA
+                (Independent Cascade)", che ripeteva il titolo della sezione e
+                non diceva niente sullo stato. Al suo posto sta l'unica
+                informazione che l'overlay di telemetria rimosso portava
+                davvero: quanti nodi si sono accesi in questo passo, e quando
+                la cascata finisce. Le altre due cifre di quell'overlay erano
+                gia' qui accanto e nella banda del capitolo. */}
             <Typography variant="caption" sx={{ color: tokens.color.textOnDark, fontFamily: tokens.font.mono }}>
-              SCRUBBER TEMPORALE DELLA CASCATA (Independent Cascade)
+              {currentStep > maxSeedStep
+                ? `CASCATA COMPLETATA AL PASSO ${maxSeedStep}`
+                : `+${newInThisStep} NODI ATTIVATI IN QUESTO PASSO`}
             </Typography>
             <Typography
               variant="caption"
@@ -684,16 +750,24 @@ export default function InfluenceGraphCanvas({
             sx={{
               color: tokens.color.accentCyan,
               "& .MuiSlider-thumb": {
-                width: 16,
-                height: 16,
+                width: 20,
+                height: 20,
+                // Su un puntatore grosso - un dito - il pollice diventa 28px:
+                // e' il comando piu' preciso della pagina, e a 16px stava sotto
+                // il minimo di 24px richiesto a un bersaglio tattile.
+                "@media (pointer: coarse)": { width: 28, height: 28 },
                 backgroundColor: tokens.color.canvas,
-                boxShadow: "0 0 12px rgba(0, 229, 255, 0.9)",
+                // Nessun bagliore: DESIGN.md ammette due sole eccezioni alla
+                // regola del piatto per difetto, e il pollice di uno slider
+                // non e' nessuna delle due.
+                boxShadow: "none",
+                "&:hover, &.Mui-focusVisible": { boxShadow: "none" },
               },
               "& .MuiSlider-track": {
                 backgroundColor: tokens.color.accentCyan,
               },
               "& .MuiSlider-rail": {
-                backgroundColor: "rgba(255, 255, 255, 0.2)",
+                backgroundColor: tokens.overlay.filettoSuScuroMarcato,
               },
             }}
           />
@@ -706,11 +780,14 @@ export default function InfluenceGraphCanvas({
             value={speedMultiplier}
             onChange={(e) => setSpeedMultiplier(Number(e.target.value))}
             size="small"
+            // L'icona accanto e' decorativa, quindi qui non c'era nemmeno un
+            // contesto visivo da cui dedurre cosa scegliesse questo controllo.
+            inputProps={{ "aria-label": "Velocita' di riproduzione della cascata" }}
             sx={{
               color: tokens.color.canvas,
               fontFamily: tokens.font.mono,
               fontSize: "12px",
-              backgroundColor: "rgba(255, 255, 255, 0.06)",
+              backgroundColor: tokens.overlay.velaturaSuScuro,
               borderRadius: tokens.radius.sm,
               "& .MuiSelect-icon": { color: tokens.color.canvas },
             }}

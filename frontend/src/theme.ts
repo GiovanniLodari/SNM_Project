@@ -152,6 +152,78 @@ const color = {
     chipBorderHumanGreen: "#a8eb99",
 };
 
+/**
+ * Velature: i colori trasparenti del sistema, dichiarati per contesto.
+ *
+ * Esistono per lo stesso motivo di `color`, un giro dopo. Le tinte piene erano
+ * duplicate in letterali esadecimali; le trasparenze lo erano in letterali
+ * `rgba` - diciassette, di cui tre alfa diversi dello stesso coral (0.08, 0.12,
+ * 0.15) e sei del bianco, ognuno scritto dove serviva e nessuno confrontabile
+ * con gli altri. Un'alfa in piu' o in meno non si nota mai al momento in cui la
+ * si scrive, e si nota sempre quando due elementi che dovevano essere uguali
+ * finiscono diversi.
+ *
+ * Il nome dice il mestiere, non il valore: chi ne cerca una nuova deve prima
+ * accorgersi che quel mestiere non c'e' ancora.
+ */
+const overlay = {
+  // --- Sulle bande scure (deepGreen, darkNavy) ---
+  /**
+   * Paragrafo su una banda di capitolo. 7.2:1 sul verde.
+   *
+   * Non si usa `textOnDark`: sul verde di capitolo da' 4.1:1, sotto la soglia.
+   */
+  testoSuBanda: "rgba(255,255,255,0.72)",
+  /**
+   * Occhiello ed etichette delle cifre su una banda. 6.9:1 sul verde.
+   *
+   * Il 70% e non il 60%: al 60% il verde da' 4.35:1, appena sotto. Sul navy
+   * passerebbe, ma un'opacita' che cambia con la tinta della banda sarebbe una
+   * regola in piu' da ricordare per guadagnare nulla.
+   */
+  etichettaSuBanda: "rgba(255,255,255,0.7)",
+  /** Filetto sopra una cifra di banda: dentro una banda la separazione la fa la regola, non il riquadro. */
+  filettoSuBanda: "rgba(255,255,255,0.24)",
+
+  // --- Sulle superfici scure profonde (grafo, cascata, console, modali) ---
+  /** Filetto fra le fasce di un pannello scuro (barre dei comandi del grafo). */
+  filettoSuScuro: "rgba(255,255,255,0.1)",
+  /** Filetto che deve essere visto: bordo del tooltip, binario dello slider. */
+  filettoSuScuroMarcato: "rgba(255,255,255,0.2)",
+  /** Fondo di un controllo su superficie scura (gruppo di toggle, select della velocita'). */
+  velaturaSuScuro: "rgba(255,255,255,0.06)",
+  /** Comando disabilitato su superficie scura. Gli inattivi sono esenti dal contrasto minimo. */
+  disabilitatoSuScuro: "rgba(255,255,255,0.28)",
+  /** Bordo di un nodo non ancora raggiunto, nel grafo. */
+  bordoNodoSpento: "rgba(255,255,255,0.4)",
+  /** Arco che non ha ancora propagato: presente, ma appena. */
+  arcoSpento: "rgba(255,255,255,0.04)",
+  /** Arco che ha propagato in un passo precedente: ciano al 40%. */
+  arcoAttivato: "rgba(0,229,255,0.4)",
+
+  // --- Velature delle tinte semantiche su superficie chiara ---
+  /**
+   * Fondo in tinta bot: chip, controlli, fondi di cella. Con sopra `coralInk`
+   * da' 4.7:1 sul canvas - il coral pieno darebbe 2.6:1 (vedi `coralInk`).
+   */
+  velaturaCoral: "rgba(255,119,89,0.12)",
+  /** La stessa velatura, per una riga selezionata: deve segnalare senza tingere. */
+  velaturaCoralTenue: "rgba(255,119,89,0.08)",
+  /** Bordo di un controllo in tinta bot su superficie scura. */
+  bordoCoral: "rgba(255,119,89,0.4)",
+  /** Fondo in tinta azione: chip dello step di attivazione. Con sopra `actionBlue`, 4.6:1. */
+  velaturaBlu: "rgba(24,99,220,0.12)",
+
+  /**
+   * Ombra del pannello di navigazione aperto.
+   *
+   * E' una delle tre eccezioni dichiarate alla regola del piatto per difetto
+   * (DESIGN.md, Elevation): il pannello scorre *sopra* il contenuto, e senza
+   * stacco sembrerebbe fondersi con la pagina che sta coprendo.
+   */
+  ombraPannello: "0 12px 32px rgba(15,15,15,0.10)",
+};
+
 // I colori stanno in una const a parte perche' i bordi qui sotto devono
 // potervisi riferire: un oggetto letterale non puo' citare se stesso.
 const font = {
@@ -225,6 +297,35 @@ const type = {
     lineHeight: 1.3,
     letterSpacing: 0,
   },
+  /**
+   * L'affermazione con cui un atto risponde alla propria domanda.
+   *
+   * Non e' un titolo: e' una frase, in corpo grande perche' porta il risultato
+   * ("PMIA raggiunge il 99,4% dello spread del migliore in 4,3 s"). Sta in
+   * `display` e senza peso aggiunto, e va resa come paragrafo - marcarla come
+   * intestazione la trasformerebbe in un'etichetta di sezione, che e' il
+   * contrario di cio' che fa.
+   *
+   * Era scritta a mano in tre punti, a 24px in due e a 22px nel terzo, con
+   * altezze di riga diverse: la stessa voce in tre misure nello stesso capitolo.
+   */
+  affermazione: {
+    fontFamily: font.display,
+    fontWeight: 400,
+    fontSize: { xs: "20px", md: "24px" },
+    lineHeight: 1.35,
+  },
+  /**
+   * Titolo di una voce dentro un elenco di voci titolate (i limiti dell'Atto
+   * IV). Piu' piccolo di `featureHeading`, che titola un blocco intero: qui il
+   * blocco e' il contenitore, e queste sono le sue voci.
+   */
+  titoloVoce: {
+    fontFamily: font.display,
+    fontWeight: 600,
+    fontSize: "18px",
+    lineHeight: 1.3,
+  },
   /** Paragrafo guida sotto un titolo. */
   bodyLarge: {
     fontFamily: font.body,
@@ -270,6 +371,7 @@ const type = {
 
 export const tokens = {
   color,
+  overlay,
   radius: {
     xs: "4px",
     sm: "8px",

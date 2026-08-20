@@ -106,7 +106,16 @@ describe("InfluenceGraphCanvas", () => {
     const grafo = screen.getByRole("img");
     expect(grafo).toHaveAccessibleName(/cascata di influenza al passo 3 di 3/i);
     expect(grafo).toHaveAccessibleName(/4 account raggiunti su 4/i);
-    expect(grafo).toHaveAccessibleName(/100 per cento della rete/i);
+
+    // La percentuale e' calcolata sui nodi effettivamente disegnati, non sulla
+    // rete: il denominatore e' il sottografo che il backend ritaglia per
+    // restare renderizzabile. Questo test asseriva "per cento della rete" e
+    // cosi' facendo bloccava l'affermazione sbagliata dentro l'unico testo che
+    // chi usa uno screen reader non puo' confrontare con la didascalia che la
+    // corregge. Il nome deve dire di cosa e' la percentuale, e dire anche di
+    // cosa non e'.
+    expect(grafo).toHaveAccessibleName(/100 per cento del sottografo disegnato/i);
+    expect(grafo).not.toHaveAccessibleName(/per cento della rete\b/i);
   });
 
   it("a cascata ferma annuncia il passo raggiunto", () => {

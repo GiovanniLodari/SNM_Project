@@ -32,13 +32,8 @@ export default function LimitiMetodologici() {
           }}
         >
           <Typography
-            sx={{
-              fontFamily: tokens.font.display,
-              fontWeight: 600,
-              fontSize: "18px",
-              color: tokens.color.nearBlack,
-              mb: 1,
-            }}
+            component="h3"
+            sx={{ ...tokens.type.titoloVoce, color: tokens.color.nearBlack, mb: 1 }}
           >
             {limite.titolo}
           </Typography>

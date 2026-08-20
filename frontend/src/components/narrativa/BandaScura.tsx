@@ -80,13 +80,10 @@ export default function BandaScura({
         my: { xs: 6, md: 10 },
       }}
     >
-      {/* Bianco al 70% e non al 60%: sul verde di capitolo il 60% da' 4.35:1,
-          appena sotto la soglia. Sul navy passerebbe, ma un occhiello che cambia
-          opacita' con la tinta della banda sarebbe una regola in piu' da
-          ricordare per guadagnare nulla. Stesso discorso per le etichette delle
-          cifre qui sotto. */}
+      {/* Le tre opacita' della banda vengono da `tokens.overlay`, dove il
+          docstring spiega perche' l'occhiello e' al 70% e non al 60%. */}
       {occhiello && (
-        <EtichettaMono colore="rgba(255,255,255,0.7)" sx={{ mb: 2 }}>
+        <EtichettaMono colore={tokens.overlay.etichettaSuBanda} sx={{ mb: 2 }}>
           {occhiello}
         </EtichettaMono>
       )}
@@ -102,7 +99,7 @@ export default function BandaScura({
         <Typography
           sx={{
             ...tokens.type.bodyLarge,
-            color: "rgba(255,255,255,0.72)",
+            color: tokens.overlay.testoSuBanda,
             maxWidth: "62ch",
             mt: 3,
           }}
@@ -117,14 +114,14 @@ export default function BandaScura({
             <Grid item xs={6} md={12 / Math.min(cifre.length, 4)} key={cifra.etichetta}>
               {/* Filetto chiaro al posto di una card: DESIGN.md tiene le bande
                   scure prive di riquadri, la separazione la fa la regola. */}
-              <Box sx={{ borderTop: "1px solid rgba(255,255,255,0.24)", pt: 2 }}>
+              <Box sx={{ borderTop: `1px solid ${tokens.overlay.filettoSuBanda}`, pt: 2 }}>
                 <Typography sx={{ ...tokens.type.numeroGrande, color: tokens.color.canvas }}>
                   {cifra.valore}
                 </Typography>
                 <Typography
                   sx={{
                     ...tokens.type.micro,
-                    color: "rgba(255,255,255,0.7)",
+                    color: tokens.overlay.etichettaSuBanda,
                     mt: 1,
                   }}
                 >

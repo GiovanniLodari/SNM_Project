@@ -1,4 +1,4 @@
-import { Box, Skeleton, Typography } from "@mui/material";
+import { Box, Skeleton } from "@mui/material";
 import { useUrlNumber, useUrlString } from "../hooks/useUrlState.ts";
 import { useDettaglioAccount } from "../hooks/useDettaglioAccount.ts";
 import {
@@ -8,10 +8,13 @@ import {
   useInfluenceSeedsQuery,
 } from "../api/queries.ts";
 import AccountDetailModal from "../components/AccountDetailModal.tsx";
+import { ErrorState } from "../components/States.tsx";
 import PaginaCapitolo, { Sezione } from "../components/narrativa/PaginaCapitolo.tsx";
 import BandaScura from "../components/narrativa/BandaScura.tsx";
+import Blocco from "../components/narrativa/Blocco.tsx";
+import IntestazioneBlocco from "../components/narrativa/IntestazioneBlocco.tsx";
 import { useAttoInVista } from "../components/narrativa/useAttoInVista.ts";
-import { ATTI } from "../components/influence/influenceContent.ts";
+import { ATTI, SOTTOGRAFO_CANVAS } from "../components/influence/influenceContent.ts";
 import { CAPITOLO_PROPAGAZIONE } from "../navigazione.ts";
 import { formatNumber } from "../utils/format.ts";
 import SchedaProblema from "../components/influence/atto1/SchedaProblema.tsx";
@@ -64,9 +67,18 @@ export default function InfluenceMaximization() {
   const [seedsPage, setSeedsPage] = useUrlNumber("seedsPage", 1);
   const [seedsSearch, setSeedsSearch] = useUrlString("seedsQ");
 
-  const { data: summary, isLoading: loadingSummary, isError: errorSummary } = useInfluenceSummaryQuery();
+  const {
+    data: summary,
+    isLoading: loadingSummary,
+    isError: errorSummary,
+    refetch: ricaricaSummary,
+  } = useInfluenceSummaryQuery();
   const { data: graphData } = useInfluenceGraphQuery(selectedSeedId);
-  const { data: comparisonData } = useInfluenceComparisonQuery();
+  const {
+    data: comparisonData,
+    isError: errorConfronto,
+    refetch: ricaricaConfronto,
+  } = useInfluenceComparisonQuery();
   const { data: seedsRes, isLoading: seedsLoading } = useInfluenceSeedsQuery(
     seedsPage,
     SEEDS_PER_PAGINA,
@@ -98,24 +110,54 @@ export default function InfluenceMaximization() {
     );
   }
 
+  // Il riepilogo e' l'unica query da cui dipende l'intero capitolo: senza
+  // `meta` non esistono ne' le cifre della banda ne' i dati degli atti, quindi
+  // qui si esce. Passa dal componente condiviso invece di scriversi un proprio
+  // riquadro rosso: un errore che sembra di un altro progetto e' esattamente
+  // il tipo di incoerenza che mette in dubbio anche i numeri.
   if (errorSummary || !summary) {
     return (
-      <Box sx={{ mt: 6, textAlign: "center" }}>
-        <Typography color="error" variant="h6">
-          Dati Influence Maximization non disponibili.
-        </Typography>
+      <Box sx={{ mt: 6 }}>
+        <ErrorState
+          message={
+            "Il riepilogo della propagazione non e' arrivato dal server, quindi il capitolo non puo' " +
+            "essere costruito. Se la pipeline Influence Maximization non e' mai stata eseguita su questo " +
+            "database, il dato non esiste ancora e ritentare non lo produrra'."
+          }
+          onRiprova={() => {
+            void ricaricaSummary();
+          }}
+        />
       </Box>
     );
   }
 
   const { meta, demographics, step_stats, top_seeds, top_targets } = summary;
+
   // I blocchi che seguono leggono dal confronto, non dalla summary: finche' la
   // sua query non ha risposto mostrano un segnaposto. Renderli subito con dei
   // valori mancanti significherebbe aprire l'Atto I su una fila di "n/d".
-  const segnaposto = (
+  //
+  // Se pero' la query ha fallito, il segnaposto diventa un errore: prima
+  // restava grigio per sempre, e un caricamento che non finisce mai e'
+  // indistinguibile da una rete lenta. Gli Atti I e II sparivano in silenzio,
+  // che e' il modo peggiore di fallire per una pagina che deve essere giudicata.
+  const attesaConfronto = errorConfronto ? (
+    <ErrorState
+      message={
+        "Il confronto fra i cinque algoritmi non e' disponibile: la richiesta al server non e' andata " +
+        "a buon fine. Gli Atti I e II restano incompleti finche' non torna."
+      }
+      onRiprova={() => {
+        void ricaricaConfronto();
+      }}
+    />
+  ) : (
     <Skeleton
       variant="rectangular"
       height={ALTEZZA_SEGNAPOSTO}
+      role="status"
+      aria-label="Caricamento del confronto fra algoritmi"
       sx={{ borderRadius: tokens.radius.xl, backgroundColor: tokens.color.softStone }}
     />
   );
@@ -142,10 +184,17 @@ export default function InfluenceMaximization() {
                 kRichiesto={comparisonData.k}
               />
             ) : (
-              segnaposto
+              attesaConfronto
             )}
           </Sezione>
 
+          {/* L'esito resta nudo sul canvas: e' l'affermazione dell'atto, e
+              riquadrarlo lo metterebbe alla pari dell'apparato che lo verifica.
+              I quattro artefatti che seguono stanno invece ciascuno nel proprio
+              blocco, con un titolo che dice a quale domanda rispondono. Prima
+              arrivavano di fila e senza nome - uno scatter, una tabella, delle
+              barre, una matrice - nell'atto in cui chi legge e' meno attrezzato
+              per indovinarlo da solo. */}
           <Sezione atto={ATTO_ALGORITMO}>
             {comparisonData ? (
               <>
@@ -153,31 +202,119 @@ export default function InfluenceMaximization() {
                   algoritmi={comparisonData.algorithms}
                   vincitore={comparisonData.winner_by_mc_spread}
                 />
-                <GraficoCostoBeneficio algoritmi={comparisonData.algorithms} />
-                <TabellaBenchmark algoritmi={comparisonData.algorithms} kRichiesto={comparisonData.k} />
-                <AffidabilitaStimatori algoritmi={comparisonData.algorithms} />
-                <SovrapposizioneSeed jaccard={comparisonData.seed_overlap_jaccard} />
+
+                <Blocco
+                  titolo="Costo contro beneficio"
+                  descrizione={
+                    "Ogni algoritmo e' un punto: verso destra chi impiega piu' tempo, verso l'alto chi " +
+                    "raggiunge piu' nodi. La scala dei tempi e' logaritmica perche' i cinque valori vanno " +
+                    "da frazioni di secondo a piu' di un'ora."
+                  }
+                >
+                  <GraficoCostoBeneficio algoritmi={comparisonData.algorithms} />
+                </Blocco>
+
+                <Blocco
+                  titolo="Il confronto, riga per riga"
+                  descrizione={
+                    "Gli stessi cinque algoritmi in forma tabellare: lo spread misurato in Monte Carlo, " +
+                    "quello che l'algoritmo stima da se', quanti seed ha effettivamente scelto e quanto " +
+                    "tempo ci ha messo."
+                  }
+                >
+                  <TabellaBenchmark algoritmi={comparisonData.algorithms} kRichiesto={comparisonData.k} />
+                </Blocco>
+
+                <Blocco
+                  titolo="Quanto sono affidabili le stime interne"
+                  descrizione={
+                    "Alcuni algoritmi dichiarano una propria stima dello spread. Qui e' confrontata con " +
+                    "lo spread misurato in Monte Carlo: la barra si allontana dal centro quanto piu' la " +
+                    "stima si scosta dalla misura. Gli algoritmi che non producono alcuna stima non " +
+                    "compaiono affatto."
+                  }
+                >
+                  <AffidabilitaStimatori algoritmi={comparisonData.algorithms} />
+                </Blocco>
+
+                <Blocco
+                  titolo="Scelgono gli stessi seed?"
+                  descrizione={
+                    "Indice di Jaccard fra gli insiemi di seed scelti da ogni coppia di algoritmi: 0 " +
+                    "significa nessun seed in comune, 1 significa insiemi identici."
+                  }
+                >
+                  <SovrapposizioneSeed jaccard={comparisonData.seed_overlap_jaccard} />
+                </Blocco>
               </>
             ) : (
-              segnaposto
+              attesaConfronto
             )}
           </Sezione>
 
+          {/* Come nell'Atto II: l'esito resta nudo sul canvas, gli artefatti che
+              lo verificano stanno ciascuno nel proprio blocco, con un titolo che
+              dice a quale domanda risponde. Qui non era cosi': cinque artefatti
+              di fila, due con un titolo reso come paragrafo e tre senza alcun
+              titolo, in un atto la cui gerarchia passava dall'h2 della domanda
+              direttamente a niente. */}
           <Sezione atto={ATTO_CASCATA}>
             <EsitoCascata meta={meta} stepStats={step_stats} demografia={demographics} />
-            <AndamentoStep stepStats={step_stats} />
-            <ComposizioneRaggiunti demografia={demographics} />
+
+            <Blocco
+              titolo="Dove si concentra la propagazione"
+              descrizione={
+                "Quanti nodi si accendono in ciascun passo (le barre) e quanti in totale fino a " +
+                "quel punto (l'area). La barra piu' chiara e' il punto di partenza, non un " +
+                "risultato: sono i seed, attivi prima che la cascata cominci."
+              }
+            >
+              <AndamentoStep stepStats={step_stats} />
+            </Blocco>
+
+            <Blocco
+              titolo="Chi viene raggiunto"
+              descrizione={
+                "I nodi attivati divisi fra account umani e account IA. I seed di partenza sono " +
+                "tutti IA: questa barra dice dove finisce la propagazione, non da dove parte."
+              }
+            >
+              <ComposizioneRaggiunti demografia={demographics} />
+            </Blocco>
+
+            {/* Il canvas non sta in un `Blocco`: e' una superficie scura
+                profonda, che nel vocabolario delle superfici e' pari a un
+                riquadro e non un suo contenuto, e infilarlo dentro un blocco
+                farebbe un riquadro dentro un riquadro. Riceve la stessa
+                intestazione senza la scatola. */}
             {graphData && (
-              <CanvasCascata
-                nodes={graphData.nodes}
-                links={graphData.links}
-                onSelectAccount={dettaglio.apri}
-                seedSelezionato={selectedSeedId || undefined}
-                onSelectSeed={setSelectedSeedId}
-                maxStep={meta.num_steps}
-                topSeeds={top_seeds}
-              />
+              <Box component="section">
+                <IntestazioneBlocco
+                  titolo={
+                    `Estratto del grafo: primi ${SOTTOGRAFO_CANVAS.seedDisegnati} seed e fino a ` +
+                    `${SOTTOGRAFO_CANVAS.bersagliPerSeed} bersagli ciascuno`
+                  }
+                  descrizione={
+                    "Questo canvas non disegna l'intera cascata: mostra i primi " +
+                    `${SOTTOGRAFO_CANVAS.seedDisegnati} seed per raggiungimento diretto e, per ` +
+                    `ciascuno, fino a ${SOTTOGRAFO_CANVAS.bersagliPerSeed} bersagli, un sottografo ` +
+                    "scelto per restare leggibile a schermo. Il conteggio dei nodi raggiunti " +
+                    "riportato qui sopra si riferisce alla cascata completa, non a quanto e' " +
+                    "disegnato qui."
+                  }
+                />
+                <CanvasCascata
+                  nodes={graphData.nodes}
+                  links={graphData.links}
+                  onSelectAccount={dettaglio.apri}
+                  seedSelezionato={selectedSeedId || undefined}
+                  onSelectSeed={setSelectedSeedId}
+                  maxStep={meta.num_steps}
+                  topSeeds={top_seeds}
+                />
+              </Box>
             )}
+
             <ClassificheSeed
               seeds={seedsRes?.seeds ?? []}
               seedsTotal={seedsRes?.total ?? 0}

@@ -35,6 +35,22 @@ export const ATTI: readonly Atto[] = [
   },
 ];
 
+/**
+ * Limiti applicati dal backend nella costruzione del sottografo disegnato dal
+ * canvas (`webapp/influence.py`): i primi N seed per raggiungimento diretto, e
+ * per ciascuno al piu' M bersagli, per restare intorno ai ~400 nodi che ECharts
+ * disegna senza perdere fluidita'.
+ *
+ * Vivono qui, con la copia del capitolo, perche' e' la copia a doverli
+ * nominare: il titolo e l'avvertenza del blocco del canvas dicono entrambi
+ * quanto e' grande l'estratto, e un cambio di soglia sul backend deve
+ * aggiornarsi in un punto solo.
+ */
+export const SOTTOGRAFO_CANVAS = {
+  seedDisegnati: 60,
+  bersagliPerSeed: 6,
+};
+
 export const PROBLEMA = {
   enunciato:
     "Dato il grafo diretto G = (V, E), le probabilita' di attivazione p_ic sugli archi, " +

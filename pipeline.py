@@ -21,6 +21,7 @@ from snm.storage.db import (
     upsert_status,
     upsert_topic,
 )
+from snm.storage.viste import aggiorna_viste
 from snm.collection.topics import load_topics
 
 logger = logging.getLogger(__name__)
@@ -79,6 +80,23 @@ def run_pipeline(
                 future.result()
     finally:
         tracker.stop()
+
+    # I riepiloghi che aprono i capitoli sono viste materializzate: senza questo
+    # aggiornamento resterebbero ferme ai numeri di prima dell'ingest, e
+    # l'interfaccia mostrerebbe cifre vecchie con la stessa faccia di quelle
+    # nuove - un difetto peggiore della lentezza che le viste hanno risolto.
+    # Sta fuori dal blocco `try` di sopra, non dentro il suo `finally`: se la
+    # raccolta si interrompe a metà i dati scritti fino a quel punto ci sono
+    # comunque e vanno contati, ma un'eccezione qui non deve mascherare quella
+    # che ha fatto fallire la raccolta.
+    conn = get_connection(database_url)
+    try:
+        logger.info("aggiornamento dei riepiloghi...")
+        tempi = aggiorna_viste(conn)
+        if tempi:
+            logger.info("riepiloghi aggiornati in %.1f s", sum(tempi.values()))
+    finally:
+        conn.close()
 
 
 def _process_domain_jobs(

@@ -1,4 +1,4 @@
-import { Box, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
+import { Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
 import { gruppiSeedIdentici } from "../../../utils/influenceAnalysis.ts";
 import { formatDecimal } from "../../../utils/format.ts";
 import { tokens } from "../../../theme.ts";
@@ -48,9 +48,7 @@ export default function SovrapposizioneSeed({ jaccard }: Props) {
         <Typography
           data-testid="frase-seed-identici"
           sx={{
-            fontFamily: tokens.font.display,
-            fontSize: "22px",
-            lineHeight: 1.4,
+            ...tokens.type.affermazione,
             color: tokens.color.nearBlack,
             mb: 3,
           }}
@@ -66,9 +64,20 @@ export default function SovrapposizioneSeed({ jaccard }: Props) {
         </Typography>
       )}
 
-      <Table
-        data-testid="matrice-jaccard"
-        size="small"
+      {/* Sei colonne in monospazio: la matrice chiede circa 469px e su uno
+          schermo da 390px ne ha 244. Scorre dentro il proprio contenitore
+          invece di trascinarsi dietro tutta la pagina. */}
+      <TableContainer
+        sx={{ overflowX: "auto" }}
+        // Vedi TabellaBenchmark: un'area che scorre col mouse e non con la
+        // tastiera tiene fuori portata proprio le colonne per cui scorre.
+        tabIndex={0}
+        role="region"
+        aria-label="Matrice di sovrapposizione dei seed, scorrevole in orizzontale"
+      >
+        <Table
+          data-testid="matrice-jaccard"
+          size="small"
         sx={{
           "& .MuiTableCell-root": {
             border: "none",
@@ -90,7 +99,13 @@ export default function SovrapposizioneSeed({ jaccard }: Props) {
         <TableBody>
           {nomi.map((riga) => (
             <TableRow key={riga}>
-              <TableCell sx={{ color: tokens.color.textMuted }}>{riga}</TableCell>
+              {/* Intestazione di riga: in una matrice 6x6 e' l'unica cosa che
+                  dice a quale coppia appartiene un valore. Resa come `td`, uno
+                  screen reader leggeva sei numeri senza sapere di chi fossero -
+                  cioe' tutto il contenuto della matrice, tranne il suo senso. */}
+              <TableCell component="th" scope="row" sx={{ color: tokens.color.textMuted, fontWeight: 400 }}>
+                {riga}
+              </TableCell>
               {nomi.map((colonna) => {
                 const valore = punteggio(riga, colonna);
                 const identico = valore === 1;
@@ -109,9 +124,10 @@ export default function SovrapposizioneSeed({ jaccard }: Props) {
                 );
               })}
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </Box>
   );
 }

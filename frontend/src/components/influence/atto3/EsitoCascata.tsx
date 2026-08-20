@@ -45,12 +45,7 @@ export default function EsitoCascata({ meta, stepStats, demografia }: Props) {
   return (
     <Box>
       <Typography
-        sx={{
-          fontFamily: tokens.font.display,
-          fontSize: "24px",
-          lineHeight: 1.35,
-          color: tokens.color.nearBlack,
-        }}
+        sx={{ ...tokens.type.affermazione, color: tokens.color.nearBlack }}
       >
         Da {formatNumber(meta.seeds, { useGrouping: true })} seed, la cascata
         raggiunge {formatNumber(meta.reached_nodes, { useGrouping: true })} nodi

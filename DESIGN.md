@@ -71,6 +71,16 @@ typography:
     fontWeight: 500
     lineHeight: 1.3
     letterSpacing: "0"
+  affermazione:
+    fontFamily: "Space Grotesk, Inter, sans-serif"
+    fontSize: "24px"
+    fontWeight: 400
+    lineHeight: 1.35
+  titoloVoce:
+    fontFamily: "Space Grotesk, Inter, sans-serif"
+    fontSize: "18px"
+    fontWeight: 600
+    lineHeight: 1.3
   numeroGrande:
     fontFamily: "Space Grotesk, Inter, sans-serif"
     fontSize: "56px"
@@ -235,6 +245,16 @@ Le tinte semantiche. Ognuna significa **una cosa sola** in tutta l'applicazione,
 
 Quattro tinte vicine ma non intercambiabili, ognuna fondo di un contenuto diverso: **fondo cascata** (`#0d0d10`, il più scuro, per far risaltare i nodi attivati), **fondo grafo** (`#131924`, il riquadro dei follow in panoramica), **fondo console** (`#050811`, i log delle pipeline: nero bluastro da terminale), **fondo modale scura** (`#0b0f19`).
 
+### Velature
+
+Le trasparenze del sistema sono dichiarate per contesto in `tokens.overlay`, non scritte dove servono. Erano diciassette letterali `rgba` sparsi, fra cui tre alfa diversi dello stesso coral e sei del bianco: un'alfa in più o in meno non si nota quando la si scrive, e si nota sempre quando due elementi che dovevano essere uguali finiscono diversi.
+
+- **Sulle bande di capitolo:** `testoSuBanda` (bianco 72%, il paragrafo), `etichettaSuBanda` (bianco 70%, occhiello ed etichette delle cifre), `filettoSuBanda` (bianco 24%, la regola sopra una cifra).
+- **Sulle superfici scure profonde:** `filettoSuScuro` (bianco 10%, fra le fasce di un pannello), `filettoSuScuroMarcato` (bianco 20%, un filetto che deve essere visto: bordo del tooltip, binario dello slider), `velaturaSuScuro` (bianco 6%, fondo di un controllo), `disabilitatoSuScuro` (bianco 28%), `bordoNodoSpento` (bianco 40%), `arcoSpento` (bianco 4%), `arcoAttivato` (ciano 40%).
+- **Velature delle tinte semantiche su superficie chiara:** `velaturaCoral` (coral 12%, fondo di una chip o di un controllo in tinta bot), `velaturaCoralTenue` (coral 8%, riga selezionata), `bordoCoral` (coral 40%), `velaturaBlu` (blu d'azione 12%).
+
+Chi ne cerca una nuova deve prima accorgersi che quel mestiere non c'è ancora: il nome dice il mestiere, non il valore.
+
 ### Semantiche di stato
 
 **Focus** (`#4c6ee6`, anello 2px con offset 2px), **pericolo** (`#b30000` su fondo `#fdf2f2`), **successo** (`#10b981`).
@@ -246,6 +266,8 @@ Quattro tinte vicine ma non intercambiabili, ognuna fondo di un contenuto divers
 **La regola dei due coral.** Il coral pieno su fondo chiaro dà 2,2:1 sulla pietra e 2,6:1 sotto testo bianco: **vietato come colore del testo, dei numeri e delle etichette su superficie chiara.** Lì vive come riempimento con testo nero di marchio sopra, come bordo, come marcatore di 14px. Quando la tinta deve dire «bot» *ed essere letta*, si usa il coral inchiostro (`#c03d20`), che è la stessa tinta più scura. Su fondo scuro il coral pieno è corretto e resta la scelta giusta (6,8:1 sul nero di marchio). Se stai per scrivere `color: coral` su un fondo chiaro, o quella tinta va nel fondo, o è l'inchiostro che ti serve.
 
 **La regola delle quattro superfici scure.** Un grafo, una cascata, un terminale e una modale non condividono il fondo. Uniformarle appiattirebbe la distinzione fra strumenti che fanno cose diverse. La tinta si sceglie dal contenuto, non dalla comodità.
+
+**La regola della legenda sul proprio fondo.** Una legenda vive sulla superficie che descrive, non su quella della pagina. Le quattro tinte dei nodi della cascata sono tinte da superficie scura: rese come pallini sul canvas bianco davano 1,5:1 il ciano, 2,2:1 il verde, 2,6:1 il coral — tre su quattro sotto il 3:1 che serve a un segno che porta informazione, e il ciano praticamente invisibile. Le etichette accanto salvavano il significato ma non il legame fra tinta e significato, che è l'unico mestiere di una legenda. La legenda della cascata sta quindi dentro il pannello scuro, in una fascia a filo del grafo: `CanvasCascata` la compone e `InfluenceGraphCanvas` la rende. Vale in generale — se una legenda usa tinte di una superficie, sta su quella superficie.
 
 **La regola del colore che viene dai dati.** Il canvas è bianco e resta bianco. Nessuna superficie prende colore per «dare energia alla sezione»: il colore entra quando c'è un dato che lo richiede (una categoria, uno stato, un rilevatore) o quando un capitolo si chiude con la sua banda.
 
@@ -265,6 +287,8 @@ Quattro tinte vicine ma non intercambiabili, ognuna fondo di un contenuto divers
 - **sectionHeading** (400, 40px → 26px, LH 1.2): **la domanda che apre un atto**, con `maxWidth: 24ch`.
 - **cardHeading** (400, 32px → 24px, LH 1.2): titolo di blocco maggiore, e la cifra della scheda dati.
 - **featureHeading** (500, 24px, LH 1.3): titolo di un blocco dentro un atto. È l'unico ruolo display con peso 500.
+- **affermazione** (400, 24px → 20px, LH 1.35): la frase con cui un atto risponde alla propria domanda («PMIA raggiunge il 99,4% dello spread del migliore in 4,3 s»). Non è un titolo e non va marcata come intestazione: è prosa, in corpo grande perché porta il risultato.
+- **titoloVoce** (600, 18px, LH 1.3): titolo di una voce dentro un elenco di voci titolate — i limiti dell'Atto IV. Sta sotto `featureHeading`, che titola il blocco che le contiene.
 - **numeroGrande** (400, 56px → 40px, LH 1.0): la cifra chiave dentro una banda scura.
 - **bodyLarge** (400, 18px → 16px, LH 1.4): paragrafo guida sotto un titolo. Su fondo scuro, `maxWidth: 62ch`.
 - **body** (400, 16px, LH 1.5): testo corrente. Prosa entro 65-75ch; le descrizioni dei blocchi sono limitate a 70ch.
@@ -287,7 +311,14 @@ Le misure sono già responsive dentro il token (`tokens.type` in `frontend/src/t
 
 **Il sistema non usa ombre.** `MuiCard` e `MuiPaper` hanno `boxShadow: none` in tema, e `MuiButton` lo azzera anche in hover. La profondità viene da tre cose: l'alternanza di superficie (canvas → pietra → banda scura → fondo grafo), i filetti da 1px in tre spessori, e gli angoli. Un box-shadow su una card, in questo sistema, è sempre un errore.
 
-Le uniche eccezioni sono funzionali e dichiarate: il glow da 6px del pallino di stato «Fediverso Live» nella sidebar, e le superfici scure profonde dove il contrasto col canvas fa da sé tutto il lavoro di stacco.
+Le eccezioni sono quattro, tutte funzionali e tutte dichiarate qui. Un'ombra che non è in questo elenco è un errore, e un'ombra che diventa necessaria si aggiunge a questo elenco prima che al codice.
+
+1. **Il glow da 6px del pallino di stato** «Fediverso Live» nella sidebar: il pallino misura 6px, e a quella dimensione il bagliore è ciò che lo rende un indicatore acceso invece di un punto.
+2. **Le superfici scure profonde**, dove il contrasto col canvas fa da sé tutto il lavoro di stacco.
+3. **L'ombra del pannello di navigazione**, ma **solo quando è aperto al passaggio del mouse** (`overlay.ombraPannello`). In quello stato il pannello scorre *sopra* il contenuto, e senza stacco si fonderebbe con la pagina che sta coprendo. A pannello bloccato l'ombra sparisce: lì la pagina gli ha fatto spazio, non c'è più niente sotto, e l'ombra lo farebbe galleggiare senza motivo.
+4. **Il bagliore dei nodi seed** nel grafo della cascata (`shadowBlur: 20` in `InfluenceGraphCanvas`): su fondo `darkCanvas` è ciò che distingue i sessanta punti di origine dai nodi che raggiungono. È limitato ai soli seed — l'aveva anche ogni nodo appena attivato, che a ogni passo sono decine o centinaia, e ridisegnare un'ombra sfocata su tutti loro tre volte al secondo era il grosso del costo della riproduzione.
+
+**Non è più un'eccezione il vetro della barra superiore.** Era bianco al 90% con `backdrop-filter: blur(8px)`: su un canvas bianco, con sotto contenuto bianco, era indistinguibile da una barra opaca per quasi tutta la pagina, e si vedeva solo quando ci passava sotto una superficie scura — dove sfocava il grafo invece di tagliarlo netto. Ora è fondo pieno.
 
 ### Vocabolario delle superfici
 
@@ -339,8 +370,11 @@ Carattere generale: **sobri ma tattili.** Bordo da 1px, nessuna ombra, angoli ge
 
 ### Navigation
 
-- **Sidebar** (260px fissi su desktop, drawer temporaneo sotto `md`): monogramma nero 32px con «SNM», nome applicazione in display 15px/700, sottotitolo in monospazio 10px maiuscolo. Le voci sono raggruppate **per capitolo della pipeline**, ogni gruppo introdotto dal numero romano in coral su fondo `#fff0ec` (raggio 4px) e dall'etichetta in monospazio 11px.
-- **Voce:** raggio 8px, padding `7px 10px`, corpo 13.5px peso 500, icona 18px in testo attenuato. Hover: fondo pietra.
+- **Sidebar** (colonna di icone da 72px su desktop, 260px da aperta; drawer temporaneo sotto `sm`): monogramma nero 32px con «SNM», nome applicazione in display 15px/700, sottotitolo in monospazio 10px maiuscolo. Le voci sono raggruppate **per capitolo della pipeline**, ogni gruppo introdotto dal numero romano in coral su fondo `#fff0ec` (raggio 4px) e dall'etichetta in monospazio 11px.
+- **I due modi di aprirla, e la differenza non è cosmetica.** *Al passaggio del mouse o del focus* il pannello scorre **sopra** il contenuto: il foglio è in posizione fissa, la pagina sotto non si accorge di nulla e non viene ridisegnata — è il caso frequente e transitorio, e ridisegnare a ogni passaggio del mouse vorrebbe dire rifare il canvas del grafo e i grafici della dashboard. *Col comando di blocco* il pannello **spinge** il contenuto: chi lo preme ha chiesto che le etichette restino, non che un quinto della pagina resti coperto. È il caso raro e deliberato, quindi il riflusso si paga volentieri. L'ombra compare solo nel primo caso (vedi Elevation).
+- **Il comando di blocco** sta in una riga sua in cima al pannello, allineato a sinistra perché deve restare dentro i 72px visibili a riposo: un comando fuori da quella striscia sarebbe raggiungibile solo dopo essere riusciti ad aprire il pannello. Porta `aria-expanded` e `aria-controls`. Esiste perché l'hover non è disponibile a tutti: da 600px in su non c'era il pulsante della barra e non c'era l'hover, quindi su un tablet o un portatile touch le etichette restavano invisibili per sempre e toccare una voce navigava prima che si potesse leggerne il nome.
+- **Voce:** raggio 8px, padding `7px 10px`, corpo 13.5px peso 500, icona 18px in testo attenuato. Hover: fondo pietra. Sotto `@media (pointer: coarse)` l'altezza minima passa a 44px: la misura cambia col puntatore e non con la larghezza dello schermo, perché un portatile touch è largo e si usa col dito.
+- **Etichette:** a pannello chiuso svaniscono in opacità, non escono dal documento. `display: none` cambierebbe il nome accessibile del collegamento a seconda della posizione del mouse, e chi naviga con uno screen reader troverebbe otto link chiamati come la loro icona, cioè per niente.
 - **Voce attiva:** fondo nero di marchio, testo canvas peso 600, **icona coral**. È l'unico punto in cui il coral appare senza significare «bot»: qui significa «sei qui».
 - **Prefetch:** su `mouseenter`, `focus` e `touchstart` la voce precarica sia il chunk della rotta sia i dati. La navigazione deve sembrare istantanea.
 - **Piè di sidebar:** pallino di stato 6px in successo con glow, «Fediverso Live» in monospazio 11px, versione a destra in testo tenue 10px.
@@ -371,8 +405,13 @@ Fascia a piena larghezza che chiude un capitolo. Occhiello mono in bianco al 60%
 - **Do** mostrare `n/d` quando il dato manca. Uno 0 inventato è indistinguibile da uno 0 misurato.
 - **Do** dare a ogni controllo interattivo default, hover, focus, premuto e disabilitato. Transizioni a 150 ms su colore e fondo.
 - **Do** usare gli scheletri di caricamento che imitano la disposizione reale della sezione, e lo spinner solo per la pagina intera.
-- **Do** dichiarare il nome accessibile dei campi con `inputProps={{ "aria-label": ... }}`, e distinguere le categorie dei grafici con forma o etichetta oltre che con la tinta.
-- **Do** importare da `tokens` (`frontend/src/theme.ts`): i colori erano finiti duplicati in oltre mille letterali esadecimali, e le varianti sbagliate passavano inosservate.
+- **Do** dichiarare il nome accessibile dei campi *e dei menu* con `inputProps={{ "aria-label": ... }}`, e distinguere le categorie dei grafici con forma o etichetta oltre che con la tinta.
+- **Do** rendere ogni azione raggiungibile da tastiera con un elemento nominato. Una riga di tabella cliccabile non basta: il bersaglio è il nome nella cella, reso come bottone, e il clic sulla riga resta per il mouse. Un `onClick` su un `tr` senza `tabIndex`, `role` e gestione dei tasti è un comando che esiste solo per chi vede il cursore cambiare forma.
+- **Do** marcare la prima cella di ogni riga di dati con `component="th" scope="row"`: è il nome che dice di chi sono i numeri accanto, e in una matrice è l'unica cosa che dice a quale coppia appartiene un valore.
+- **Do** dare `tabIndex={0}`, `role="region"` e un `aria-label` a ogni contenitore che scorre. Un'area che scorre col mouse e non con la tastiera tiene fuori portata proprio le colonne per cui scorre.
+- **Do** dare un nome ai grafici che non hanno alternativa testuale (`role="img"` più `aria-label` che riassuma i numeri, o che indichi la tabella dove sono). Se invece i valori sono già nel testo accanto, `aria-hidden` sulla grafica: ripeterli non è accesso, è rumore.
+- **Do** importare da `tokens` (`frontend/src/theme.ts`): i colori erano finiti duplicati in oltre mille letterali esadecimali, le trasparenze in diciassette letterali `rgba`, e le varianti sbagliate passavano inosservate.
+- **Do** far passare da `escapeHtml` (`utils/html.ts`) qualunque dato che finisca in una stringa HTML — oggi solo il `formatter` del tooltip di ECharts. `acct` e `id` dei nodi arrivano dalle istanze Mastodon remote: sono l'unico dato non fidato dell'applicazione che diventa markup.
 
 ### Don't:
 
@@ -389,4 +428,5 @@ Fascia a piena larghezza che chiude un capitolo. Occhiello mono in bianco al 60%
 - **Don't** scrivere testo bianco su coral (2,6:1) né su verde di stato (2,6:1). Su una tinta satura chiara si scrive in nero di marchio.
 - **Don't** uniformare le quattro superfici scure: grafo, cascata, console e modale hanno fondi diversi perché contengono cose diverse.
 - **Don't** animare proprietà di layout, né aggiungere sequenze d'ingresso alla pagina. Il movimento comunica uno stato: cambio, risposta, caricamento. Nient'altro.
+- **Don't** affidare a un passaggio del mouse un'informazione che serve. Nessun attributo `title` come unico portatore di una nota: non compare al tocco, non si raggiunge da tastiera se sta su un elemento che non prende focus, e su un proiettore nessuno lo vedrà mai. Se è provenienza di un dato, sta in pagina.
 - **Don't** reinventare affordance standard — scrollbar custom oltre il filetto da 4px già in sidebar, controlli di form fuori vocabolario, modali dove basterebbe una sezione in linea.
