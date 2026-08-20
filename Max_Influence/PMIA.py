@@ -159,13 +159,16 @@ def pmia_select(g, k, candidates, theta):
 # =========================================================================== #
 #  Caricamento grafo (STRADA A) + candidati portatori IA
 # =========================================================================== #
-def _ensure_weighted_cascade(g):
-    if any("weight" not in d for _, _, d in g.edges(data=True)):
+def _ensure_ic_probabilities(g):
+    """Assegna p_ic a ogni arco usando independent_trials (formula documentata:
+    p = 1-(1-p0)^weight), coerente con il p_ic baked nel GEXF da graph_builder."""
+    needs_weights = any("weight" not in d for _, _, d in g.edges(data=True))
+    if needs_weights:
         gb.compute_weights(g)
     else:
         for _, _, d in g.edges(data=True):
             d["weight"] = float(d["weight"])
-    gb.compute_ic_probabilities(g, method="weighted_cascade")
+    gb.compute_ic_probabilities(g, method="independent_trials")
 
 
 def load_graph(args):
@@ -194,7 +197,7 @@ def load_graph(args):
         conn = gb.get_connection(_os.environ["DATABASE_URL"])
         g = gb.build_influence_graph(conn)
         conn.close()
-    _ensure_weighted_cascade(g)
+    _ensure_ic_probabilities(g)
     return g
 
 

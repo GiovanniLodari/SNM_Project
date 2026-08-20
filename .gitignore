@@ -34,7 +34,7 @@ fase_1_beta/
 # Fast-DetectGPT (external tool, fase 1 AI detection) - non tracciato.
 # E' un repo git annidato (ha il proprio .git) - un file al suo interno non
 # si puo' "detracciare" dal repo esterno senza diventare un embedded
-# repo/submodule. Il risultato finale (ai_scores.jsonl) va quindi copiato
+# repo/submodule. Il risultato finale (ai_scores_fast_detect.jsonl) va quindi copiato
 # in data/ (fuori da questo repo annidato) per essere tracciato normalmente.
 fast-detect-gpt/
 
@@ -74,16 +74,16 @@ imports/
 
 # Risultati AI detection / fact-check / checkworthiness - locali finche' non
 # validati (gate: si aggiungono al DB solo dopo revisione utente+colleghi)
-/ai_scores.jsonl
+/ai_scores_fast_detect.jsonl
 checkworthy_scores.jsonl
 fact_check_report*.csv
 
 # File di consegna temporanei (rigenerati al bisogno da post_texts.jsonl +
-# ai_scores.jsonl, es. per passare al fisso i post ancora da processare)
+# ai_scores_fast_detect.jsonl, es. per passare al fisso i post ancora da processare)
 post_texts_remaining.jsonl
 
 # post_texts.jsonl (id, lang, text, created_at) e' tracciato: senza,
-# ai_scores.jsonl sarebbe solo id->probabilita' senza testo, illeggibile
+# ai_scores_fast_detect.jsonl sarebbe solo id->probabilita' senza testo, illeggibile
 # per i colleghi senza un DB importato e collegato
 
 # Frontend React (frontend/) - node_modules e build locale, non tracciati
@@ -106,3 +106,6 @@ comparatore_detector/ai_scores_binoculars_corrected.jsonl
 comparatore_detector/comparison_report.json
 comparatore_detector/probabilities_merged.json
 desklib_detector/risultati.csv
+misinformation_impact/data/adj_csr_cache_*.pkl
+Risultati_Binoculars/ai_scores_binoculars.jsonl
+misinformation_impact/data/user_topic_weights.jsonl

@@ -1,0 +1,122 @@
+{
+  "vero_ai": {
+    "n": 3103,
+    "mean": 19076.874,
+    "median": 19569.62,
+    "std": 2897.322,
+    "p25": 19450.34,
+    "p75": 19849.84,
+    "top_topics": [
+      [
+        "Computer Science",
+        580
+      ],
+      [
+        "Explicit content",
+        373
+      ],
+      [
+        "Sport",
+        325
+      ],
+      [
+        "Medicine",
+        324
+      ],
+      [
+        "Politics",
+        296
+      ]
+    ]
+  },
+  "vero_human": {
+    "n": 10438,
+    "mean": 18968.268,
+    "median": 19546.23,
+    "std": 3086.753,
+    "p25": 19430.42,
+    "p75": 19853.98,
+    "top_topics": [
+      [
+        "Medicine",
+        1252
+      ],
+      [
+        "Climate change",
+        1234
+      ],
+      [
+        "Computer Science",
+        1194
+      ],
+      [
+        "Explicit content",
+        1108
+      ],
+      [
+        "Physics",
+        934
+      ]
+    ]
+  },
+  "falso_ai": {
+    "n": 229,
+    "mean": 18478.565,
+    "median": 19520.38,
+    "std": 4297.676,
+    "p25": 19102.94,
+    "p75": 19864.52,
+    "top_topics": [
+      [
+        "Physics",
+        37
+      ],
+      [
+        "Explicit content",
+        33
+      ],
+      [
+        "Sport",
+        21
+      ],
+      [
+        "Computer Science",
+        20
+      ],
+      [
+        "Climate change",
+        19
+      ]
+    ]
+  },
+  "falso_human": {
+    "n": 711,
+    "mean": 18931.402,
+    "median": 19526.0,
+    "std": 3377.267,
+    "p25": 19423.54,
+    "p75": 19903.68,
+    "top_topics": [
+      [
+        "Explicit content",
+        151
+      ],
+      [
+        "Physics",
+        86
+      ],
+      [
+        "Medicine",
+        58
+      ],
+      [
+        "Climate change",
+        57
+      ],
+      [
+        "Sport",
+        54
+      ]
+    ]
+  }
+}

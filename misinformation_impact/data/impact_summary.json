@@ -1,0 +1,196 @@
+{
+  "vero_ai": {
+    "n": 3103,
+    "boost_count": {
+      "n": 3103,
+      "mean": 0.6571,
+      "median": 0,
+      "p25": 0,
+      "p75": 1,
+      "total": 2039
+    },
+    "ic_spread_1step": {
+      "n": 3103,
+      "mean": 25.6431,
+      "median": 9.1662,
+      "p25": 3.6294,
+      "p75": 15.0068,
+      "total": 79570.4385
+    },
+    "author_followers": {
+      "n": 3103,
+      "mean": 4769.3364,
+      "median": 1478,
+      "p25": 219,
+      "p75": 2419,
+      "total": 14799251
+    },
+    "author_out_degree": {
+      "n": 3103,
+      "mean": 204.7312,
+      "median": 70,
+      "p25": 22,
+      "p75": 166,
+      "total": 635281
+    }
+  },
+  "vero_human": {
+    "n": 10438,
+    "boost_count": {
+      "n": 10438,
+      "mean": 0.7409,
+      "median": 0.0,
+      "p25": 0,
+      "p75": 1,
+      "total": 7734
+    },
+    "ic_spread_1step": {
+      "n": 10438,
+      "mean": 30.6032,
+      "median": 11.3683,
+      "p25": 3.1971,
+      "p75": 23.0223,
+      "total": 319435.9978
+    },
+    "author_followers": {
+      "n": 10438,
+      "mean": 4795.3036,
+      "median": 1688.0,
+      "p25": 273,
+      "p75": 3536,
+      "total": 50053379
+    },
+    "author_out_degree": {
+      "n": 10438,
+      "mean": 245.4098,
+      "median": 70.0,
+      "p25": 24,
+      "p75": 248,
+      "total": 2561587
+    }
+  },
+  "falso_ai": {
+    "n": 229,
+    "boost_count": {
+      "n": 229,
+      "mean": 0.5459,
+      "median": 0,
+      "p25": 0,
+      "p75": 0,
+      "total": 125
+    },
+    "ic_spread_1step": {
+      "n": 229,
+      "mean": 17.3658,
+      "median": 5.2548,
+      "p25": 1.3834,
+      "p75": 11.8515,
+      "total": 3976.7658
+    },
+    "author_followers": {
+      "n": 229,
+      "mean": 2542.1092,
+      "median": 665,
+      "p25": 240,
+      "p75": 2007,
+      "total": 582143
+    },
+    "author_out_degree": {
+      "n": 229,
+      "mean": 152.3668,
+      "median": 35,
+      "p25": 11,
+      "p75": 98,
+      "total": 34892
+    }
+  },
+  "falso_human": {
+    "n": 711,
+    "boost_count": {
+      "n": 711,
+      "mean": 0.609,
+      "median": 0,
+      "p25": 0,
+      "p75": 1,
+      "total": 433
+    },
+    "ic_spread_1step": {
+      "n": 711,
+      "mean": 20.2417,
+      "median": 5.1121,
+      "p25": 0.814,
+      "p75": 16.6343,
+      "total": 14391.8796
+    },
+    "author_followers": {
+      "n": 711,
+      "mean": 2861.2068,
+      "median": 705,
+      "p25": 260,
+      "p75": 2419,
+      "total": 2034318
+    },
+    "author_out_degree": {
+      "n": 711,
+      "mean": 168.6709,
+      "median": 38,
+      "p25": 8,
+      "p75": 154,
+      "total": 119925
+    }
+  },
+  "all_ai": {
+    "n": 3332,
+    "boost_count": {
+      "n": 3332,
+      "mean": 0.6495,
+      "median": 0.0,
+      "p25": 0,
+      "p75": 1,
+      "total": 2164
+    },
+    "ic_spread_1step": {
+      "n": 3332,
+      "mean": 25.0742,
+      "median": 8.4919,
+      "p25": 3.4226,
+      "p75": 15.0068,
+      "total": 83547.2043
+    }
+  },
+  "all_human": {
+    "n": 11149,
+    "boost_count": {
+      "n": 11149,
+      "mean": 0.7325,
+      "median": 0,
+      "p25": 0,
+      "p75": 1,
+      "total": 8167
+    },
+    "ic_spread_1step": {
+      "n": 11149,
+      "mean": 29.9424,
+      "median": 10.6815,
+      "p25": 2.8368,
+      "p75": 22.2069,
+      "total": 333827.8774
+    }
+  },
+  "misto_ai": {
+    "n": 789,
+    "_note": "escluso dal confronto principale"
+  },
+  "misto_human": {
+    "n": 2765,
+    "_note": "escluso dal confronto principale"
+  },
+  "non_verificabile_ai": {
+    "n": 3166,
+    "_note": "escluso dal confronto principale"
+  },
+  "non_verificabile_human": {
+    "n": 14566,
+    "_note": "escluso dal confronto principale"
+  }
+}

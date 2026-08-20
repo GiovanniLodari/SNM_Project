@@ -143,6 +143,10 @@ def main():
     p.add_argument("--labels", default=LABELS)
     p.add_argument("--n-sub", type=int, default=N_SUB)
     p.add_argument("--k", type=int, default=K_SEED)
+    p.add_argument("--k-list", default=None,
+                   help="Lista di budget separati da virgola, es. '50,100,500,1000'. "
+                        "Esegue il confronto per ogni k sul SAME sottografo e salva "
+                        "un JSON per ogni valore (ignora --out-json, usa k{k}.json).")
     p.add_argument("--theta", type=float, default=THETA)
     p.add_argument("--num-rr", type=int, default=NUM_RR)
     p.add_argument("--mc-runs-celf", type=int, default=MC_RUNS_CELF)
@@ -168,21 +172,25 @@ def main():
     h = PMIA.sample_snowball(g, args.n_sub, candidates, rng, args.snowball_starts)
     print(f"[sottografo] nodi={h.number_of_nodes()} archi={h.number_of_edges()}", file=sys.stderr)
 
-    result = compare_on_subgraph(h, candidates, args.k, args, rng)
+    k_values = [int(x) for x in args.k_list.split(",")] if args.k_list else [args.k]
 
-    print("\n=== CONFRONTO ALGORITMI (stesso sottografo, k={}) ===".format(args.k))
-    print(f"{'algoritmo':>10} {'seed':>5} {'spread MC':>11} {'stima':>10} {'tempo(s)':>9}")
-    for name, a in sorted(result["algorithms"].items(), key=lambda x: -x[1]["mc_spread"]):
-        est = ("%.2f" % a["est_spread"]) if a["est_spread"] is not None else "-"
-        print(f"{name:>10} {a['n_seeds']:>5} {a['mc_spread']:>11.2f} {est:>10} {a['time_s']:>9.1f}")
-    print(f"\n>> SPREAD PIU' ALTO (Monte Carlo): {result['winner_by_mc_spread']}")
-    print("\nsovrapposizione seed (Jaccard):")
-    for pair, val in result["seed_overlap_jaccard"].items():
-        print(f"   {pair}: {val}")
+    for k in k_values:
+        result = compare_on_subgraph(h, candidates, k, args, rng)
 
-    with open(args.out_json, "w", encoding="utf-8") as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
-    print(f"\n[salvato] {args.out_json}", file=sys.stderr)
+        print("\n=== CONFRONTO ALGORITMI (stesso sottografo, k={}) ===".format(k))
+        print(f"{'algoritmo':>10} {'seed':>5} {'spread MC':>11} {'stima':>10} {'tempo(s)':>9}")
+        for name, a in sorted(result["algorithms"].items(), key=lambda x: -x[1]["mc_spread"]):
+            est = ("%.2f" % a["est_spread"]) if a["est_spread"] is not None else "-"
+            print(f"{name:>10} {a['n_seeds']:>5} {a['mc_spread']:>11.2f} {est:>10} {a['time_s']:>9.1f}")
+        print(f"\n>> SPREAD PIU' ALTO (Monte Carlo): {result['winner_by_mc_spread']}")
+        print("\nsovrapposizione seed (Jaccard):")
+        for pair, val in result["seed_overlap_jaccard"].items():
+            print(f"   {pair}: {val}")
+
+        out_path = f"confronto_k{k}.json" if args.k_list else args.out_json
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(result, f, ensure_ascii=False, indent=2)
+        print(f"\n[salvato] {out_path}", file=sys.stderr)
 
 
 if __name__ == "__main__":

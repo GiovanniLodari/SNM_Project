@@ -10,10 +10,10 @@ import type { Atto } from "../narrativa/tipi.ts";
 
 export const ATTI: readonly Atto[] = [
   {
-    id: "problema",
+    id: "impatto",
     numero: "I",
-    titolo: "Il problema",
-    domanda: "Quali account scegliere per far arrivare un contenuto al maggior numero di persone?",
+    titolo: "Impatto della disinformazione",
+    domanda: "Il contenuto generato dall'IA si diffonde più di quello umano? E quello falso più di quello vero?",
   },
   {
     id: "algoritmo",

@@ -1,0 +1,698 @@
+{
+  "vero_ai": {
+    "aggregate": {
+      "n_sims": 10000,
+      "n_seeds": 682,
+      "spread_mean": 25178.2,
+      "spread_median": 25177.0,
+      "spread_std": 121.5,
+      "spread_p25": 25095,
+      "spread_p75": 25259,
+      "spread_max": 25650
+    },
+    "by_topic": {
+      "Artificial Intelligence": {
+        "n_sims": 1000,
+        "n_seeds": 53,
+        "spread_mean": 25486.8,
+        "spread_median": 25488.0,
+        "spread_std": 119.9,
+        "spread_p25": 25407,
+        "spread_p75": 25570,
+        "spread_max": 25847
+      },
+      "Climate change": {
+        "n_sims": 1000,
+        "n_seeds": 70,
+        "spread_mean": 25447.0,
+        "spread_median": 25448.0,
+        "spread_std": 125.5,
+        "spread_p25": 25356,
+        "spread_p75": 25536,
+        "spread_max": 25918
+      },
+      "Computer Science": {
+        "n_sims": 1000,
+        "n_seeds": 31,
+        "spread_mean": 25487.3,
+        "spread_median": 25488.5,
+        "spread_std": 125.7,
+        "spread_p25": 25407,
+        "spread_p75": 25573,
+        "spread_max": 25865
+      },
+      "Economy": {
+        "n_sims": 1000,
+        "n_seeds": 52,
+        "spread_mean": 25475.1,
+        "spread_median": 25470.0,
+        "spread_std": 120.7,
+        "spread_p25": 25395,
+        "spread_p75": 25553,
+        "spread_max": 25859
+      },
+      "Entertainment": {
+        "n_sims": 1000,
+        "n_seeds": 21,
+        "spread_mean": 25488.5,
+        "spread_median": 25482.0,
+        "spread_std": 128.1,
+        "spread_p25": 25398,
+        "spread_p75": 25568,
+        "spread_max": 25863
+      },
+      "Explicit content": {
+        "n_sims": 1000,
+        "n_seeds": 144,
+        "spread_mean": 25514.4,
+        "spread_median": 25513.5,
+        "spread_std": 119.6,
+        "spread_p25": 25426,
+        "spread_p75": 25597,
+        "spread_max": 25894
+      },
+      "Fashion": {
+        "n_sims": 1000,
+        "n_seeds": 16,
+        "spread_mean": 25499.8,
+        "spread_median": 25496.5,
+        "spread_std": 117.5,
+        "spread_p25": 25419,
+        "spread_p75": 25578,
+        "spread_max": 25831
+      },
+      "Gaming": {
+        "n_sims": 1000,
+        "n_seeds": 21,
+        "spread_mean": 25496.5,
+        "spread_median": 25494.5,
+        "spread_std": 123.3,
+        "spread_p25": 25414,
+        "spread_p75": 25582,
+        "spread_max": 25930
+      },
+      "Healthcare": {
+        "n_sims": 1000,
+        "n_seeds": 39,
+        "spread_mean": 25488.8,
+        "spread_median": 25491.0,
+        "spread_std": 118.5,
+        "spread_p25": 25411,
+        "spread_p75": 25572,
+        "spread_max": 25812
+      },
+      "Medicine": {
+        "n_sims": 1000,
+        "n_seeds": 35,
+        "spread_mean": 25482.1,
+        "spread_median": 25480.0,
+        "spread_std": 124.0,
+        "spread_p25": 25400,
+        "spread_p75": 25561,
+        "spread_max": 25826
+      },
+      "Memes": {
+        "n_sims": 1000,
+        "n_seeds": 13,
+        "spread_mean": 25500.3,
+        "spread_median": 25498.0,
+        "spread_std": 121.6,
+        "spread_p25": 25417,
+        "spread_p75": 25585,
+        "spread_max": 25872
+      },
+      "Music": {
+        "n_sims": 1000,
+        "n_seeds": 15,
+        "spread_mean": 25494.2,
+        "spread_median": 25499.5,
+        "spread_std": 122.5,
+        "spread_p25": 25411,
+        "spread_p75": 25572,
+        "spread_max": 25933
+      },
+      "Photography": {
+        "n_sims": 1000,
+        "n_seeds": 13,
+        "spread_mean": 25493.7,
+        "spread_median": 25494.0,
+        "spread_std": 124.0,
+        "spread_p25": 25408,
+        "spread_p75": 25576,
+        "spread_max": 25824
+      },
+      "Physics": {
+        "n_sims": 1000,
+        "n_seeds": 60,
+        "spread_mean": 25468.7,
+        "spread_median": 25467.0,
+        "spread_std": 119.3,
+        "spread_p25": 25390,
+        "spread_p75": 25551,
+        "spread_max": 25817
+      },
+      "Politics": {
+        "n_sims": 1000,
+        "n_seeds": 53,
+        "spread_mean": 25479.5,
+        "spread_median": 25480.0,
+        "spread_std": 117.9,
+        "spread_p25": 25400,
+        "spread_p75": 25554,
+        "spread_max": 25852
+      },
+      "Sport": {
+        "n_sims": 1000,
+        "n_seeds": 46,
+        "spread_mean": 25485.4,
+        "spread_median": 25484.5,
+        "spread_std": 120.0,
+        "spread_p25": 25408,
+        "spread_p75": 25571,
+        "spread_max": 25860
+      }
+    }
+  },
+  "vero_human": {
+    "aggregate": {
+      "n_sims": 10000,
+      "n_seeds": 1410,
+      "spread_mean": 24859.2,
+      "spread_median": 24857.0,
+      "spread_std": 122.1,
+      "spread_p25": 24776,
+      "spread_p75": 24942,
+      "spread_max": 25284
+    },
+    "by_topic": {
+      "Artificial Intelligence": {
+        "n_sims": 1000,
+        "n_seeds": 90,
+        "spread_mean": 25460.5,
+        "spread_median": 25457.0,
+        "spread_std": 121.8,
+        "spread_p25": 25379,
+        "spread_p75": 25538,
+        "spread_max": 25938
+      },
+      "Climate change": {
+        "n_sims": 1000,
+        "n_seeds": 149,
+        "spread_mean": 25403.8,
+        "spread_median": 25397.0,
+        "spread_std": 123.3,
+        "spread_p25": 25324,
+        "spread_p75": 25479,
+        "spread_max": 25780
+      },
+      "Computer Science": {
+        "n_sims": 1000,
+        "n_seeds": 79,
+        "spread_mean": 25450.7,
+        "spread_median": 25448.5,
+        "spread_std": 127.2,
+        "spread_p25": 25365,
+        "spread_p75": 25536,
+        "spread_max": 25896
+      },
+      "Economy": {
+        "n_sims": 1000,
+        "n_seeds": 97,
+        "spread_mean": 25454.2,
+        "spread_median": 25453.5,
+        "spread_std": 122.2,
+        "spread_p25": 25367,
+        "spread_p75": 25540,
+        "spread_max": 25876
+      },
+      "Entertainment": {
+        "n_sims": 1000,
+        "n_seeds": 47,
+        "spread_mean": 25476.7,
+        "spread_median": 25474.5,
+        "spread_std": 121.8,
+        "spread_p25": 25393,
+        "spread_p75": 25559,
+        "spread_max": 25904
+      },
+      "Explicit content": {
+        "n_sims": 1000,
+        "n_seeds": 322,
+        "spread_mean": 25512.5,
+        "spread_median": 25510.0,
+        "spread_std": 121.4,
+        "spread_p25": 25431,
+        "spread_p75": 25593,
+        "spread_max": 25901
+      },
+      "Fashion": {
+        "n_sims": 1000,
+        "n_seeds": 33,
+        "spread_mean": 25482.5,
+        "spread_median": 25481.0,
+        "spread_std": 124.6,
+        "spread_p25": 25399,
+        "spread_p75": 25567,
+        "spread_max": 25861
+      },
+      "Gaming": {
+        "n_sims": 1000,
+        "n_seeds": 35,
+        "spread_mean": 25492.5,
+        "spread_median": 25491.0,
+        "spread_std": 124.8,
+        "spread_p25": 25410,
+        "spread_p75": 25577,
+        "spread_max": 26005
+      },
+      "Healthcare": {
+        "n_sims": 1000,
+        "n_seeds": 92,
+        "spread_mean": 25464.9,
+        "spread_median": 25460.5,
+        "spread_std": 119.7,
+        "spread_p25": 25383,
+        "spread_p75": 25544,
+        "spread_max": 25890
+      },
+      "Medicine": {
+        "n_sims": 1000,
+        "n_seeds": 72,
+        "spread_mean": 25462.4,
+        "spread_median": 25460.0,
+        "spread_std": 117.8,
+        "spread_p25": 25386,
+        "spread_p75": 25542,
+        "spread_max": 25824
+      },
+      "Memes": {
+        "n_sims": 1000,
+        "n_seeds": 33,
+        "spread_mean": 25485.3,
+        "spread_median": 25490.0,
+        "spread_std": 119.5,
+        "spread_p25": 25408,
+        "spread_p75": 25566,
+        "spread_max": 25848
+      },
+      "Music": {
+        "n_sims": 1000,
+        "n_seeds": 27,
+        "spread_mean": 25481.0,
+        "spread_median": 25477.0,
+        "spread_std": 119.9,
+        "spread_p25": 25407,
+        "spread_p75": 25561,
+        "spread_max": 25829
+      },
+      "Photography": {
+        "n_sims": 1000,
+        "n_seeds": 27,
+        "spread_mean": 25489.8,
+        "spread_median": 25491.0,
+        "spread_std": 120.2,
+        "spread_p25": 25413,
+        "spread_p75": 25568,
+        "spread_max": 25884
+      },
+      "Physics": {
+        "n_sims": 1000,
+        "n_seeds": 125,
+        "spread_mean": 25439.8,
+        "spread_median": 25441.0,
+        "spread_std": 124.3,
+        "spread_p25": 25359,
+        "spread_p75": 25521,
+        "spread_max": 25876
+      },
+      "Politics": {
+        "n_sims": 1000,
+        "n_seeds": 111,
+        "spread_mean": 25441.1,
+        "spread_median": 25440.0,
+        "spread_std": 118.4,
+        "spread_p25": 25368,
+        "spread_p75": 25517,
+        "spread_max": 25833
+      },
+      "Sport": {
+        "n_sims": 1000,
+        "n_seeds": 71,
+        "spread_mean": 25464.8,
+        "spread_median": 25464.0,
+        "spread_std": 122.3,
+        "spread_p25": 25388,
+        "spread_p75": 25540,
+        "spread_max": 25850
+      }
+    }
+  },
+  "falso_ai": {
+    "aggregate": {
+      "n_sims": 10000,
+      "n_seeds": 151,
+      "spread_mean": 25410.0,
+      "spread_median": 25409.0,
+      "spread_std": 120.4,
+      "spread_p25": 25329,
+      "spread_p75": 25491,
+      "spread_max": 25935
+    },
+    "by_topic": {
+      "Artificial Intelligence": {
+        "n_sims": 1000,
+        "n_seeds": 13,
+        "spread_mean": 25495.2,
+        "spread_median": 25496.5,
+        "spread_std": 117.4,
+        "spread_p25": 25419,
+        "spread_p75": 25569,
+        "spread_max": 25980
+      },
+      "Climate change": {
+        "n_sims": 1000,
+        "n_seeds": 16,
+        "spread_mean": 25491.4,
+        "spread_median": 25494.5,
+        "spread_std": 126.4,
+        "spread_p25": 25408,
+        "spread_p75": 25572,
+        "spread_max": 25892
+      },
+      "Computer Science": {
+        "n_sims": 1000,
+        "n_seeds": 6,
+        "spread_mean": 25504.5,
+        "spread_median": 25503.5,
+        "spread_std": 124.4,
+        "spread_p25": 25425,
+        "spread_p75": 25585,
+        "spread_max": 25905
+      },
+      "Economy": {
+        "n_sims": 1000,
+        "n_seeds": 12,
+        "spread_mean": 25499.9,
+        "spread_median": 25499.5,
+        "spread_std": 117.6,
+        "spread_p25": 25423,
+        "spread_p75": 25579,
+        "spread_max": 25921
+      },
+      "Entertainment": {
+        "n_sims": 1000,
+        "n_seeds": 4,
+        "spread_mean": 25499.7,
+        "spread_median": 25494.0,
+        "spread_std": 122.7,
+        "spread_p25": 25418,
+        "spread_p75": 25581,
+        "spread_max": 25926
+      },
+      "Explicit content": {
+        "n_sims": 1000,
+        "n_seeds": 18,
+        "spread_mean": 25511.8,
+        "spread_median": 25512.0,
+        "spread_std": 121.0,
+        "spread_p25": 25428,
+        "spread_p75": 25589,
+        "spread_max": 25830
+      },
+      "Fashion": {
+        "n_sims": 1000,
+        "n_seeds": 4,
+        "spread_mean": 25499.7,
+        "spread_median": 25497.0,
+        "spread_std": 123.0,
+        "spread_p25": 25415,
+        "spread_p75": 25590,
+        "spread_max": 25835
+      },
+      "Gaming": {
+        "n_sims": 1000,
+        "n_seeds": 12,
+        "spread_mean": 25497.8,
+        "spread_median": 25494.0,
+        "spread_std": 121.5,
+        "spread_p25": 25415,
+        "spread_p75": 25584,
+        "spread_max": 25869
+      },
+      "Healthcare": {
+        "n_sims": 1000,
+        "n_seeds": 5,
+        "spread_mean": 25506.2,
+        "spread_median": 25506.5,
+        "spread_std": 119.1,
+        "spread_p25": 25430,
+        "spread_p75": 25582,
+        "spread_max": 25848
+      },
+      "Medicine": {
+        "n_sims": 1000,
+        "n_seeds": 5,
+        "spread_mean": 25503.1,
+        "spread_median": 25502.0,
+        "spread_std": 116.6,
+        "spread_p25": 25426,
+        "spread_p75": 25581,
+        "spread_max": 25832
+      },
+      "Memes": {
+        "n_sims": 1000,
+        "n_seeds": 3,
+        "spread_mean": 25501.0,
+        "spread_median": 25501.5,
+        "spread_std": 117.0,
+        "spread_p25": 25420,
+        "spread_p75": 25578,
+        "spread_max": 25890
+      },
+      "Music": {
+        "n_sims": 1000,
+        "n_seeds": 3,
+        "spread_mean": 25498.7,
+        "spread_median": 25502.0,
+        "spread_std": 121.1,
+        "spread_p25": 25417,
+        "spread_p75": 25583,
+        "spread_max": 25854
+      },
+      "Photography": {
+        "n_sims": 1000,
+        "n_seeds": 3,
+        "spread_mean": 25500.8,
+        "spread_median": 25500.0,
+        "spread_std": 116.3,
+        "spread_p25": 25421,
+        "spread_p75": 25578,
+        "spread_max": 25974
+      },
+      "Physics": {
+        "n_sims": 1000,
+        "n_seeds": 20,
+        "spread_mean": 25493.4,
+        "spread_median": 25491.0,
+        "spread_std": 120.9,
+        "spread_p25": 25414,
+        "spread_p75": 25578,
+        "spread_max": 25861
+      },
+      "Politics": {
+        "n_sims": 1000,
+        "n_seeds": 11,
+        "spread_mean": 25494.6,
+        "spread_median": 25488.0,
+        "spread_std": 119.4,
+        "spread_p25": 25414,
+        "spread_p75": 25574,
+        "spread_max": 25858
+      },
+      "Sport": {
+        "n_sims": 1000,
+        "n_seeds": 16,
+        "spread_mean": 25493.7,
+        "spread_median": 25490.5,
+        "spread_std": 123.6,
+        "spread_p25": 25411,
+        "spread_p75": 25577,
+        "spread_max": 25915
+      }
+    }
+  },
+  "falso_human": {
+    "aggregate": {
+      "n_sims": 10000,
+      "n_seeds": 357,
+      "spread_mean": 25289.0,
+      "spread_median": 25288.5,
+      "spread_std": 121.8,
+      "spread_p25": 25206,
+      "spread_p75": 25371,
+      "spread_max": 25777
+    },
+    "by_topic": {
+      "Artificial Intelligence": {
+        "n_sims": 1000,
+        "n_seeds": 21,
+        "spread_mean": 25499.0,
+        "spread_median": 25500.0,
+        "spread_std": 119.9,
+        "spread_p25": 25425,
+        "spread_p75": 25583,
+        "spread_max": 25846
+      },
+      "Climate change": {
+        "n_sims": 1000,
+        "n_seeds": 35,
+        "spread_mean": 25469.4,
+        "spread_median": 25470.0,
+        "spread_std": 122.2,
+        "spread_p25": 25389,
+        "spread_p75": 25554,
+        "spread_max": 25892
+      },
+      "Computer Science": {
+        "n_sims": 1000,
+        "n_seeds": 16,
+        "spread_mean": 25499.3,
+        "spread_median": 25500.5,
+        "spread_std": 125.5,
+        "spread_p25": 25415,
+        "spread_p75": 25585,
+        "spread_max": 25892
+      },
+      "Economy": {
+        "n_sims": 1000,
+        "n_seeds": 23,
+        "spread_mean": 25489.8,
+        "spread_median": 25497.0,
+        "spread_std": 123.0,
+        "spread_p25": 25405,
+        "spread_p75": 25573,
+        "spread_max": 25915
+      },
+      "Entertainment": {
+        "n_sims": 1000,
+        "n_seeds": 8,
+        "spread_mean": 25494.9,
+        "spread_median": 25495.0,
+        "spread_std": 119.7,
+        "spread_p25": 25418,
+        "spread_p75": 25576,
+        "spread_max": 25842
+      },
+      "Explicit content": {
+        "n_sims": 1000,
+        "n_seeds": 46,
+        "spread_mean": 25504.7,
+        "spread_median": 25502.0,
+        "spread_std": 120.9,
+        "spread_p25": 25423,
+        "spread_p75": 25585,
+        "spread_max": 25893
+      },
+      "Fashion": {
+        "n_sims": 1000,
+        "n_seeds": 7,
+        "spread_mean": 25498.2,
+        "spread_median": 25498.5,
+        "spread_std": 120.5,
+        "spread_p25": 25414,
+        "spread_p75": 25577,
+        "spread_max": 25880
+      },
+      "Gaming": {
+        "n_sims": 1000,
+        "n_seeds": 15,
+        "spread_mean": 25498.0,
+        "spread_median": 25501.0,
+        "spread_std": 117.9,
+        "spread_p25": 25424,
+        "spread_p75": 25580,
+        "spread_max": 25800
+      },
+      "Healthcare": {
+        "n_sims": 1000,
+        "n_seeds": 25,
+        "spread_mean": 25489.9,
+        "spread_median": 25492.5,
+        "spread_std": 118.4,
+        "spread_p25": 25410,
+        "spread_p75": 25565,
+        "spread_max": 25896
+      },
+      "Medicine": {
+        "n_sims": 1000,
+        "n_seeds": 15,
+        "spread_mean": 25491.4,
+        "spread_median": 25496.5,
+        "spread_std": 122.4,
+        "spread_p25": 25410,
+        "spread_p75": 25569,
+        "spread_max": 25919
+      },
+      "Memes": {
+        "n_sims": 1000,
+        "n_seeds": 18,
+        "spread_mean": 25493.5,
+        "spread_median": 25491.0,
+        "spread_std": 120.5,
+        "spread_p25": 25417,
+        "spread_p75": 25574,
+        "spread_max": 25858
+      },
+      "Music": {
+        "n_sims": 1000,
+        "n_seeds": 9,
+        "spread_mean": 25496.3,
+        "spread_median": 25496.0,
+        "spread_std": 122.2,
+        "spread_p25": 25411,
+        "spread_p75": 25576,
+        "spread_max": 25887
+      },
+      "Photography": {
+        "n_sims": 1000,
+        "n_seeds": 11,
+        "spread_mean": 25498.6,
+        "spread_median": 25497.0,
+        "spread_std": 119.0,
+        "spread_p25": 25416,
+        "spread_p75": 25577,
+        "spread_max": 25881
+      },
+      "Physics": {
+        "n_sims": 1000,
+        "n_seeds": 41,
+        "spread_mean": 25480.4,
+        "spread_median": 25482.0,
+        "spread_std": 121.3,
+        "spread_p25": 25400,
+        "spread_p75": 25565,
+        "spread_max": 25833
+      },
+      "Politics": {
+        "n_sims": 1000,
+        "n_seeds": 36,
+        "spread_mean": 25484.2,
+        "spread_median": 25482.0,
+        "spread_std": 118.4,
+        "spread_p25": 25403,
+        "spread_p75": 25567,
+        "spread_max": 25846
+      },
+      "Sport": {
+        "n_sims": 1000,
+        "n_seeds": 31,
+        "spread_mean": 25484.2,
+        "spread_median": 25485.0,
+        "spread_std": 120.8,
+        "spread_p25": 25401,
+        "spread_p75": 25570,
+        "spread_max": 25804
+      }
+    }
+  }
+}

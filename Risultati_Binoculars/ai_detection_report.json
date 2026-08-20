@@ -1,0 +1,153 @@
+{
+  "generated_at": "2026-08-18T08:29:40.528066+00:00",
+  "input": "C:\\Users\\antoc\\SNM_Project\\post_texts.jsonl",
+  "detector": "binoculars",
+  "observer_model": "Qwen/Qwen2.5-0.5B",
+  "performer_model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "threshold": 0.9,
+  "steepness": 25.0,
+  "max_tokens": 512,
+  "min_words_for_reliable": 50,
+  "counts": {
+    "total_in_file": 192822,
+    "scored": 192822,
+    "skipped_empty": 0,
+    "short_unreliable": 136747,
+    "ai_generated": 10191,
+    "human": 182631
+  },
+  "score_summary": {
+    "mean": 1.0723,
+    "median": 1.0482,
+    "min": 0.0,
+    "max": 4.5341,
+    "stdev": 0.1451
+  },
+  "ai_probability_pct_summary": {
+    "mean": 10.19,
+    "median": 2.4
+  },
+  "histogram_pct": {
+    "0-10%": 141705,
+    "10-20%": 19654,
+    "20-30%": 10133,
+    "30-40%": 6594,
+    "40-50%": 4545,
+    "50-60%": 3428,
+    "60-70%": 2454,
+    "70-80%": 1831,
+    "80-90%": 1477,
+    "90-100%": 986,
+    "100-110%": 15
+  },
+  "by_lang": {
+    "en": {
+      "n": 192822,
+      "ai": 10191
+    }
+  },
+  "most_likely_ai": [
+    {
+      "id": 293331,
+      "pct": 100.0,
+      "score": 0.0
+    },
+    {
+      "id": 293324,
+      "pct": 100.0,
+      "score": 0.0
+    },
+    {
+      "id": 293327,
+      "pct": 100.0,
+      "score": 0.0
+    },
+    {
+      "id": 293328,
+      "pct": 100.0,
+      "score": 0.0
+    },
+    {
+      "id": 293329,
+      "pct": 100.0,
+      "score": 0.0
+    },
+    {
+      "id": 293332,
+      "pct": 100.0,
+      "score": 0.0
+    },
+    {
+      "id": 233439,
+      "pct": 100.0,
+      "score": 0.0
+    },
+    {
+      "id": 273740,
+      "pct": 100.0,
+      "score": 0.0
+    },
+    {
+      "id": 246711,
+      "pct": 100.0,
+      "score": 0.0
+    },
+    {
+      "id": 1142954,
+      "pct": 100.0,
+      "score": 0.0
+    }
+  ],
+  "most_likely_human": [
+    {
+      "id": 235315,
+      "pct": 0.0,
+      "score": 4.534058
+    },
+    {
+      "id": 864834,
+      "pct": 0.0,
+      "score": 2.953788
+    },
+    {
+      "id": 816176,
+      "pct": 0.0,
+      "score": 2.953788
+    },
+    {
+      "id": 859255,
+      "pct": 0.0,
+      "score": 2.950518
+    },
+    {
+      "id": 271674,
+      "pct": 0.0,
+      "score": 2.819628
+    },
+    {
+      "id": 257380,
+      "pct": 0.0,
+      "score": 2.817258
+    },
+    {
+      "id": 505721,
+      "pct": 0.0,
+      "score": 2.796173
+    },
+    {
+      "id": 514059,
+      "pct": 0.0,
+      "score": 2.793882
+    },
+    {
+      "id": 415866,
+      "pct": 0.0,
+      "score": 2.791083
+    },
+    {
+      "id": 495587,
+      "pct": 0.0,
+      "score": 2.791083
+    }
+  ]
+}

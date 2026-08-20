@@ -14,8 +14,6 @@ import { useAttoInVista } from "../components/narrativa/useAttoInVista.ts";
 import { ATTI } from "../components/influence/influenceContent.ts";
 import { CAPITOLO_PROPAGAZIONE } from "../navigazione.ts";
 import { formatNumber } from "../utils/format.ts";
-import SchedaProblema from "../components/influence/atto1/SchedaProblema.tsx";
-import ConfrontoGrafi from "../components/influence/atto1/ConfrontoGrafi.tsx";
 import EsitoConfronto from "../components/influence/atto2/EsitoConfronto.tsx";
 import GraficoCostoBeneficio from "../components/influence/atto2/GraficoCostoBeneficio.tsx";
 import TabellaBenchmark from "../components/influence/atto2/TabellaBenchmark.tsx";
@@ -27,6 +25,7 @@ import ComposizioneRaggiunti from "../components/influence/atto3/ComposizioneRag
 import CanvasCascata from "../components/influence/atto3/CanvasCascata.tsx";
 import ClassificheSeed from "../components/influence/atto3/ClassificheSeed.tsx";
 import LimitiMetodologici from "../components/influence/atto4/LimitiMetodologici.tsx";
+import ImpattoDis from "../components/influence/atto_impatto/ImpattoDis.tsx";
 import { tokens } from "../theme.ts";
 
 // Quanti seed per pagina chiedere all'API: lo stesso valore serve alla query,
@@ -41,7 +40,7 @@ const ALTEZZA_SEGNAPOSTO = 300;
 
 // I quattro atti nell'ordine in cui si leggono. Destrutturarli qui evita di
 // indicizzare ATTI con numeri sparsi nel JSX.
-const [ATTO_PROBLEMA, ATTO_ALGORITMO, ATTO_CASCATA, ATTO_LIMITI] = ATTI;
+const [ATTO_IMPATTO, ATTO_ALGORITMO, ATTO_CASCATA, ATTO_LIMITI] = ATTI;
 
 /**
  * La sezione Influence Maximization come narrazione lineare in quattro atti:
@@ -73,45 +72,14 @@ export default function InfluenceMaximization() {
     seedsSearch,
   );
 
-  // Le sezioni entrano nel DOM solo quando la summary e' arrivata: prima di
-  // allora non c'e' niente da osservare per l'indice.
-  const attoAttivo = useAttoInVista(ATTI, Boolean(summary));
+  const attoAttivo = useAttoInVista(ATTI, true);
 
-  // Apertura del profilo di un seed: la stessa logica serve alla pagina
-  // Account, quindi vive in un hook invece che in quattro `useState` ricopiati.
   const dettaglio = useDettaglioAccount();
 
   const handleSearchChange = (query: string) => {
-    // La pagina 3 di una ricerca precedente non esiste quasi mai nella nuova,
-    // quindi si torna a pagina 1 nella stessa scrittura: due setter URL
-    // separati si sovrascriverebbero (vedi OpzioniScrittura in useUrlState).
     setSeedsSearch(query, { azzera: ["seedsPage"] });
   };
 
-  if (loadingSummary) {
-    return (
-      <Box sx={{ p: 2 }}>
-        <Skeleton variant="text" width={300} height={40} sx={{ mb: 2, borderRadius: tokens.radius.md }} />
-        <Skeleton variant="rectangular" width="100%" height={120} sx={{ mb: 4, borderRadius: tokens.radius.xl }} />
-        <Skeleton variant="rectangular" height={540} sx={{ borderRadius: tokens.radius.xl, backgroundColor: tokens.color.softStone }} />
-      </Box>
-    );
-  }
-
-  if (errorSummary || !summary) {
-    return (
-      <Box sx={{ mt: 6, textAlign: "center" }}>
-        <Typography color="error" variant="h6">
-          Dati Influence Maximization non disponibili.
-        </Typography>
-      </Box>
-    );
-  }
-
-  const { meta, demographics, step_stats, top_seeds, top_targets } = summary;
-  // I blocchi che seguono leggono dal confronto, non dalla summary: finche' la
-  // sua query non ha risposto mostrano un segnaposto. Renderli subito con dei
-  // valori mancanti significherebbe aprire l'Atto I su una fila di "n/d".
   const segnaposto = (
     <Skeleton
       variant="rectangular"
@@ -119,6 +87,17 @@ export default function InfluenceMaximization() {
       sx={{ borderRadius: tokens.radius.xl, backgroundColor: tokens.color.softStone }}
     />
   );
+
+  const avvisoInfluenza = (
+    <Box sx={{ p: 3, border: `1px dashed ${tokens.color.border}`, borderRadius: tokens.radius.xl,
+      backgroundColor: tokens.color.surfaceStone }}>
+      <Typography sx={{ fontFamily: tokens.font.mono, fontSize: 12, color: tokens.color.textMuted }}>
+        {loadingSummary ? "Caricamento dati influence maximization…" : "Dati influence maximization non disponibili (backend 503)."}
+      </Typography>
+    </Box>
+  );
+
+  const { meta, demographics, step_stats, top_seeds, top_targets } = summary ?? {};
 
   return (
     <>
@@ -130,91 +109,81 @@ export default function InfluenceMaximization() {
         atti={ATTI}
         attoAttivo={attoAttivo}
       >
-          <Sezione atto={ATTO_PROBLEMA}>
-            <SchedaProblema params={comparisonData?.params ?? null} />
-            {comparisonData ? (
-              <ConfrontoGrafi
-                nodiCompleto={meta.nodes}
-                archiCompleto={meta.edges}
-                nodiSottografo={comparisonData.subgraph.nodes}
-                archiSottografo={comparisonData.subgraph.edges}
-                candidati={comparisonData.subgraph.candidates}
-                kRichiesto={comparisonData.k}
-              />
-            ) : (
-              segnaposto
-            )}
+          <Sezione atto={ATTO_IMPATTO}>
+            <ImpattoDis />
           </Sezione>
 
           <Sezione atto={ATTO_ALGORITMO}>
-            {comparisonData ? (
-              <>
-                <EsitoConfronto
-                  algoritmi={comparisonData.algorithms}
-                  vincitore={comparisonData.winner_by_mc_spread}
-                />
-                <GraficoCostoBeneficio algoritmi={comparisonData.algorithms} />
-                <TabellaBenchmark algoritmi={comparisonData.algorithms} kRichiesto={comparisonData.k} />
-                <AffidabilitaStimatori algoritmi={comparisonData.algorithms} />
-                <SovrapposizioneSeed jaccard={comparisonData.seed_overlap_jaccard} />
-              </>
-            ) : (
-              segnaposto
-            )}
+            {summary ? (
+              comparisonData ? (
+                <>
+                  <EsitoConfronto
+                    algoritmi={comparisonData.algorithms}
+                    vincitore={comparisonData.winner_by_mc_spread}
+                  />
+                  <GraficoCostoBeneficio algoritmi={comparisonData.algorithms} />
+                  <TabellaBenchmark algoritmi={comparisonData.algorithms} kRichiesto={comparisonData.k} />
+                  <AffidabilitaStimatori algoritmi={comparisonData.algorithms} />
+                  <SovrapposizioneSeed jaccard={comparisonData.seed_overlap_jaccard} />
+                </>
+              ) : segnaposto
+            ) : avvisoInfluenza}
           </Sezione>
 
           <Sezione atto={ATTO_CASCATA}>
-            <EsitoCascata meta={meta} stepStats={step_stats} demografia={demographics} />
-            <AndamentoStep stepStats={step_stats} />
-            <ComposizioneRaggiunti demografia={demographics} />
-            {graphData && (
-              <CanvasCascata
-                nodes={graphData.nodes}
-                links={graphData.links}
-                onSelectAccount={dettaglio.apri}
-                seedSelezionato={selectedSeedId || undefined}
-                onSelectSeed={setSelectedSeedId}
-                maxStep={meta.num_steps}
-                topSeeds={top_seeds}
-              />
-            )}
-            <ClassificheSeed
-              seeds={seedsRes?.seeds ?? []}
-              seedsTotal={seedsRes?.total ?? 0}
-              seedsLoading={seedsLoading}
-              seedsPage={seedsPage}
-              onSeedsPageChange={setSeedsPage}
-              seedsSearch={seedsSearch}
-              onSeedsSearchChange={handleSearchChange}
-              seedsPageSize={SEEDS_PER_PAGINA}
-              totalSeedCount={meta.seeds}
-              selectedSeedId={selectedSeedId || undefined}
-              onSelectSeed={setSelectedSeedId}
-              onSelectAccount={dettaglio.apri}
-              targets={top_targets}
-            />
+            {summary ? (
+              <>
+                <EsitoCascata meta={meta!} stepStats={step_stats!} demografia={demographics!} />
+                <AndamentoStep stepStats={step_stats!} />
+                <ComposizioneRaggiunti demografia={demographics!} />
+                {graphData && (
+                  <CanvasCascata
+                    nodes={graphData.nodes}
+                    links={graphData.links}
+                    onSelectAccount={dettaglio.apri}
+                    seedSelezionato={selectedSeedId || undefined}
+                    onSelectSeed={setSelectedSeedId}
+                    maxStep={meta!.num_steps}
+                    topSeeds={top_seeds!}
+                  />
+                )}
+                <ClassificheSeed
+                  seeds={seedsRes?.seeds ?? []}
+                  seedsTotal={seedsRes?.total ?? 0}
+                  seedsLoading={seedsLoading}
+                  seedsPage={seedsPage}
+                  onSeedsPageChange={setSeedsPage}
+                  seedsSearch={seedsSearch}
+                  onSeedsSearchChange={handleSearchChange}
+                  seedsPageSize={SEEDS_PER_PAGINA}
+                  totalSeedCount={meta!.seeds}
+                  selectedSeedId={selectedSeedId || undefined}
+                  onSelectSeed={setSelectedSeedId}
+                  onSelectAccount={dettaglio.apri}
+                  targets={top_targets!}
+                />
+              </>
+            ) : avvisoInfluenza}
           </Sezione>
 
-        {/* Il risultato del capitolo, isolato dal flusso delle card prima che
-            l'Atto IV lo ridimensioni: e' la cifra che si porta via chi legge,
-            e la frase qui accanto e' cio' che le impedisce di essere letta come
-            una stima. */}
-        <BandaScura
-          larghezza="colonna"
-          occhiello="Il risultato"
-          titolo={`${meta.reached_pct.toFixed(1)}% della rete raggiunto`}
-          testo={
-            `Partendo da ${formatNumber(meta.seeds)} account seed, la cascata ne attiva ` +
-            `${formatNumber(meta.reached_nodes)} su ${formatNumber(meta.nodes)} in ` +
-            `${meta.num_steps} passi. E' una singola realizzazione del processo, non un ` +
-            `valore atteso: l'atto che segue spiega perche' la differenza conta.`
-          }
-          cifre={[
-            { valore: formatNumber(meta.seeds), etichetta: "Account seed" },
-            { valore: formatNumber(meta.reached_nodes), etichetta: "Nodi attivati" },
-            { valore: String(meta.num_steps), etichetta: "Passi della cascata" },
-          ]}
-        />
+        {summary && (
+          <BandaScura
+            larghezza="colonna"
+            occhiello="Il risultato"
+            titolo={`${meta!.reached_pct.toFixed(1)}% della rete raggiunto`}
+            testo={
+              `Partendo da ${formatNumber(meta!.seeds)} account seed, la cascata ne attiva ` +
+              `${formatNumber(meta!.reached_nodes)} su ${formatNumber(meta!.nodes)} in ` +
+              `${meta!.num_steps} passi. E' una singola realizzazione del processo, non un ` +
+              `valore atteso: l'atto che segue spiega perche' la differenza conta.`
+            }
+            cifre={[
+              { valore: formatNumber(meta!.seeds), etichetta: "Account seed" },
+              { valore: formatNumber(meta!.reached_nodes), etichetta: "Nodi attivati" },
+              { valore: String(meta!.num_steps), etichetta: "Passi della cascata" },
+            ]}
+          />
+        )}
 
           <Sezione atto={ATTO_LIMITI}>
             <LimitiMetodologici />

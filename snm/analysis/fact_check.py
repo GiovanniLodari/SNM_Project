@@ -355,6 +355,22 @@ def fact_check_one(text: str, created_at: str | None, model: str, key_pool: Olla
     }
 
 
+def load_ai_consensus_ids(path: Path) -> set[int]:
+    """Legge il JSONL prodotto da compute_consensus_ids.py ({id, fast_prob, ada_prob, bino_prob}).
+    Compatibile anche con il vecchio formato plain-text (un ID intero per riga)."""
+    ids: set[int] = set()
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith("{"):
+                ids.add(int(json.loads(line)["id"]))
+            else:
+                ids.add(int(line))
+    return ids
+
+
 def load_checkworthy_ids(path: Path, threshold: float) -> set[int]:
     """Legge la cache prodotta da run_checkworthiness.py (id->punteggio) e
     ritorna gli id che superano la soglia. Separata dal filtro inline
@@ -398,6 +414,11 @@ def main() -> None:
     parser.add_argument("--input", type=str, required=True, help="JSONL prodotto da export_texts.py")
     parser.add_argument("--output", type=str, required=True, help="report CSV di output")
     parser.add_argument(
+        "--ai-ids", type=str, default=None,
+        help="file con ID in consenso prodotto da compute_consensus_ids.py (un ID per riga); "
+             "se fornito, vengono processati solo i post con quell'ID",
+    )
+    parser.add_argument(
         "--checkworthy-cache", type=str, default="checkworthy_scores.jsonl",
         help="cache prodotta da run_checkworthiness.py (id->punteggio verificabilita')",
     )
@@ -428,10 +449,19 @@ def main() -> None:
         sys.exit(1)
     checkworthy_ids = load_checkworthy_ids(checkworthy_cache_path, DEFAULT_CHECKWORTHINESS_THRESHOLD)
 
+    ai_consensus_ids: set[int] | None = None
+    if args.ai_ids:
+        ai_consensus_ids = load_ai_consensus_ids(Path(args.ai_ids))
+        print(f"Filtro consenso AI: {len(ai_consensus_ids)} ID da {args.ai_ids}")
+
     rows = load_texts(Path(args.input), args.lang, args.limit)
     if done_ids:
         rows = [r for r in rows if r["id"] not in done_ids]
         print(f"{len(done_ids)} post gia' presenti in {out_path} (run precedente), salto")
+    if ai_consensus_ids is not None:
+        n_before = len(rows)
+        rows = [r for r in rows if r["id"] in ai_consensus_ids]
+        print(f"{n_before - len(rows)} post scartati (non in consenso AI tra i 3 detector)")
     n_before_checkworthiness = len(rows)
     rows = [r for r in rows if r["id"] in checkworthy_ids]
     print(f"{n_before_checkworthiness - len(rows)} post scartati (non verificabili, checkworthiness <= 60%)")

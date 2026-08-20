@@ -10,7 +10,7 @@ Il sistema include un meccansimo dinamico di risoluzione dei file (`webapp/path_
 
 | Dataset | Modello / Modulo | Percorsi Candidati di Default |
 | :--- | :--- | :--- |
-| **FastDetectGPT** | Detector 1 | `data/ai_scores.jsonl`<br>`ai_scores.jsonl`<br>`fast-detect-gpt/ai_scores.jsonl` |
+| **FastDetectGPT** | Detector 1 | `data/ai_scores_fast_detect.jsonl`<br>`ai_scores_fast_detect.jsonl`<br>`fast-detect-gpt/ai_scores_fast_detect.jsonl` |
 | **Binoculars** | Detector 2 | `desklib_detector/risultati_binocular_all/ai_scores_binoculars.jsonl`<br>`data/ai_scores_binoculars.jsonl`<br>`ai_scores_binoculars.jsonl` |
 | **Desklib AI Detector** | Detector 3 | `desklib_detector/risultati_binocular_all/risultati.jsonl`<br>`data/risultati.jsonl`<br>`risultati.jsonl`<br>`desklib_scores.jsonl` |
 | **Fact-Checking** | Report Veridicità | `fact_checking/fact_check_report.csv`<br>`fact_check_report.csv`<br>`data/fact_check_report.csv` |
@@ -24,7 +24,7 @@ Se hai memorizzato i file di output in una cartella differente nel tuo computer 
 
 ```env
 # Esempio configurazione percorsi personalizzati nel file .env
-AI_SCORES_PATH=C:/SNM_Project/data/ai_scores.jsonl
+AI_SCORES_PATH=C:/SNM_Project/data/ai_scores_fast_detect.jsonl
 BINOCULARS_SCORES_PATH=C:/SNM_Project/desklib_detector/risultati_binocular_all/ai_scores_binoculars.jsonl
 DESKLIB_SCORES_PATH=C:/SNM_Project/desklib_detector/risultati_binocular_all/risultati.jsonl
 FACT_CHECK_PATH=C:/SNM_Project/fact_checking/fact_check_report.csv
@@ -40,7 +40,7 @@ Per mantenere la massima compatibilità senza dover modificare il file `.env`, p
 ```text
 SNM_Project/
 ├── data/
-│   └── ai_scores.jsonl                    # Output FastDetectGPT
+│   └── ai_scores_fast_detect.jsonl         # Output FastDetectGPT
 ├── desklib_detector/
 │   └── risultati_binocular_all/
 │       ├── ai_scores_binoculars.jsonl     # Output Binoculars

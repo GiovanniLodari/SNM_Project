@@ -31,7 +31,7 @@ from pathlib import Path
 #  >>> CONFIGURA QUI <<<  (poi lancia solo:  python ai_users.py)
 # =========================================================================== #
 # File JSONL con le probabilita' AI per post ({"id":.., "probability":..}). OBBLIGATORIO.
-AI_FILE     = str(Path(__file__).resolve().parent.parent / "data" / "ai_scores.jsonl")
+AI_FILE     = str(Path(__file__).resolve().parent.parent / "data" / "ai_scores_fast_detect.jsonl")
 
 # Mappa utente->post gia' pronta. Se la lasci None, viene costruita dal DB
 # (serve DATABASE_URL nel .env) e salvata in OUT_USER_POSTS.
