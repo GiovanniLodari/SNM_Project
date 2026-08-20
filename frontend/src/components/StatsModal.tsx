@@ -122,7 +122,7 @@ export default function StatsModal({
   stats,
   detectorLabel = "Fast-DetectGPT",
 }: StatsModalProps) {
-  if (!stats) return null;
+  if (!stats || !stats.probability || !stats.distribution_curve) return null;
 
   // Il calcolo vive in utils/statistics.ts: e' logica pura, quindi testabile
   // senza montare il modale.
@@ -351,7 +351,7 @@ export default function StatsModal({
                 { label: "Q1 (da istogramma)", value: pct(q1, "%"), accent: tokens.color.actionBlue },
                 { label: "Q3 (da istogramma)", value: pct(q3, "%"), accent: tokens.color.actionBlue },
                 { label: "IQR (da istogramma)", value: pct(iqr, "pp"), accent: tokens.color.actionBlue },
-                ...(stats.criteria
+                ...(stats.criteria && stats.criteria.mean !== undefined
                   ? [
                       { label: "Criteria medio", value: String(stats.criteria.mean), accent: tokens.color.deepGreen },
                       { label: "Criteria mediano", value: String(stats.criteria.median), accent: tokens.color.deepGreen },

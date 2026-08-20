@@ -386,7 +386,7 @@ def get_descriptive_stats(ai_scores: dict[int, dict], conn, cache_key: str = "de
         ]
 
         if not valid_scores:
-            return {}
+            return None
 
         probs = [float(r["probability"]) for r in valid_scores]
         criteria = [float(r["criterion"]) for r in valid_scores if r.get("criterion") is not None and r["criterion"] == r["criterion"]]
@@ -416,7 +416,7 @@ def get_descriptive_stats(ai_scores: dict[int, dict], conn, cache_key: str = "de
         ]
 
         # Criteria stats
-        criteria_stats = {}
+        criteria_stats = None
         if criteria:
             criteria.sort()
             nc = len(criteria)

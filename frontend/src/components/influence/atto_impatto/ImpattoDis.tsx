@@ -97,14 +97,14 @@ export default function ImpattoDis() {
 
   // Trasforma boost osservati nel formato atteso da GraficoSpread.
   const groupsForChart: Record<string, MisinfoGruppoStats> = {};
-  if (boostData) {
+  if (boostData && boostData.groups) {
     for (const [g, s] of Object.entries(boostData.groups)) {
-      if (s && s.n > 0) {
+      if (s && s.n > 0 && typeof s.mean === "number") {
         groupsForChart[g] = {
           n: s.n,
           mean: s.mean,
-          median: s.median,
-          std: s.std,
+          median: s.median ?? s.mean,
+          std: s.std ?? 0,
         };
       }
     }
@@ -171,11 +171,11 @@ export default function ImpattoDis() {
       </Box>
 
       {/* KPI cards — boost osservati */}
-      {boostData && (
+      {boostData && boostData.groups && (
         <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
           {GRUPPI.map((g) => {
             const s = boostData.groups[g];
-            if (!s || s.n === 0) return null;
+            if (!s || s.n === 0 || typeof s.mean !== "number") return null;
             return (
               <SchedaGruppo
                 key={g}

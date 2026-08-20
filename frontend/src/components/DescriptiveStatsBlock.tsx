@@ -43,7 +43,7 @@ export default function DescriptiveStatsBlock() {
   const { data, isLoading: loading } = useAiDetectionQuery([], 1);
   const stats = data?.stats ?? null;
 
-  if (loading || !stats) {
+  if (loading || !stats || !stats.probability || !stats.distribution_curve) {
     return null;
   }
 
