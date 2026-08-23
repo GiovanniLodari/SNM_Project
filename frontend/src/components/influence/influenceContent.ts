@@ -22,10 +22,10 @@ export const ATTI: readonly Atto[] = [
     domanda: "Fra cinque metodi di selezione, quale conviene davvero usare?",
   },
   {
-    id: "cascata",
+    id: "propagatori",
     numero: "III",
-    titolo: "La cascata sul grafo reale",
-    domanda: "Applicando l'algoritmo scelto all'intera rete, fin dove arriva la propagazione?",
+    titolo: "Propagatori ottimali",
+    domanda: "Chi sono gli account che massimizzano la diffusione, per topic e tipo di contenuto?",
   },
   {
     id: "limiti",

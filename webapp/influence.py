@@ -1,10 +1,11 @@
+import csv
 import json
 import threading
 from typing import Any, Dict, List, Optional, Set
 
 from fastapi import HTTPException
 
-from webapp.path_utils import INFLUENCE_MAXIMIZATION_PATH, CONFRONTO_ALGORITMI_PATH
+from webapp.path_utils import INFLUENCE_MAXIMIZATION_PATH, CONFRONTO_ALGORITMI_PATH, TOPIC_PROPAGATORI_PATH, FACT_CHECK_PATH, RISULTATI_IM_DIR
 
 
 def _missing_data_file(path, descrizione: str) -> HTTPException:
@@ -23,6 +24,8 @@ def _missing_data_file(path, descrizione: str) -> HTTPException:
 _CACHE_LOCK = threading.Lock()
 _INFLUENCE_DATA_CACHE: Optional[Dict[str, Any]] = None
 _ALGO_COMPARISON_CACHE: Optional[Dict[str, Any]] = None
+_TOPIC_PROPAGATORI_CACHE: Optional[Dict[str, Any]] = None
+_FACT_CHECK_INDEX_CACHE: Optional[Dict[int, Dict]] = None
 
 
 
@@ -508,4 +511,161 @@ def get_algo_comparison() -> Dict[str, Any]:
             "params": data.get("params"),
         }
         return _ALGO_COMPARISON_CACHE
+
+
+def _load_fact_check_index() -> Dict[int, Dict]:
+    """Carica fact_check_report.csv in cache: {status_id: {veracity, ai_generated}}."""
+    global _FACT_CHECK_INDEX_CACHE
+    if _FACT_CHECK_INDEX_CACHE is not None:
+        return _FACT_CHECK_INDEX_CACHE
+    with _CACHE_LOCK:
+        if _FACT_CHECK_INDEX_CACHE is not None:
+            return _FACT_CHECK_INDEX_CACHE
+        index: Dict[int, Dict] = {}
+        with open(FACT_CHECK_PATH, encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                try:
+                    sid = int(row["id"])
+                    v = int(row["veracity"])
+                    ai_raw = row.get("ai_generated", "").strip().lower()
+                    ai = ai_raw in ("true", "1", "yes")
+                    index[sid] = {"veracity": v, "ai_generated": ai}
+                except (ValueError, KeyError):
+                    pass
+        _FACT_CHECK_INDEX_CACHE = index
+        return index
+
+
+def get_propagatore_posts(
+    acct: str,
+    topic: str,
+    veracity_group: str,
+    tipo: str,
+    n: int,
+    conn,
+) -> List[Dict[str, Any]]:
+    """Post di un propagatore filtrati per topic/veracity/tipo-autore."""
+    fc = _load_fact_check_index()
+    cur = conn.cursor()
+
+    # Recupera tutti i post dell'account — il filtro per topic avviene già
+    # a monte (chi appare nel ranking per un topic lo è perché classificato
+    # tale nel GEXF); filtrare anche i post per hashtag del topic escluderebbe
+    # post valid amente classificati ma privi di hashtag registrati.
+    cur.execute(
+        """
+        SELECT s.id, s.content, s.created_at
+        FROM statuses s
+        JOIN accounts a ON s.account_id = a.id
+        WHERE a.acct = %s
+        ORDER BY s.created_at DESC
+        """,
+        (acct,),
+    )
+
+    results = []
+    for (sid, content, created_at) in cur.fetchall():
+        fc_row = fc.get(sid)
+        if fc_row is None:
+            continue
+        v = fc_row["veracity"]
+        ai = fc_row["ai_generated"]
+        # Filtro veracity: vero=0-1, falso=3-4 (2=misto escluso da entrambi)
+        if veracity_group == "info" and v > 1:
+            continue
+        if veracity_group == "disinfo" and v < 3:
+            continue
+        # Filtro tipo autore
+        if tipo == "ai" and not ai:
+            continue
+        if tipo == "human" and ai:
+            continue
+        results.append({
+            "id": sid,
+            "content": content or "",
+            "created_at": created_at.isoformat() if created_at else None,
+        })
+        if len(results) >= n:
+            break
+    return results
+
+
+def get_topic_propagatori() -> Dict[str, Any]:
+    """Carica topic_propagators.json in cache (file statico, ~200KB)."""
+    global _TOPIC_PROPAGATORI_CACHE
+    if _TOPIC_PROPAGATORI_CACHE is not None:
+        return _TOPIC_PROPAGATORI_CACHE
+    with _CACHE_LOCK:
+        if _TOPIC_PROPAGATORI_CACHE is not None:
+            return _TOPIC_PROPAGATORI_CACHE
+        path = TOPIC_PROPAGATORI_PATH
+        if not path.exists():
+            raise _missing_data_file(path, "I propagatori per topic")
+        with open(path, "r", encoding="utf-8") as f:
+            _TOPIC_PROPAGATORI_CACHE = json.load(f)
+        return _TOPIC_PROPAGATORI_CACHE
+
+
+def get_result_comparison() -> List[Dict[str, Any]]:
+    """Legge result_*.json da Risultati_IM e restituisce confronto spread/tempo."""
+    results: List[Dict[str, Any]] = []
+    if not RISULTATI_IM_DIR.exists():
+        return results
+    ALIAS = {"SKIM": "RIS-greedy"}
+    for path in sorted(RISULTATI_IM_DIR.glob("result_*.json")):
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        algo_raw = data.get("algo", path.stem.replace("result_", ""))
+        algo = ALIAS.get(algo_raw, algo_raw)
+        spread_by_k = data.get("spread", {})
+        k_max = str(data.get("k_max", ""))
+        spread = spread_by_k.get(k_max) if k_max else None
+        results.append({
+            "algo": algo,
+            "algo_raw": algo_raw,
+            "spread": spread,
+            "time_s": data.get("selection_seconds"),
+            "k_max": data.get("k_max"),
+            "graph_nodes": data.get("graph_nodes"),
+            "graph_edges": data.get("graph_edges"),
+            "candidates": data.get("candidates"),
+            "mc_eval": data.get("mc_eval"),
+        })
+    results.sort(key=lambda r: r.get("spread") or 0, reverse=True)
+    return results
+
+
+def get_propagatore_profile(acct: str, conn) -> Dict[str, Any]:
+    """Profilo account per il drawer propagatori: dati DB + etichette."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT a.id, a.acct, a.username, a.bot, a.raw,
+                   (SELECT COUNT(*) FROM statuses WHERE account_id = a.id) as statuses_db
+            FROM accounts a
+            WHERE a.acct = %s
+            LIMIT 1
+            """,
+            (acct,),
+        )
+        row = cur.fetchone()
+    if not row:
+        return {}
+    acc_id, acct_db, username, is_bot, raw, statuses_db = row
+    rd = raw if isinstance(raw, dict) else {}
+    return {
+        "id": acc_id,
+        "acct": acct_db,
+        "display_name": rd.get("display_name") or username or acct_db,
+        "bot": bool(is_bot),
+        "avatar": rd.get("avatar") or rd.get("avatar_static"),
+        "header": rd.get("header") or rd.get("header_static"),
+        "note": rd.get("note") or "",
+        "url": rd.get("url"),
+        "followers_count": rd.get("followers_count"),
+        "following_count": rd.get("following_count"),
+        "statuses_count": rd.get("statuses_count") or statuses_db,
+        "created_at": rd.get("created_at"),
+        "fields": rd.get("fields", []),
+    }
 
