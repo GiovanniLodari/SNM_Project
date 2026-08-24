@@ -53,7 +53,7 @@ export default function GraficoCostoBeneficio({ algoritmi }: Props) {
         }
       >
       <ResponsiveContainer width="100%" height={380}>
-        <ScatterChart margin={{ top: 20, right: 40, bottom: 48, left: 16 }}>
+        <ScatterChart margin={{ top: 20, right: 40, bottom: 48, left: 64 }}>
           <CartesianGrid stroke={tokens.color.border} strokeDasharray="3 3" />
           <XAxis
             type="number"

@@ -212,6 +212,51 @@ export function useMisinfoBoostSummaryQuery(topic: string) {
   });
 }
 
+export function useInfluenceResultComparisonQuery() {
+  return useQuery({
+    queryKey: ["influence", "risultati-algoritmi"],
+    queryFn: () => api.influenceResultComparison(),
+    staleTime: 60 * 60 * 1000,
+    retry: false,
+  });
+}
+
+export function usePropagatoreProfileQuery(acct: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["influence", "propagatore-profile", acct],
+    queryFn: () => api.influencePropagatoreProfile(acct),
+    enabled: enabled && !!acct,
+    staleTime: 30 * 60 * 1000,
+    retry: false,
+  });
+}
+
+export function usePropagatoriQuery() {
+  return useQuery({
+    queryKey: ["influence", "propagatori"],
+    queryFn: () => api.influencePropagatori(),
+    staleTime: 60 * 60 * 1000,
+    retry: false,
+  });
+}
+
+export function usePropagatorePostsQuery(
+  acct: string,
+  topic: string,
+  veracity: string,
+  tipo: string,
+  n: number,
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: ["influence", "propagatore-posts", acct, topic, veracity, tipo, n],
+    queryFn: () => api.influencePropagatorePost(acct, topic, veracity, tipo, n),
+    enabled,
+    staleTime: 10 * 60 * 1000,
+    retry: false,
+  });
+}
+
 export function usePipelineStartMutation() {
   const queryClient = useQueryClient();
   return useMutation({

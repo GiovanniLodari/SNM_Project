@@ -85,6 +85,12 @@ CONFRONTO_ALGORITMI_PATH = resolve_file_path("CONFRONTO_ALGORITMI_PATH", [
     PROJECT_ROOT / "confronto_algoritmi.json",
 ])
 
+TOPIC_PROPAGATORI_PATH = resolve_file_path("TOPIC_PROPAGATORI_PATH", [
+    PROJECT_ROOT / "Max_Influence" / "Risultati_IM" / "topic_propagators.json",
+])
+
+RISULTATI_IM_DIR = PROJECT_ROOT / "Max_Influence" / "Risultati_IM"
+
 MC_SPREAD_PATH = resolve_file_path("MC_SPREAD_PATH", [
     PROJECT_ROOT / "misinformation_impact" / "data" / "mc_spread.jsonl",
 ])

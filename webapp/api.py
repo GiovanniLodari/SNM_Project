@@ -1248,6 +1248,43 @@ def influence_comparison():
     return influence_service.get_algo_comparison()
 
 
+@router.get("/influence-maximization/propagatori")
+def influence_propagatori():
+    return influence_service.get_topic_propagatori()
+
+
+@router.get("/influence-maximization/risultati-algoritmi")
+def influence_risultati_algoritmi():
+    return {"algorithms": influence_service.get_result_comparison()}
+
+
+@router.get("/influence-maximization/propagatori/{acct:path}/profile")
+def influence_propagatore_profile(acct: str, conn=Depends(get_db)):
+    profile = influence_service.get_propagatore_profile(acct=acct, conn=conn)
+    return {"profile": profile}
+
+
+@router.get("/influence-maximization/propagatori/{acct:path}/posts")
+def influence_propagatore_posts(
+    acct: str,
+    topic: str = "generale",
+    veracity: str = "info",
+    tipo: str = "generale",
+    n: int = 20,
+    conn=Depends(get_db),
+):
+    return {
+        "posts": influence_service.get_propagatore_posts(
+            acct=acct,
+            topic=topic,
+            veracity_group=veracity,
+            tipo=tipo,
+            n=min(n, 50),
+            conn=conn,
+        )
+    }
+
+
 # ------------------------------------------------------------------
 # Endpoints per Misinformation Impact (MC IC per-post e per-gruppo)
 # ------------------------------------------------------------------

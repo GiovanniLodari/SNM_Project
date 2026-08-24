@@ -615,6 +615,77 @@ export interface ParametriRun {
   ic_method: string;
 }
 
+export interface PropagatorePost {
+  id: number;
+  content: string;
+  created_at: string | null;
+}
+
+export interface PropagatoreSeed {
+  acct: string;
+  followers: number;
+  rank: number;
+  profilo: "ai" | "human" | "misto" | "unknown";
+  bot: boolean;
+  marginal_rr?: number;
+  cumulative_rr?: number;
+}
+
+export interface PropagatoreGroup {
+  seeds: PropagatoreSeed[];
+  n_candidates: number;
+  counts: {
+    ai: number;
+    human: number;
+    misto: number;
+    unknown: number;
+    bot_tra_ai: number;
+    bot_tra_umani: number;
+  };
+}
+
+export interface PropagatoriResponse {
+  k: number;
+  num_rr: number;
+  random_seed: number;
+  n_candidates_info: number;
+  n_candidates_disinfo: number;
+  group_sizes: Record<string, number>;
+  topics: Record<string, Record<string, PropagatoreGroup>>;
+}
+
+export interface ResultAlgo {
+  algo: string;
+  algo_raw: string;
+  spread: number | null;
+  time_s: number | null;
+  k_max: number | null;
+  graph_nodes: number | null;
+  graph_edges: number | null;
+  candidates: number | null;
+  mc_eval: number | null;
+}
+
+export interface ResultComparisonResponse {
+  algorithms: ResultAlgo[];
+}
+
+export interface PropagatoreProfile {
+  id: number;
+  acct: string;
+  display_name: string;
+  bot: boolean;
+  avatar?: string | null;
+  header?: string | null;
+  note?: string | null;
+  url?: string | null;
+  followers_count?: number | null;
+  following_count?: number | null;
+  statuses_count?: number | null;
+  created_at?: string | null;
+  fields?: { name: string; value: string }[];
+}
+
 export interface InfluenceComparisonResponse {
   subgraph: {
     nodes: number;
@@ -737,6 +808,18 @@ export const api = {
     getJson<InfluenceNodesResponse>(`/api/influence-maximization/nodes${buildQuery({ page, page_size: pageSize, search, step, type })}`),
   influenceComparison: () =>
     getJson<InfluenceComparisonResponse>("/api/influence-maximization/comparison"),
+  influencePropagatori: () =>
+    getJson<PropagatoriResponse>("/api/influence-maximization/propagatori"),
+  influencePropagatorePost: (acct: string, topic: string, veracity: string, tipo: string, n: number) =>
+    getJson<{ posts: PropagatorePost[] }>(
+      `/api/influence-maximization/propagatori/${encodeURIComponent(acct)}/posts${buildQuery({ topic, veracity, tipo, n })}`
+    ),
+  influenceResultComparison: () =>
+    getJson<ResultComparisonResponse>("/api/influence-maximization/risultati-algoritmi"),
+  influencePropagatoreProfile: (acct: string) =>
+    getJson<{ profile: PropagatoreProfile | null }>(
+      `/api/influence-maximization/propagatori/${encodeURIComponent(acct)}/profile`
+    ),
 
   misinfoTopics: () =>
     getJson<{ topics: string[] }>("/api/misinformation-impact/topics"),

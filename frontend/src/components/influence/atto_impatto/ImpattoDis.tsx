@@ -215,27 +215,6 @@ export default function ImpattoDis() {
         </Box>
       )}
 
-      {/* Placeholder seed set ottimale */}
-      <Box
-        sx={{ border: `1px dashed ${tokens.color.border}`, borderRadius: tokens.radius.xl, p: 3,
-          backgroundColor: tokens.color.surfaceStone }}
-      >
-        <Typography sx={{ fontFamily: tokens.font.mono, fontSize: 11, fontWeight: 700,
-          textTransform: "uppercase", letterSpacing: "0.06em", color: tokens.color.textMuted, mb: 0.5 }}>
-          In arrivo
-        </Typography>
-        <Typography sx={{ fontFamily: tokens.font.display, fontWeight: 700, fontSize: 16,
-          color: tokens.color.nearBlack, mb: 0.5 }}>
-          Propagatori ottimali
-        </Typography>
-        <Typography sx={{ fontFamily: tokens.font.body, fontSize: 13, color: tokens.color.textMuted }}>
-          Se il tipo di contenuto non basta a predire il potenziale di diffusione, quale
-          caratteristica strutturale distingue gli autori più pericolosi? Quali account — se
-          usati come seed — massimizzano la diffusione di disinformazione AI sul grafo reale?
-          Analisi in preparazione — influence maximization sul grafo completo con seed vincolati
-          al gruppo falso_ai.
-        </Typography>
-      </Box>
     </Box>
   );
 }
