@@ -59,10 +59,8 @@ report_*.docx
 report_*.txt
 
 # Project docs (specs/plans) - kept local, not pushed
-docs/
 
 # Tests - kept local, not pushed
-tests/
 
 # File PID e log del supervisore pipeline (webapp/jobs.py) - stato locale
 .pids/
@@ -109,3 +107,18 @@ desklib_detector/risultati.csv
 misinformation_impact/data/adj_csr_cache_*.pkl
 Risultati_Binoculars/ai_scores_binoculars.jsonl
 misinformation_impact/data/user_topic_weights.jsonl
+
+# Dati pesanti / con contenuti social: rigenerabili dalla pipeline (vedi README)
+post_texts.jsonl
+consensus_ids.jsonl
+fact_check_*_report.csv
+Max_Influence/*.jsonl
+Max_Influence/Risultati_IM/*.jsonl
+data/ai_scores_*_detect.jsonl
+misinformation_impact/data/*.jsonl
+misinformation_impact/data/*.npz
+misinformation_impact/data/node_order.json
+misinformation_impact/data/impact_per_post.csv
+
+# Strumenti di sviluppo
+.impeccable/

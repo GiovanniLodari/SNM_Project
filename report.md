@@ -10,13 +10,17 @@ Lingua di lavoro: italiano (codice, commenti, documentazione).
 
 ---
 
+> **Nota sui dati.** Il corpus dei post (`post_texts.jsonl`), i punteggi completi dei rilevatori (`data/ai_scores_*_detect.jsonl`), i report di fact-checking, gli ID di consenso e i dati pesanti di `Max_Influence/` e `misinformation_impact/data/` **non sono più tracciati in git**: sono contenuti pubblicati da altre persone e si rigenerano con le pipeline. Dove più sotto questo documento dice che un file è "tracciato in git" o "condiviso via git", leggi: file locale, da rigenerare o da ottenere da un collega (vedi `README.md`).
+
+---
+
 ## Struttura ad alto livello
 
 ```
 SNM_Project/
 ├── db/schema.sql              # schema Postgres (unica fonte di verità sulle tabelle)
-├── data/ai_scores_fast_detect.jsonl       # risultati AI detection (completo, condiviso via git)
-├── post_texts.jsonl           # corpus testi (input pipeline IA/fact-check, condiviso via git)
+├── data/ai_scores_fast_detect.jsonl       # risultati AI detection (completo, NON tracciato: vedi nota sui dati)
+├── post_texts.jsonl           # corpus testi (input pipeline IA/fact-check, NON tracciato: vedi nota sui dati)
 ├── pipeline.py                # pipeline principale: raccolta post per argomento
 ├── instance_blacklist.txt     # istanze Mastodon da evitare (verificate manualmente)
 ├── topic_list.txt             # argomenti su cui raccogliere (input reale di pipeline.py)
