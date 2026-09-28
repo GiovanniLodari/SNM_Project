@@ -2,7 +2,7 @@
 
 > How much of the Fediverse was not written by a person, and how far does it travel?
 
-University project (Social Networks and Media) that collects posts from **Mastodon**, estimates which ones were written by an AI, checks verifiable claims and studies how content spreads through the social network. The results are explored through a web interface. Code, comments and documentation are in Italian.
+University project (Social Networks and Media), developed with [Paolo Pangallo](https://github.com/PaoloPangallo) and Constantin Adrian Antoci, that collects posts from **Mastodon**, estimates which ones were written by an AI, checks verifiable claims and studies how content spreads through the social network. The results are explored through a web interface. Code, comments and documentation are in Italian.
 
 ## What it does
 
