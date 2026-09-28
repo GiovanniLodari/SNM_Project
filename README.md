@@ -1,45 +1,45 @@
 # SNM Intelligence
 
-> Quanta parte del Fediverso non l'ha scritta una persona, e quanto lontano arriva?
+> How much of the Fediverse was not written by a person, and how far does it travel?
 
-Progetto di tesi che raccoglie post da **Mastodon**, stima quali sono stati scritti da un'intelligenza artificiale, verifica le affermazioni controllabili e studia come i contenuti si diffondono nella rete sociale. I risultati si esplorano da un'interfaccia web.
+University project (Social Networks and Media) that collects posts from **Mastodon**, estimates which ones were written by an AI, checks verifiable claims and studies how content spreads through the social network. The results are explored through a web interface. Code, comments and documentation are in Italian.
 
-## Cosa fa
+## What it does
 
-1. **Raccolta.** Per ogni argomento in `topic_list.txt` trova le istanze Mastodon più attive, ne scopre gli hashtag più usati e scarica i post, insieme agli account e agli archi della rete (follow, boost, risposte). Tutto finisce in un database (PostgreSQL o SQLite).
-2. **Rilevamento di testo sintetico.** Ogni testo passa da rilevatori indipendenti: Fast-DetectGPT, AdaDetectGPT, Binoculars e Desklib. Un confronto tra i rilevatori (`comparatore_detector/`) mostra dove concordano e dove no.
-3. **Verifica.** Un modello stima se un post contiene un'affermazione controllabile (*check-worthiness*); le affermazioni vengono poi verificate con un LLM che cerca prove sul web e cita le fonti.
-4. **Rete e diffusione.**
-   - Community detection sul grafo sociale (Leiden, Infomap).
-   - Influence maximization con CELF++, PMIA e SKIM, per scegliere da quali nodi conviene partire.
-   - Simulazioni Monte Carlo (modello Independent Cascade) e TwitterRank per misurare fin dove arriva un contenuto.
-5. **Interfaccia.** Backend FastAPI e frontend React che presentano il lavoro come una sequenza di capitoli: i corpus, il testo sintetico, la verifica, la propagazione.
+1. **Collection.** For each topic in `topic_list.txt` it finds the most active Mastodon instances, discovers their most used hashtags and downloads the posts, together with accounts and network edges (follows, boosts, replies). Everything goes into a database (PostgreSQL or SQLite).
+2. **Synthetic-text detection.** Every text goes through independent detectors: Fast-DetectGPT, AdaDetectGPT, Binoculars and Desklib. A comparison across detectors (`comparatore_detector/`) shows where they agree and where they do not.
+3. **Verification.** A model estimates whether a post contains a checkable claim (*check-worthiness*); claims are then verified by an LLM that searches the web for evidence and cites its sources.
+4. **Network and diffusion.**
+   - Community detection on the social graph (Leiden, Infomap).
+   - Influence maximization with CELF++, PMIA and SKIM, to choose the nodes to start from.
+   - Monte Carlo simulations (Independent Cascade model) and TwitterRank to measure how far a piece of content travels.
+5. **Interface.** A FastAPI backend and a React frontend that present the work as a sequence of chapters: the corpora, synthetic text, verification, propagation.
 
-## Struttura
+## Structure
 
-| Percorso | Contenuto |
+| Path | Content |
 |---|---|
-| `pipeline.py`, `snm/collection/` | Raccolta dati da Mastodon |
-| `snm/storage/`, `db/` | Accesso al database e schemi (PostgreSQL, SQLite) |
-| `snm/analysis/` | Export testi, check-worthiness, fact-checking, import/export DB |
-| `snm/graph/` | Costruzione del grafo, community detection, visualizzazioni |
-| `binoculars/`, `desklib_detector/`, `comparatore_detector/` | Rilevatori di testo sintetico e confronto |
-| `Max_Influence/` | Algoritmi di influence maximization e risultati |
-| `misinformation_impact/` | Simulazioni di diffusione della disinformazione |
-| `webapp/` | API FastAPI |
-| `frontend/` | Interfaccia React + Vite |
-| `tests/` | Test del backend (pytest) |
+| `pipeline.py`, `snm/collection/` | Data collection from Mastodon |
+| `snm/storage/`, `db/` | Database access and schemas (PostgreSQL, SQLite) |
+| `snm/analysis/` | Text export, check-worthiness, fact-checking, DB import/export |
+| `snm/graph/` | Graph construction, community detection, visualizations |
+| `binoculars/`, `desklib_detector/`, `comparatore_detector/` | Synthetic-text detectors and comparison |
+| `Max_Influence/` | Influence-maximization algorithms and results |
+| `misinformation_impact/` | Misinformation diffusion simulations |
+| `webapp/` | FastAPI API |
+| `frontend/` | React + Vite interface |
+| `tests/` | Backend tests (pytest) |
 
-Per il dettaglio di ogni file vedi [`report.md`](report.md); per l'idea di prodotto, [`PRODUCT.md`](PRODUCT.md) e [`DESIGN.md`](DESIGN.md).
+For a per-file description see [`report.md`](report.md); for the product idea, [`PRODUCT.md`](PRODUCT.md) and [`DESIGN.md`](DESIGN.md) (in Italian).
 
-## Requisiti
+## Requirements
 
 - Python 3.10+
 - Node.js 18+
-- Un database: SQLite (nessuna installazione) oppure PostgreSQL
-- Facoltativo: una GPU per i rilevatori basati su modelli (`torch`, `transformers`)
+- A database: SQLite (no installation) or PostgreSQL
+- Optional: a GPU for the model-based detectors (`torch`, `transformers`)
 
-## Installazione
+## Installation
 
 ```bash
 python -m venv .venv
@@ -48,39 +48,39 @@ pip install -r requirements.txt
 
 cd frontend && npm install && cd ..
 
-cp env.example .env                # poi compila i valori
+cp env.example .env                # then fill in the values
 ```
 
-In `.env` imposta almeno `DATABASE_URL`. `INSTANCES_SOCIAL_API` serve per scoprire le istanze e i token `MASTODON_TOKEN_*` sono facoltativi: senza, si usa l'accesso anonimo, con rate limit più basso.
+In `.env` set at least `DATABASE_URL`. `INSTANCES_SOCIAL_API` is needed to discover instances, and the `MASTODON_TOKEN_*` tokens are optional: without them anonymous access is used, with a lower rate limit.
 
-## Avvio
+## Running
 
-Tutto insieme su Windows:
+Everything at once on Windows:
 
 ```powershell
 .\start_all.ps1
 ```
 
-Oppure separatamente:
+Or separately:
 
 ```bash
 uvicorn webapp.main:app --port 8088 --reload     # backend  → http://127.0.0.1:8088
 cd frontend && npm run dev                       # frontend → http://localhost:5173
 ```
 
-Per raccogliere nuovi dati:
+To collect new data:
 
 ```bash
 python pipeline.py
 ```
 
-## Dati
+## Data
 
-Il repository **non contiene** il corpus dei post e i risultati pesanti (`post_texts.jsonl`, i punteggi dei rilevatori completi, i report di fact-checking): sono contenuti pubblicati da altre persone, e si rigenerano con la pipeline. Restano nel repository i risultati aggregati e piccoli (`Max_Influence/Risultati_IM/`, `Risultati_Binoculars/`, i grafici ROC in `data/`).
+The repository **does not contain** the post corpus and the heavy results (`post_texts.jsonl`, the full detector scores, the fact-checking reports): they are content published by other people, and they can be regenerated with the pipeline. Small aggregated results stay in the repository (`Max_Influence/Risultati_IM/`, `Risultati_Binoculars/`, the ROC plots in `data/`).
 
-Per come vengono cercati i file di output e per personalizzarne i percorsi vedi [`DATASET_SETUP.md`](DATASET_SETUP.md).
+For how output files are looked up and how to customize their paths see [`DATASET_SETUP.md`](DATASET_SETUP.md).
 
-## Test
+## Tests
 
 ```bash
 pip install pytest
